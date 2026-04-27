@@ -315,7 +315,7 @@ import { Modal, message } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useAiGenerator } from "@/composables/useAiGenerator";
-import { useMcpStore } from "@/store/mcp";
+import { useAppStore } from "@/store/app";
 
 import "@/styles/generator.less";
 
@@ -323,7 +323,7 @@ defineOptions({ name: "GenerateDesign" });
 
 const { t } = useI18n();
 const route = useRoute();
-const mcpStore = useMcpStore();
+const appStore = useAppStore();
 
 const {
   projectName,
@@ -486,7 +486,7 @@ const methFiles = ref<MethFileInfo[]>([]);
 const methListLoading = ref(false);
 const methListLoaded = ref(false);
 
-const methDirPath = computed(() => mcpStore.config.methodologyPath || "");
+const methDirPath = computed(() => appStore.config.methodologyPath || "");
 
 const methPreviewOpen = ref(false);
 const methPreviewName = ref("");
@@ -500,7 +500,7 @@ function isMethFileReferenced(filePath: string): boolean {
 
 async function loadMethFiles() {
   if (methListLoaded.value) return;
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) return;
   methListLoading.value = true;
   try {
@@ -529,8 +529,8 @@ async function pickMethDir() {
   const dir = await e.app.selectDirectory(t("settings.methodologyPath"));
   if (isIpcErr(dir)) return;
   if (typeof dir === "string" && dir) {
-    const cfg = { ...mcpStore.config, methodologyPath: dir };
-    await mcpStore.setConfig(cfg);
+    const cfg = { ...appStore.config, methodologyPath: dir };
+    await appStore.setConfig(cfg);
     methListLoaded.value = false;
     void loadMethFiles();
   }
@@ -542,7 +542,7 @@ function refreshMethFiles() {
 }
 
 onMounted(() => {
-  void mcpStore.fetchConfig();
+  void appStore.fetchConfig();
 });
 
 async function previewMethFile(item: MethFileInfo) {
@@ -552,7 +552,7 @@ async function previewMethFile(item: MethFileInfo) {
   methReadError.value = "";
   methPreviewHtml.value = "";
   try {
-    const api = window.electronAPI?.mcp;
+    const api = window.electronAPI?.app;
     if (!api) {
       methReadError.value = "API unavailable";
       return;
@@ -574,7 +574,7 @@ async function previewMethFile(item: MethFileInfo) {
 
 async function addMethAsReference(item: MethFileInfo) {
   if (isMethFileReferenced(item.path)) return;
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) return;
   const res = await api.readMethodologyFile(item.path);
   if (isIpcErr(res)) {

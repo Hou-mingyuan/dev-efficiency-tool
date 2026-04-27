@@ -87,7 +87,7 @@ export default {
     clearAllCaches: "清除全部项目缓存",
     clearAllCachesConfirm: "确定清除所有项目的分析缓存？此操作不可恢复。",
     cachesCleared: "已清除 {count} 个缓存",
-    autoStart: "随应用自动启动 MCP",
+    autoStart: "随应用自动启动服务",
     addProvider: "添加服务商",
     addCustom: "添加自定义",
     customProvider: "自定义终端点",
@@ -179,7 +179,7 @@ export default {
   logs: {
     title: "日志查看",
     clear: "清空日志",
-    clearConfirm: "确定清空所有 MCP 日志？",
+    clearConfirm: "确定清空所有日志？",
     export: "导出",
     filter: "筛选",
     search: "搜索",

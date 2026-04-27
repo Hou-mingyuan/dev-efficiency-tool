@@ -15,7 +15,7 @@ import { storeToRefs } from "pinia";
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { useMcpStore } from "@/store/mcp";
+import { useAppStore } from "@/store/app";
 
 function isIpcError(v: unknown): v is IpcErrorResult {
   return (
@@ -28,10 +28,10 @@ function isIpcError(v: unknown): v is IpcErrorResult {
 
 const { t } = useI18n();
 const router = useRouter();
-const mcpStore = useMcpStore();
+const appStore = useAppStore();
 
-const projects = computed(() => mcpStore.config.projects ?? []);
-const activeProjectId = computed(() => mcpStore.config.activeProjectId ?? "");
+const projects = computed(() => appStore.config.projects ?? []);
+const activeProjectId = computed(() => appStore.config.activeProjectId ?? "");
 const activeProject = computed(() => projects.value.find((p) => p.id === activeProjectId.value));
 
 const showProjectModal = ref(false);
@@ -122,8 +122,8 @@ async function onCreateProject() {
     outputPath: newProject.value.outputPath,
     methodologyPath: newProject.value.methodologyPath,
   };
-  const currentProjects = [...(mcpStore.config.projects ?? []), p];
-  await mcpStore.setConfig({
+  const currentProjects = [...(appStore.config.projects ?? []), p];
+  await appStore.setConfig({
     projects: currentProjects,
     activeProjectId: p.id,
     projectPath: p.projectPath,
@@ -137,12 +137,12 @@ async function onCreateProject() {
 
 async function onProjectChange(id: string | null | undefined) {
   if (id == null || id === "") {
-    await mcpStore.setConfig({ activeProjectId: "" });
+    await appStore.setConfig({ activeProjectId: "" });
     return;
   }
   const proj = projects.value.find((p) => p.id === id);
   if (!proj) return;
-  await mcpStore.setConfig({
+  await appStore.setConfig({
     activeProjectId: id,
     projectPath: proj.projectPath,
     outputPath: proj.outputPath,
@@ -160,15 +160,15 @@ async function onDeleteProject() {
     okText: t("common.confirm"),
     cancelText: t("common.cancel"),
     async onOk() {
-      const filtered = (mcpStore.config.projects ?? []).filter((p) => p.id !== id);
-      await mcpStore.setConfig({ projects: filtered, activeProjectId: "" });
+      const filtered = (appStore.config.projects ?? []).filter((p) => p.id !== id);
+      await appStore.setConfig({ projects: filtered, activeProjectId: "" });
       message.success(`${t("common.delete")} ${t("common.success")}`);
     },
   });
 }
 
 onMounted(() => {
-  void mcpStore.fetchConfig();
+  void appStore.fetchConfig();
   void loadHistory();
 });
 </script>

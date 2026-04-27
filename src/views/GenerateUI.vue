@@ -388,8 +388,8 @@ const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mim
 const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
 const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath: string }>>([]);
-const useMcpStore = () => {
-  const store = import("@/store/mcp").then((m) => m.useMcpStore());
+const useAppStoreLazy = () => {
+  const store = import("@/store/app").then((m) => m.useAppStore());
   return store;
 };
 
@@ -485,8 +485,8 @@ async function generateUIImage() {
   });
 
   try {
-    const mcpStore = (await import("@/store/mcp")).useMcpStore();
-    const outputDir = customOutputPath.value || mcpStore.config.outputPath;
+    const appStore = (await import("@/store/app")).useAppStore();
+    const outputDir = customOutputPath.value || appStore.config.outputPath;
     if (!outputDir) {
       const picked = await selectOutputDir();
       if (!picked) {
@@ -513,10 +513,10 @@ async function generateUIImage() {
       userContent: imgUserContent,
       providerId: customProviderId.value || undefined,
       images: images.length ? images : undefined,
-      outputDir: customOutputPath.value || mcpStore.config.outputPath,
+      outputDir: customOutputPath.value || appStore.config.outputPath,
       imageFormat: imageFormat.value,
       referenceContent: refContent || undefined,
-      projectPath: referenceProjectPath.value || mcpStore.config.projectPath || undefined,
+      projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
     });
 
     if (isIpcErr(res)) {

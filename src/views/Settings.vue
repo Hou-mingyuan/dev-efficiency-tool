@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMcpStore, DEFAULT_AI_PROVIDERS } from "@/store/mcp";
+import { useAppStore, DEFAULT_AI_PROVIDERS } from "@/store/app";
 import { useNotificationStore } from "@/store/notification";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -13,7 +13,7 @@ function isIpcError(v: unknown): v is IpcErrorResult {
   );
 }
 
-function ensurePromptKeys(c: McpConfig): void {
+function ensurePromptKeys(c: AppConfig): void {
   if (!c.customPrompts) c.customPrompts = {};
   (["prd", "requirements", "ui", "design"] as const).forEach((k) => {
     if (c.customPrompts![k] === undefined) c.customPrompts![k] = "";
@@ -21,18 +21,15 @@ function ensurePromptKeys(c: McpConfig): void {
 }
 
 const { t } = useI18n();
-const mcpStore = useMcpStore();
+const appStore = useAppStore();
 const notificationStore = useNotificationStore();
 
 const tabKey = ref<"basic" | "ai" | "prompt" | "backup">("basic");
-const draft = ref<McpConfig>({
-  port: 3100,
-  transport: "sse",
+const draft = ref<AppConfig>({
   methodologyPath: "",
   projectPath: "",
   outputPath: "",
   cachePath: "",
-  autoStart: false,
   aiProviders: DEFAULT_AI_PROVIDERS.map((p) => ({ ...p })),
   activeProviderId: "",
   customPrompts: {},
@@ -71,8 +68,8 @@ function pushNotify(
 }
 
 function applyDraftFromStore() {
-  const raw = mcpStore.config;
-  const next = JSON.parse(JSON.stringify(raw)) as McpConfig;
+  const raw = appStore.config;
+  const next = JSON.parse(JSON.stringify(raw)) as AppConfig;
   ensurePromptKeys(next);
   draft.value = next;
 }
@@ -201,7 +198,7 @@ function scheduleSave() {
   saveTimer = setTimeout(() => {
     void (async () => {
       saveTimer = null;
-      await mcpStore.setConfig({ ...draft.value });
+      await appStore.setConfig({ ...draft.value });
       pushNotify("success", t("common.success"), t("settings.saveSuccess"));
     })();
   }, 600);
@@ -240,7 +237,7 @@ async function onImportConfig() {
     pushNotify("error", t("common.error"), t("settings.importFailed"));
     return;
   }
-  await mcpStore.fetchConfig();
+  await appStore.fetchConfig();
   applyDraftFromStore();
   await nextTick();
   ignoreWatch.value = false;
@@ -248,7 +245,7 @@ async function onImportConfig() {
 }
 
 onMounted(async () => {
-  await mcpStore.fetchConfig();
+  await appStore.fetchConfig();
   applyDraftFromStore();
   await nextTick();
   ignoreWatch.value = false;

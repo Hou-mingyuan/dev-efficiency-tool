@@ -108,7 +108,7 @@ function formatSize(bytes: number): string {
 }
 
 async function loadFileList() {
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) return;
   listLoading.value = true;
   try {
@@ -129,7 +129,7 @@ async function onSelectFile(item: MethodologyFileInfo) {
   selectedPath.value = item.path;
   readError.value = "";
   rawMarkdown.value = "";
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) {
     readError.value = t("common.error");
     return;

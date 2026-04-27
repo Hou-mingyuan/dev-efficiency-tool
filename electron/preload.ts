@@ -58,23 +58,16 @@ export interface ElectronAPI {
     offPageReady: (cleanup?: IpcCleanup) => void;
     checkFilesExist: (paths: string[]) => Promise<Record<string, boolean>>;
   };
-  mcp: {
-    getStatus: () => Promise<unknown>;
-    start: () => Promise<unknown>;
-    stop: () => Promise<unknown>;
-    getLogs: () => Promise<unknown>;
-    clearLogs: () => Promise<unknown>;
+  app: {
     getConfig: () => Promise<unknown>;
     setConfig: (config: unknown) => Promise<unknown>;
+    onConfigChanged: (callback: (config: unknown) => void) => IpcCleanup;
+    offConfigChanged: (cleanup?: IpcCleanup) => void;
+    getLogs: () => Promise<unknown>;
+    clearLogs: () => Promise<unknown>;
     getMethodologyFiles: () => Promise<unknown>;
     readMethodologyFile: (path: string) => Promise<unknown>;
     writeMethodologyFile: (path: string, content: string) => Promise<unknown>;
-    getIdeConfigs: () => Promise<unknown>;
-    installToIde: (ideId: unknown) => Promise<unknown>;
-    onConfigChanged: (callback: (config: unknown) => void) => IpcCleanup;
-    offConfigChanged: (cleanup?: IpcCleanup) => void;
-  };
-  app: {
     openExternal: (url: string) => Promise<unknown>;
     getVersion: () => Promise<unknown>;
     setAutoLaunch: (enabled: boolean) => Promise<unknown>;
@@ -144,27 +137,20 @@ const electronAPI: ElectronAPI = {
     },
     checkFilesExist: (paths) => ipcRenderer.invoke("ai:checkFilesExist", paths),
   },
-  mcp: {
-    getStatus: () => ipcRenderer.invoke("mcp:getStatus"),
-    start: () => ipcRenderer.invoke("mcp:start"),
-    stop: () => ipcRenderer.invoke("mcp:stop"),
-    getLogs: () => ipcRenderer.invoke("mcp:getLogs"),
-    clearLogs: () => ipcRenderer.invoke("mcp:clearLogs"),
-    getConfig: () => ipcRenderer.invoke("mcp:getConfig"),
-    setConfig: (config) => ipcRenderer.invoke("mcp:setConfig", config),
-    getMethodologyFiles: () => ipcRenderer.invoke("mcp:getMethodologyFiles"),
-    readMethodologyFile: (path) => ipcRenderer.invoke("mcp:readMethodologyFile", path),
-    writeMethodologyFile: (path, content) =>
-      ipcRenderer.invoke("mcp:writeMethodologyFile", path, content),
-    getIdeConfigs: () => ipcRenderer.invoke("mcp:getIdeConfigs"),
-    installToIde: (id) => ipcRenderer.invoke("mcp:installToIde", id),
-    onConfigChanged: (callback) => listenPayload("mcp:configChanged", callback),
+  app: {
+    getConfig: () => ipcRenderer.invoke("app:getConfig"),
+    setConfig: (config) => ipcRenderer.invoke("app:setConfig", config),
+    onConfigChanged: (callback) => listenPayload("app:configChanged", callback),
     offConfigChanged: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
-      else ipcRenderer.removeAllListeners("mcp:configChanged");
+      else ipcRenderer.removeAllListeners("app:configChanged");
     },
-  },
-  app: {
+    getLogs: () => ipcRenderer.invoke("app:getLogs"),
+    clearLogs: () => ipcRenderer.invoke("app:clearLogs"),
+    getMethodologyFiles: () => ipcRenderer.invoke("app:getMethodologyFiles"),
+    readMethodologyFile: (path) => ipcRenderer.invoke("app:readMethodologyFile", path),
+    writeMethodologyFile: (path, content) =>
+      ipcRenderer.invoke("app:writeMethodologyFile", path, content),
     openExternal: (url) => ipcRenderer.invoke("app:openExternal", url),
     getVersion: () => ipcRenderer.invoke("app:getVersion"),
     setAutoLaunch: (enabled) => ipcRenderer.invoke("app:setAutoLaunch", enabled),

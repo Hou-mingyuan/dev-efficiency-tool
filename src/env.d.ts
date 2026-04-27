@@ -26,14 +26,11 @@ declare global {
     methodologyPath: string;
   }
 
-  interface McpConfig {
-    port: number;
-    transport: string;
+  interface AppConfig {
     methodologyPath: string;
     projectPath: string;
     outputPath: string;
     cachePath: string;
-    autoStart: boolean;
     aiProviders: AiProvider[];
     activeProviderId: string;
     customPrompts: Record<string, string>;
@@ -74,21 +71,11 @@ declare global {
     outputPath?: string;
   }
 
-  interface McpStatus {
-    running: boolean;
-    pid: number | null;
-    port: number;
-    transport: string;
-    uptime: number;
-    startedAt: string | null;
-    toolCallCount: number;
-  }
+  type LogLevel = "info" | "warn" | "error";
 
-  type McpLogLevel = "info" | "warn" | "error";
-
-  interface McpLogEntry {
+  interface LogEntry {
     timestamp: string;
-    level: McpLogLevel;
+    level: LogLevel;
     message: string;
     source: string;
   }
@@ -149,23 +136,16 @@ declare global {
       offPageReady: (cleanup?: IpcCleanup) => void;
       checkFilesExist: (paths: string[]) => Promise<Record<string, boolean>>;
     };
-    mcp: {
-      getStatus: () => Promise<McpStatus | IpcErrorResult>;
-      start: () => Promise<unknown>;
-      stop: () => Promise<unknown>;
-      getLogs: () => Promise<McpLogEntry[] | IpcErrorResult>;
+    app: {
+      getConfig: () => Promise<AppConfig | IpcErrorResult>;
+      setConfig: (config: AppConfig) => Promise<unknown>;
+      onConfigChanged: (callback: (config: AppConfig) => void) => IpcCleanup;
+      offConfigChanged: (cleanup?: IpcCleanup) => void;
+      getLogs: () => Promise<LogEntry[] | IpcErrorResult>;
       clearLogs: () => Promise<unknown>;
-      getConfig: () => Promise<McpConfig | IpcErrorResult>;
-      setConfig: (config: McpConfig) => Promise<unknown>;
       getMethodologyFiles: () => Promise<unknown>;
       readMethodologyFile: (path: string) => Promise<unknown>;
       writeMethodologyFile: (path: string, content: string) => Promise<unknown>;
-      getIdeConfigs: () => Promise<unknown>;
-      installToIde: (ideId: string) => Promise<unknown>;
-      onConfigChanged: (callback: (config: McpConfig) => void) => IpcCleanup;
-      offConfigChanged: (cleanup?: IpcCleanup) => void;
-    };
-    app: {
       openExternal: (url: string) => Promise<unknown>;
       getVersion: () => Promise<string | IpcErrorResult>;
       setAutoLaunch: (enabled: boolean) => Promise<unknown>;

@@ -1,6 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from "vue";
 import { useI18n } from "vue-i18n";
-import { useMcpStore } from "@/store/mcp";
+import { useAppStore } from "@/store/app";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { message } from "ant-design-vue";
@@ -18,7 +18,7 @@ function isIpcError(value: unknown): value is IpcErrorResult {
 
 export function useAiGenerator(docType: DocType) {
   const { t } = useI18n();
-  const mcpStore = useMcpStore();
+  const appStore = useAppStore();
 
   const projectName = ref("");
   const userContent = ref("");
@@ -108,26 +108,26 @@ export function useAiGenerator(docType: DocType) {
   );
 
   const allProviders = computed(() =>
-    (mcpStore.config.aiProviders ?? []).filter((p) => p.id !== "custom"),
+    (appStore.config.aiProviders ?? []).filter((p) => p.id !== "custom"),
   );
 
   const availableProviders = computed(() =>
-    (mcpStore.config.aiProviders ?? []).filter((p) => p.enabled && p.apiKey),
+    (appStore.config.aiProviders ?? []).filter((p) => p.enabled && p.apiKey),
   );
 
   const selectedProvider = computed(() => {
     if (!customProviderId.value) return null;
-    return (mcpStore.config.aiProviders ?? []).find((p) => p.id === customProviderId.value) ?? null;
+    return (appStore.config.aiProviders ?? []).find((p) => p.id === customProviderId.value) ?? null;
   });
 
   const activeProviderLabel = computed(() => {
     if (!customProviderId.value) return t("gen.common.useDefaultAi");
-    const found = (mcpStore.config.aiProviders ?? []).find((p) => p.id === customProviderId.value);
+    const found = (appStore.config.aiProviders ?? []).find((p) => p.id === customProviderId.value);
     return found ? found.name : t("gen.common.useDefaultAi");
   });
 
   async function saveProviderField(providerId: string, field: "apiKey" | "model", value: string) {
-    const providers = (mcpStore.config.aiProviders ?? []).map((p) => {
+    const providers = (appStore.config.aiProviders ?? []).map((p) => {
       const plain = { ...p };
       if (p.id === providerId) {
         plain[field] = value;
@@ -135,9 +135,9 @@ export function useAiGenerator(docType: DocType) {
       }
       return plain;
     });
-    await mcpStore.setConfig({
+    await appStore.setConfig({
       aiProviders: providers,
-      activeProviderId: mcpStore.config.activeProviderId || providerId,
+      activeProviderId: appStore.config.activeProviderId || providerId,
     });
   }
 
@@ -184,7 +184,7 @@ export function useAiGenerator(docType: DocType) {
   }
 
   function getEffectiveProjectPath(): string | undefined {
-    return referenceProjectPath.value || mcpStore.config.projectPath || undefined;
+    return referenceProjectPath.value || appStore.config.projectPath || undefined;
   }
 
   async function checkProjectCache() {
@@ -252,7 +252,7 @@ export function useAiGenerator(docType: DocType) {
   }
 
   onMounted(() => {
-    void mcpStore.fetchConfig();
+    void appStore.fetchConfig();
     setupListeners();
     restoreDraft();
     void checkProjectCache();
@@ -370,7 +370,7 @@ export function useAiGenerator(docType: DocType) {
         userContent: finalContent,
         referenceContent: referenceContent.value,
         providerId: customProviderId.value || undefined,
-        projectPath: referenceProjectPath.value || mcpStore.config.projectPath || undefined,
+        projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
       });
       if (isIpcError(res)) {
         generating.value = false;
@@ -388,7 +388,7 @@ export function useAiGenerator(docType: DocType) {
 
   async function saveDocument() {
     if (!result.value) return;
-    const outputDir = customOutputPath.value || mcpStore.config.outputPath || (await selectOutputDir());
+    const outputDir = customOutputPath.value || appStore.config.outputPath || (await selectOutputDir());
     if (!outputDir) return;
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const ext = outputFormat.value;
@@ -427,7 +427,7 @@ export function useAiGenerator(docType: DocType) {
   }
 
   function importFromPreviousResult() {
-    const prev = mcpStore.lastGenResult;
+    const prev = appStore.lastGenResult;
     if (prev) {
       userContent.value = prev;
       message.success(t("gen.common.importPrev"));
@@ -437,8 +437,8 @@ export function useAiGenerator(docType: DocType) {
   }
 
   function setResultForNextStep() {
-    mcpStore.lastGenResult = result.value;
-    mcpStore.lastGenType = docType;
+    appStore.lastGenResult = result.value;
+    appStore.lastGenType = docType;
     message.success(t("gen.common.importNextStepOk"));
   }
 

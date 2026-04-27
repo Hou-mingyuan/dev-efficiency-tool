@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AiProvider } from "./mcp-manager";
+import type { AiProvider } from "./app-manager";
 
 /** ESM replacement for `__dirname` (this module’s directory) */
 export const ESM_DIRNAME = path.dirname(fileURLToPath(import.meta.url));

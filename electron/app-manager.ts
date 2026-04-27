@@ -3,11 +3,10 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { execSync, spawn, type ChildProcess } from "node:child_process";
+import { execSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-/** Encrypted API key prefix written to config when safeStorage is available */
 export const ENCRYPTED_API_KEY_PREFIX = "__ENC__:";
 
 export const MAX_GEN_HISTORY = 50;
@@ -40,13 +39,10 @@ export interface ProjectProfile {
 }
 
 export interface AppConfig {
-  port: number;
-  transport: string;
   methodologyPath: string;
   projectPath: string;
   outputPath: string;
   cachePath: string;
-  autoStart: boolean;
   aiProviders: AiProvider[];
   activeProviderId: string;
   customPrompts: Record<string, string>;
@@ -122,13 +118,10 @@ export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
 ];
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
-  port: 3100,
-  transport: "sse",
   methodologyPath: "",
   projectPath: "",
   outputPath: "",
   cachePath: "",
-  autoStart: false,
   aiProviders: DEFAULT_AI_PROVIDERS,
   activeProviderId: "",
   customPrompts: {},
@@ -145,32 +138,10 @@ export interface LogEntry {
   source: string;
 }
 
-export interface McpStatus {
-  running: boolean;
-  pid: number | null;
-  port: number;
-  transport: string;
-  uptime: number;
-  startedAt: string | null;
-  toolCallCount: number;
-}
-
 export interface MethodologyFileInfo {
   name: string;
   path: string;
   size: number;
-}
-
-export interface IdeConfigInfo {
-  name: string;
-  id: string;
-  configPath: string;
-  installed: boolean;
-  detected: boolean;
-}
-
-export interface StartOptions {
-  isAutoRestart?: boolean;
 }
 
 export type DocumentParseType = "markdown" | "docx" | "xlsx" | "unknown" | "error";
@@ -189,10 +160,6 @@ export interface GenerationRecord {
   outputPath?: string;
 }
 
-/**
- * Returns true if `candidatePath` is the same as or contained under `baseDir` (resolved),
- * preventing path traversal outside the methodology root.
- */
 export function isPathWithinBase(baseDir: string, candidatePath: string): boolean {
   if (!baseDir) return false;
   const baseResolved = path.resolve(baseDir);
@@ -203,22 +170,16 @@ export function isPathWithinBase(baseDir: string, candidatePath: string): boolea
   return !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
-export class McpManager {
+export class AppManager {
   static readonly LOG_ROTATE_BYTES = 5 * 1024 * 1024;
 
-  process: ChildProcess | null = null;
   logs: LogEntry[] = [];
   config: AppConfig;
-  startedAt: Date | null = null;
-  toolCallCount = 0;
 
   private readonly configPath: string;
   private readonly appLogFile: string;
   private readonly genHistoryPath: string;
   private warnedPlaintextApiKey = false;
-  private readonly maxRestartAttempts = 3;
-  private restartCount = 0;
-  private intentionalStop = false;
 
   constructor() {
     const appData = path.join(os.homedir(), ".lng-methodology-desktop");
@@ -294,8 +255,8 @@ export class McpManager {
     if (this.config.methodologyPath && fs.existsSync(this.config.methodologyPath)) return;
 
     const candidates = [
-      path.join(process.resourcesPath || "", "mcp-core"),
-      path.join(__dirname, "..", "mcp-core"),
+      path.join(process.resourcesPath || "", "methodology-core"),
+      path.join(__dirname, "..", "methodology-core"),
       path.resolve(__dirname, "../../lng-methodology-mcp"),
       path.resolve(__dirname, "../../lng-team-methodology-mcp-0.5.0/package"),
     ];
@@ -332,7 +293,7 @@ export class McpManager {
       if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
       if (
         fs.existsSync(this.appLogFile) &&
-        fs.statSync(this.appLogFile).size > McpManager.LOG_ROTATE_BYTES
+        fs.statSync(this.appLogFile).size > AppManager.LOG_ROTATE_BYTES
       ) {
         const oldPath = `${this.appLogFile}.old`;
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -351,98 +312,6 @@ export class McpManager {
     this.appendPersistentLogLine(
       `[${timestamp}] [${level.toUpperCase()}] [${source}] ${message}`,
     );
-  }
-
-  async start(options?: StartOptions): Promise<void> {
-    if (this.process) {
-      this.addLog("warn", "MCP Server 已在运行中", "mcp");
-      return;
-    }
-    if (!options?.isAutoRestart) this.restartCount = 0;
-    this.intentionalStop = false;
-
-    const entry = path.join(this.config.methodologyPath, "dist", "index.js");
-    if (!fs.existsSync(entry)) {
-      this.addLog("error", `入口文件不存在: ${entry}`, "mcp");
-      return;
-    }
-
-    this.addLog("info", `启动 MCP Server: ${entry}`, "mcp");
-
-    const env: NodeJS.ProcessEnv = { ...process.env, MCP_TRANSPORT: this.config.transport };
-    if (this.config.transport === "sse") {
-      env.MCP_PORT = String(this.config.port);
-    }
-
-    this.process = spawn("node", [entry], {
-      cwd: this.config.methodologyPath,
-      env,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    this.startedAt = new Date();
-    this.toolCallCount = 0;
-
-    this.process.stdout?.on("data", (buf) => {
-      const s = buf.toString().trim();
-      if (s) this.addLog("info", s, "stdout");
-    });
-    this.process.stderr?.on("data", (buf) => {
-      const s = buf.toString().trim();
-      if (s) this.addLog("error", s, "stderr");
-    });
-
-    const proc = this.process;
-    let handled = false;
-    const onExit = (code: number | null, from: "exit" | "close") => {
-      if (handled) return;
-      handled = true;
-      if (this.process === proc) {
-        this.process = null;
-        this.startedAt = null;
-      }
-      this.addLog("info", `MCP Server 已退出，退出码: ${code} (${from})`, "mcp");
-      if (this.intentionalStop) {
-        this.intentionalStop = false;
-        return;
-      }
-      if (this.restartCount < this.maxRestartAttempts) {
-        this.restartCount++;
-        this.addLog(
-          "info",
-          `MCP Server 崩溃后自动重启 (第 ${this.restartCount}/${this.maxRestartAttempts} 次)`,
-          "mcp",
-        );
-        void this.start({ isAutoRestart: true });
-      }
-    };
-    proc.on("exit", (code) => onExit(code, "exit"));
-    proc.on("close", (code) => onExit(code, "close"));
-    this.process.on("error", (err) => {
-      this.addLog("error", `MCP Server 启动失败: ${err.message}`, "mcp");
-      this.process = null;
-      this.startedAt = null;
-    });
-  }
-
-  async stop(): Promise<void> {
-    if (!this.process) return;
-    this.intentionalStop = true;
-    this.addLog("info", "正在停止 MCP Server...", "mcp");
-    this.process.kill("SIGTERM");
-    this.process = null;
-    this.startedAt = null;
-  }
-
-  getStatus(): McpStatus {
-    return {
-      running: this.process !== null,
-      pid: this.process?.pid ?? null,
-      port: this.config.port,
-      transport: this.config.transport,
-      uptime: this.startedAt ? Date.now() - this.startedAt.getTime() : 0,
-      startedAt: this.startedAt?.toISOString() ?? null,
-      toolCallCount: this.toolCallCount,
-    };
   }
 
   getLogs(): LogEntry[] {
@@ -486,77 +355,6 @@ export class McpManager {
     }
     if (!fs.existsSync(filePath)) return "文件不存在";
     return fs.readFileSync(filePath, "utf-8");
-  }
-
-  detectIdeConfigs(): IdeConfigInfo[] {
-    const home = os.homedir();
-    const list: IdeConfigInfo[] = [
-      {
-        name: "Cursor",
-        id: "cursor",
-        configPath: path.join(home, ".cursor", "mcp.json"),
-        installed: false,
-        detected: false,
-      },
-      {
-        name: "VS Code",
-        id: "vscode",
-        configPath: path.join(home, ".vscode", "mcp.json"),
-        installed: false,
-        detected: false,
-      },
-      {
-        name: "Trae CN",
-        id: "trae-cn",
-        configPath: path.join(home, ".trae", "mcp.json"),
-        installed: false,
-        detected: false,
-      },
-    ];
-
-    for (const ide of list) {
-      ide.detected = fs.existsSync(path.dirname(ide.configPath));
-      if (fs.existsSync(ide.configPath)) {
-        try {
-          const j = JSON.parse(fs.readFileSync(ide.configPath, "utf-8")) as {
-            mcpServers?: Record<string, unknown>;
-            servers?: Record<string, unknown>;
-          };
-          ide.installed =
-            j.mcpServers?.["lng-methodology"] !== undefined ||
-            j.servers?.["lng-methodology"] !== undefined;
-        } catch {
-          ide.installed = false;
-        }
-      }
-    }
-    return list;
-  }
-
-  installToIde(ideId: string): boolean {
-    const ide = this.detectIdeConfigs().find((c) => c.id === ideId);
-    if (!ide) return false;
-    const entry = path.join(this.config.methodologyPath, "dist", "index.js");
-    if (!fs.existsSync(entry)) return false;
-
-    const block = { command: "node", args: [entry] };
-    let root: { mcpServers?: Record<string, unknown>; servers?: Record<string, unknown> } = {};
-    if (fs.existsSync(ide.configPath)) {
-      try {
-        root = JSON.parse(fs.readFileSync(ide.configPath, "utf-8"));
-      } catch {
-        root = {};
-      }
-    }
-    const key = ideId === "cursor" || ideId === "vscode" ? "mcpServers" : "servers";
-    if (!root[key]) root[key] = {};
-    (root[key] as Record<string, unknown>)["lng-methodology"] = block;
-
-    const dir = path.dirname(ide.configPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(ide.configPath, JSON.stringify(root, null, 2), "utf-8");
-    this.addLog("info", `已安装 MCP 配置到 ${ide.name}`, "ide");
-    return true;
   }
 
   writeMethodologyFile(filePath: string, content: string): boolean {
@@ -628,7 +426,6 @@ export class McpManager {
     }
   }
 
-  /** After saving output to disk, attach the file path to a history row. */
   updateGenerationOutputPath(id: string, outputPath: string): void {
     const list = this.getGenerationHistory();
     const i = list.findIndex((r) => r.id === id);

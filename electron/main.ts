@@ -17,9 +17,8 @@ import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import pkg from "electron-updater";
 import { randomUUID } from "node:crypto";
-import net from "node:net";
 import { Marked } from "marked";
-import { McpManager, type AiProvider } from "./mcp-manager";
+import { AppManager, type AiProvider } from "./app-manager";
 import { AiService, buildPrompt, UI_IMAGE_PROMPT, type DocType } from "./ai-service";
 import { ProjectAnalyzer } from "./project-analyzer";
 
@@ -59,9 +58,6 @@ const MENU_LABELS: Record<string, Record<string, string>> = {
     about: "关于",
     learnMore: "了解更多",
     showMainWindow: "显示主窗口",
-    startMcp: "启动 MCP Server",
-    stopMcp: "停止 MCP Server",
-    mcpStatus: "MCP 状态",
     trayExit: "退出",
   },
   en: {
@@ -90,9 +86,6 @@ const MENU_LABELS: Record<string, Record<string, string>> = {
     about: "About",
     learnMore: "Learn More",
     showMainWindow: "Show Main Window",
-    startMcp: "Start MCP Server",
-    stopMcp: "Stop MCP Server",
-    mcpStatus: "MCP Status",
     trayExit: "Exit",
   },
 };
@@ -106,7 +99,7 @@ const CHILD_WINDOW_TITLES: Record<string, string> = {
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let mcpManager: McpManager | null = null;
+let appManager: AppManager | null = null;
 const aiService = new AiService();
 const defaultCacheDir = app.isPackaged
   ? path.join(path.dirname(process.execPath), ".project-cache")
@@ -230,13 +223,6 @@ function buildTrayMenu(locale: string) {
         mainWindow?.focus();
       },
     },
-    {
-      label: t.mcpStatus,
-      submenu: [
-        { label: t.startMcp, click: () => mcpManager?.start() },
-        { label: t.stopMcp, click: () => mcpManager?.stop() },
-      ],
-    },
     { type: "separator" },
     {
       label: t.trayExit,
@@ -244,7 +230,6 @@ function buildTrayMenu(locale: string) {
         saveWindowState();
         tray?.destroy();
         tray = null;
-        mcpManager?.stop();
         app.quit();
       },
     },
@@ -416,22 +401,6 @@ function wrapIPC<T extends (...args: any[]) => any>(fn: T) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Port check                                                         */
-/* ------------------------------------------------------------------ */
-
-function isPortInUse(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const srv = net.createServer();
-    srv.once("error", () => resolve(true));
-    srv.once("listening", () => {
-      srv.close();
-      resolve(false);
-    });
-    srv.listen(port);
-  });
-}
-
-/* ------------------------------------------------------------------ */
 /*  Auto updater                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -500,7 +469,7 @@ function registerIpcHandlers() {
     try {
       return await autoUpdater.checkForUpdates();
     } catch (err) {
-      mcpManager?.addLog(
+      appManager?.addLog(
         "warn",
         `检查更新失败: ${(err instanceof Error ? err : new Error(String(err))).message}`,
         "app",
@@ -509,34 +478,22 @@ function registerIpcHandlers() {
     }
   });
 
-  // MCP
-  ipcMain.handle("mcp:getStatus", () => mcpManager?.getStatus());
-  ipcMain.handle("mcp:start", wrapIPC(async () => { await mcpManager?.start(); return mcpManager?.getStatus(); }));
-  ipcMain.handle("mcp:stop", wrapIPC(async () => { await mcpManager?.stop(); return mcpManager?.getStatus(); }));
-  ipcMain.handle("mcp:getLogs", () => mcpManager?.getLogs());
-  ipcMain.handle("mcp:clearLogs", () => mcpManager?.clearLogs());
-  ipcMain.handle("mcp:getConfig", () => mcpManager?.getConfig());
-  ipcMain.handle("mcp:setConfig", wrapIPC(async (_e: any, cfg: any) => {
-    if (!mcpManager) return;
-    const wasRunning = mcpManager.getStatus().running;
-    const { port: prevPort, transport: prevTransport } = mcpManager.getConfig();
-    const updated = mcpManager.setConfig(cfg);
+  // Config & Logs
+  ipcMain.handle("app:getLogs", () => appManager?.getLogs());
+  ipcMain.handle("app:clearLogs", () => appManager?.clearLogs());
+  ipcMain.handle("app:getConfig", () => appManager?.getConfig());
+  ipcMain.handle("app:setConfig", wrapIPC(async (_e: any, cfg: any) => {
+    if (!appManager) return;
+    const updated = appManager.setConfig(cfg);
     projectAnalyzer.setCacheDir(updated.cachePath?.trim() || null);
-    if (wasRunning && mainWindow && (updated.port !== prevPort || updated.transport !== prevTransport)) {
-      mainWindow.webContents.send("mcp:configChanged", {
-        port: updated.port,
-        transport: updated.transport,
-        previousPort: prevPort,
-        previousTransport: prevTransport,
-      });
+    if (mainWindow) {
+      mainWindow.webContents.send("app:configChanged", updated);
     }
     return updated;
   }));
-  ipcMain.handle("mcp:getMethodologyFiles", () => mcpManager?.getMethodologyFiles());
-  ipcMain.handle("mcp:readMethodologyFile", (_e, p: string) => mcpManager?.readMethodologyFile(p));
-  ipcMain.handle("mcp:writeMethodologyFile", (_e, p: string, content: string) => mcpManager?.writeMethodologyFile(p, content));
-  ipcMain.handle("mcp:getIdeConfigs", () => mcpManager?.detectIdeConfigs());
-  ipcMain.handle("mcp:installToIde", (_e, id: string) => mcpManager?.installToIde(id));
+  ipcMain.handle("app:getMethodologyFiles", () => appManager?.getMethodologyFiles());
+  ipcMain.handle("app:readMethodologyFile", (_e, p: string) => appManager?.readMethodologyFile(p));
+  ipcMain.handle("app:writeMethodologyFile", (_e, p: string, content: string) => appManager?.writeMethodologyFile(p, content));
 
   // App utilities
   ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
@@ -545,18 +502,16 @@ function registerIpcHandlers() {
   ipcMain.handle("app:getAutoLaunch", () => app.getLoginItemSettings().openAtLogin);
   ipcMain.handle("app:healthCheck", wrapIPC(async () => {
     const nodeVersion = process.version;
-    const mPath = mcpManager?.getConfig().methodologyPath || "";
+    const mPath = appManager?.getConfig().methodologyPath || "";
     const entryExists = fs.existsSync(path.join(mPath, "dist", "index.js"));
     const mdDir = path.join(mPath, "methodology");
     const mdCount = fs.existsSync(mdDir) ? fs.readdirSync(mdDir).filter((f) => f.endsWith(".md")).length : 0;
-    const portUsed = await isPortInUse(mcpManager?.getConfig().port || 3100);
     return {
       nodeVersion,
       electronVersion: process.versions.electron,
       methodologyPath: mPath,
       entryExists,
       methodologyFileCount: mdCount,
-      portAvailable: !portUsed,
       platform: process.platform,
       arch: process.arch,
       memory: {
@@ -570,11 +525,11 @@ function registerIpcHandlers() {
   ipcMain.handle("app:exportLogs", wrapIPC(async () => {
     const { filePath } = await dialog.showSaveDialog(mainWindow!, {
       title: currentLocale === "zh" ? "导出日志" : "Export Logs",
-      defaultPath: `mcp-logs-${new Date().toISOString().slice(0, 10)}.txt`,
+      defaultPath: `app-logs-${new Date().toISOString().slice(0, 10)}.txt`,
       filters: [{ name: currentLocale === "zh" ? "文本文件" : "Text Files", extensions: ["txt"] }],
     });
     if (!filePath) return false;
-    const text = (mcpManager?.getLogs() || [])
+    const text = (appManager?.getLogs() || [])
       .map((l) => `[${l.timestamp}] [${l.level.toUpperCase()}] [${l.source}] ${l.message}`)
       .join("\n");
     fs.writeFileSync(filePath, text, "utf-8");
@@ -583,11 +538,11 @@ function registerIpcHandlers() {
   ipcMain.handle("app:exportConfig", wrapIPC(async () => {
     const { filePath } = await dialog.showSaveDialog(mainWindow!, {
       title: currentLocale === "zh" ? "导出配置" : "Export Config",
-      defaultPath: "mcp-config-backup.json",
+      defaultPath: "config-backup.json",
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
     if (!filePath) return false;
-    const cfg = mcpManager?.getConfig();
+    const cfg = appManager?.getConfig();
     if (!cfg) return false;
     const safe = { ...cfg, aiProviders: cfg.aiProviders.map((p: any) => ({ ...p, apiKey: "***" })) };
     fs.writeFileSync(filePath, JSON.stringify(safe, null, 2), "utf-8");
@@ -610,23 +565,17 @@ function registerIpcHandlers() {
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       throw new Error(currentLocale === "zh" ? "配置文件结构无效" : "Invalid config file structure");
     }
-    const requiredFields = ["port", "transport"];
-    for (const field of requiredFields) {
-      if (!(field in data)) {
-        throw new Error(currentLocale === "zh"
-          ? `配置文件缺少必要字段: ${field}`
-          : `Config file missing required field: ${field}`);
-      }
+    if (!data.aiProviders && !data.activeProviderId) {
+      throw new Error(currentLocale === "zh"
+        ? "配置文件结构不正确，缺少必要字段"
+        : "Invalid config file structure, missing required fields");
     }
-    if (data.port !== undefined && (typeof data.port !== "number" || data.port < 1 || data.port > 65535)) {
-      throw new Error(currentLocale === "zh" ? "端口号无效（1-65535）" : "Invalid port number (1-65535)");
-    }
-    mcpManager?.setConfig(data);
-    return mcpManager?.getConfig();
+    appManager?.setConfig(data);
+    return appManager?.getConfig();
   }));
 
   // Document
-  ipcMain.handle("app:parseDocument", wrapIPC(async (_e: any, p: string) => mcpManager?.parseDocument(p)));
+  ipcMain.handle("app:parseDocument", wrapIPC(async (_e: any, p: string) => appManager?.parseDocument(p)));
   ipcMain.handle("app:selectFile", wrapIPC(async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow!, {
       title: currentLocale === "zh" ? "选择文档" : "Select Document",
@@ -682,13 +631,13 @@ function registerIpcHandlers() {
   ipcMain.handle("ai:generate", wrapIPC(async (event: any, req: any) => {
     let provider: AiProvider | null = null;
     if (req.providerId) {
-      const custom = mcpManager
+      const custom = appManager
         ?.getConfig()
         .aiProviders?.find((p: any) => p.id === req.providerId && p.enabled && p.apiKey);
       if (custom) provider = custom;
     }
     if (!provider) {
-      provider = mcpManager?.getActiveProvider() ?? null;
+      provider = appManager?.getActiveProvider() ?? null;
     }
     if (!provider) {
       throw new Error(currentLocale === "zh"
@@ -696,16 +645,16 @@ function registerIpcHandlers() {
         : "No AI provider configured. Go to Settings → AI Providers to enable and set an API Key.");
     }
 
-    const customPrompts = mcpManager?.getConfig().customPrompts;
+    const customPrompts = appManager?.getConfig().customPrompts;
 
     let projectContext = "";
-    const analyzeProjectPath = req.projectPath || mcpManager?.getConfig().projectPath;
+    const analyzeProjectPath = req.projectPath || appManager?.getConfig().projectPath;
     if (analyzeProjectPath && fs.existsSync(analyzeProjectPath)) {
       try {
         const analysis = projectAnalyzer.getOrAnalyze(analyzeProjectPath);
         projectContext = projectAnalyzer.formatForPrompt(analysis, req.docType);
       } catch (e) {
-        mcpManager?.addLog("warn", `项目分析失败: ${(e instanceof Error ? e : new Error(String(e))).message}`, "project-analyzer");
+        appManager?.addLog("warn", `项目分析失败: ${(e instanceof Error ? e : new Error(String(e))).message}`, "project-analyzer");
       }
     }
 
@@ -744,8 +693,8 @@ function registerIpcHandlers() {
       createdAt: new Date().toISOString(),
       preview: result.slice(0, 200),
     };
-    mcpManager?.addGenerationRecord(record);
-    mcpManager?.addLog(
+    appManager?.addGenerationRecord(record);
+    appManager?.addLog(
       "info",
       `AI 生成完成: ${req.docType} (${provider.name})`,
       "ai-gen",
@@ -756,12 +705,12 @@ function registerIpcHandlers() {
   ipcMain.handle("ai:generateUIImage", wrapIPC(async (event: any, req: any) => {
     let provider: AiProvider | null = null;
     if (req.providerId) {
-      const custom = mcpManager
+      const custom = appManager
         ?.getConfig()
         .aiProviders?.find((p: any) => p.id === req.providerId && p.enabled && p.apiKey);
       if (custom) provider = custom;
     }
-    if (!provider) provider = mcpManager?.getActiveProvider() ?? null;
+    if (!provider) provider = appManager?.getActiveProvider() ?? null;
     if (!provider) throw new Error(currentLocale === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
 
     const images = req.images as Array<{ base64: string; mimeType: string }> | undefined;
@@ -769,7 +718,7 @@ function registerIpcHandlers() {
     let systemPrompt = UI_IMAGE_PROMPT.system;
     let userPrompt = UI_IMAGE_PROMPT.userPrefix;
 
-    const analyzeProjectPath = req.projectPath || mcpManager?.getConfig().projectPath;
+    const analyzeProjectPath = req.projectPath || appManager?.getConfig().projectPath;
     if (analyzeProjectPath && fs.existsSync(analyzeProjectPath)) {
       try {
         const analysis = projectAnalyzer.getOrAnalyze(analyzeProjectPath);
@@ -779,7 +728,7 @@ function registerIpcHandlers() {
           userPrompt += `**项目技术分析：**\n${ctx}\n\n---\n\n`;
         }
       } catch (e) {
-        mcpManager?.addLog("warn", `UI 出图项目分析失败: ${(e instanceof Error ? e : new Error(String(e))).message}`, "ai-gen-ui");
+        appManager?.addLog("warn", `UI 出图项目分析失败: ${(e instanceof Error ? e : new Error(String(e))).message}`, "ai-gen-ui");
       }
     }
 
@@ -836,7 +785,7 @@ function registerIpcHandlers() {
 
     sendProgress("rendering", 0, pages.length, `共 ${pages.length} 个页面，准备渲染...`);
 
-    const outputDir = req.outputDir || mcpManager?.getConfig().outputPath;
+    const outputDir = req.outputDir || appManager?.getConfig().outputPath;
     if (!outputDir) throw new Error(currentLocale === "zh" ? "未指定输出目录" : "No output directory specified");
     fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
 
@@ -885,7 +834,7 @@ function registerIpcHandlers() {
     sendProgress("done", pages.length, pages.length, `全部完成，共 ${pages.length} 个页面`);
 
     const recordId = randomUUID();
-    mcpManager?.addGenerationRecord({
+    appManager?.addGenerationRecord({
       id: recordId,
       docType: "ui",
       projectName: req.projectName?.trim() || "",
@@ -893,7 +842,7 @@ function registerIpcHandlers() {
       preview: `[UI 图片 x${pages.length}] ${pages.map((p) => p.name).join(", ")}`,
       outputPath: savedFiles[0],
     });
-    mcpManager?.addLog("info", `UI 图片已生成 ${pages.length} 张: ${savedFiles.filter((f) => f.endsWith(`.${imgFormat}`)).join(", ")}`, "ai-gen-ui");
+    appManager?.addLog("info", `UI 图片已生成 ${pages.length} 张: ${savedFiles.filter((f) => f.endsWith(`.${imgFormat}`)).join(", ")}`, "ai-gen-ui");
     return { htmlResult, savedFiles, recordId, pages: pageResults };
   }));
 
@@ -980,24 +929,24 @@ function registerIpcHandlers() {
         fs.writeFileSync(filePath, captured.toPNG());
       }
     }
-    mcpManager?.addLog("info", `UI 图片已生成: ${fileName}`, "ai-render");
+    appManager?.addLog("info", `UI 图片已生成: ${fileName}`, "ai-render");
     return filePath;
   }));
 
-  ipcMain.handle("ai:getHistory", () => mcpManager?.getGenerationHistory() ?? []);
-  ipcMain.handle("ai:addHistory", (_e, record: any) => { mcpManager?.addGenerationRecord(record); });
+  ipcMain.handle("ai:getHistory", () => appManager?.getGenerationHistory() ?? []);
+  ipcMain.handle("ai:addHistory", (_e, record: any) => { appManager?.addGenerationRecord(record); });
   ipcMain.handle("ai:readOutputFile", wrapIPC(async (_e: any, p: string) => {
     if (!p || !fs.existsSync(p)) return null;
     return fs.readFileSync(p, "utf-8");
   }));
   ipcMain.handle("ai:updateHistoryOutput", (_e, data: any) => {
-    mcpManager?.updateGenerationOutputPath(data.id, data.outputPath);
+    appManager?.updateGenerationOutputPath(data.id, data.outputPath);
   });
   ipcMain.handle(
     "ai:testConnection",
     wrapIPC(async (_e: any, provider: any) => {
       const r = await aiService.testConnection(provider);
-      mcpManager?.addLog(
+      appManager?.addLog(
         "info",
         `AI 连接测试完成: ${provider?.name ?? provider?.id ?? "unknown"}`,
         "ai-test",
@@ -1009,7 +958,7 @@ function registerIpcHandlers() {
     "ai:listModels",
     wrapIPC(async (_e: any, provider: any) => {
       const r = await aiService.listModels(provider);
-      mcpManager?.addLog(
+      appManager?.addLog(
         "info",
         `AI 模型列表已拉取: ${provider?.name ?? provider?.id ?? "unknown"}`,
         "ai-models",
@@ -1200,8 +1149,8 @@ function registerIpcHandlers() {
       fs.writeFileSync(filePath, req.content, "utf-8");
     }
 
-    if (req.historyRecordId) mcpManager?.updateGenerationOutputPath(req.historyRecordId, filePath);
-    mcpManager?.addLog(
+    if (req.historyRecordId) appManager?.updateGenerationOutputPath(req.historyRecordId, filePath);
+    appManager?.addLog(
       "info",
       `文档已保存: ${req.fileName} (${req.format || "md"})`,
       "ai-save",
@@ -1213,7 +1162,7 @@ function registerIpcHandlers() {
   ipcMain.handle("project:analyze", wrapIPC(async (_e: any, projectPath: string) => {
     if (!projectPath) throw new Error(currentLocale === "zh" ? "未指定项目路径" : "No project path specified");
     const result = projectAnalyzer.analyze(projectPath);
-    mcpManager?.addLog("info", `项目分析完成: ${projectPath} (${result.structure.totalFiles} 文件)`, "project-analyzer");
+    appManager?.addLog("info", `项目分析完成: ${projectPath} (${result.structure.totalFiles} 文件)`, "project-analyzer");
     return result;
   }));
   ipcMain.handle("project:getCache", (_e, projectPath: string) => {
@@ -1227,12 +1176,12 @@ function registerIpcHandlers() {
   });
   ipcMain.handle("project:clearCache", (_e, projectPath: string) => {
     const cleared = projectAnalyzer.clearCache(projectPath);
-    if (cleared) mcpManager?.addLog("info", `已清除项目缓存: ${projectPath}`, "project-analyzer");
+    if (cleared) appManager?.addLog("info", `已清除项目缓存: ${projectPath}`, "project-analyzer");
     return cleared;
   });
   ipcMain.handle("project:clearAllCaches", () => {
     const count = projectAnalyzer.clearAllCaches();
-    mcpManager?.addLog("info", `已清除全部项目缓存 (${count} 个)`, "project-analyzer");
+    appManager?.addLog("info", `已清除全部项目缓存 (${count} 个)`, "project-analyzer");
     return count;
   });
   ipcMain.handle("project:getCacheDir", () => {
@@ -1240,7 +1189,7 @@ function registerIpcHandlers() {
   });
   ipcMain.handle("project:setCacheDir", (_e, dir: string) => {
     projectAnalyzer.setCacheDir(dir || null);
-    mcpManager?.addLog("info", `缓存目录已更新: ${projectAnalyzer.cacheDir}`, "project-analyzer");
+    appManager?.addLog("info", `缓存目录已更新: ${projectAnalyzer.cacheDir}`, "project-analyzer");
     return projectAnalyzer.cacheDir;
   });
   ipcMain.handle("project:formatForPrompt", wrapIPC(async (_e: any, projectPath: string, docType: string) => {
@@ -1272,10 +1221,10 @@ const startHidden = process.argv.includes("--hidden");
 app.whenReady().then(async () => {
   setupCSP();
   currentLocale = loadLocale();
-  mcpManager = new McpManager();
-  mcpManager.addLog("info", `应用启动 v${app.getVersion()}`, "app");
-  if (mcpManager.getConfig().cachePath) {
-    projectAnalyzer.setCacheDir(mcpManager.getConfig().cachePath);
+  appManager = new AppManager();
+  appManager.addLog("info", `应用启动 v${app.getVersion()}`, "app");
+  if (appManager.getConfig().cachePath) {
+    projectAnalyzer.setCacheDir(appManager.getConfig().cachePath);
   }
   registerIpcHandlers();
   setupAutoUpdater();
@@ -1286,11 +1235,6 @@ app.whenReady().then(async () => {
   registerShortcuts();
 
   if (startHidden) mainWindow?.hide();
-  if (mcpManager.getConfig().autoStart) {
-    mcpManager.start().catch((err) => {
-      mcpManager?.addLog("error", `MCP auto-start failed: ${err instanceof Error ? err.message : String(err)}`, "app");
-    });
-  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -1303,7 +1247,6 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin" && !tray) {
-    mcpManager?.stop();
     app.quit();
   }
 });

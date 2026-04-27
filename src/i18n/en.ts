@@ -87,7 +87,7 @@ export default {
     clearAllCaches: "Clear all project caches",
     clearAllCachesConfirm: "Clear analysis caches for all projects? This cannot be undone.",
     cachesCleared: "{count} cache(s) cleared",
-    autoStart: "Start MCP with the app",
+    autoStart: "Auto-start service with app",
     addProvider: "Add provider",
     addCustom: "Add custom endpoint",
     customProvider: "Custom endpoint",
@@ -179,7 +179,7 @@ export default {
   logs: {
     title: "Logs",
     clear: "Clear logs",
-    clearConfirm: "Clear all MCP logs?",
+    clearConfirm: "Clear all logs?",
     export: "Export",
     filter: "Filter",
     search: "Search",

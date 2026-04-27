@@ -73,11 +73,11 @@ import { Modal, message } from "ant-design-vue";
 
 const { t } = useI18n();
 
-type McpLogLevel = "info" | "warn" | "error";
+type AppLogLevel = "info" | "warn" | "error";
 
-interface McpLogEntry {
+interface AppLogEntry {
   timestamp: string;
-  level: McpLogLevel;
+  level: AppLogLevel;
   message: string;
   source: string;
 }
@@ -87,10 +87,10 @@ function isIpcError(v: unknown): v is { __ipcError: true; message: string } {
 }
 
 const maxDisplay = 1000;
-const levelFilter = ref<"all" | McpLogLevel>("all");
+const levelFilter = ref<"all" | AppLogLevel>("all");
 const sourceFilter = ref<string | undefined>(undefined);
 const searchText = ref("");
-const rawLogs = ref<McpLogEntry[]>([]);
+const rawLogs = ref<AppLogEntry[]>([]);
 const loading = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -134,20 +134,20 @@ const logStats = computed(() => {
 
 const displayEntries = computed(() => baseFiltered.value.slice(-maxDisplay));
 
-function levelColor(level: McpLogLevel): string {
+function levelColor(level: AppLogLevel): string {
   if (level === "error") return "red";
   if (level === "warn") return "gold";
   return "blue";
 }
 
-function levelLabel(level: McpLogLevel): string {
+function levelLabel(level: AppLogLevel): string {
   if (level === "error") return t("logs.error");
   if (level === "warn") return t("logs.warn");
   return t("logs.info");
 }
 
 async function fetchLogs(silent = false) {
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) return;
   if (!silent) {
     loading.value = true;
@@ -158,7 +158,7 @@ async function fetchLogs(silent = false) {
       rawLogs.value = [];
       return;
     }
-    rawLogs.value = Array.isArray(res) ? (res as McpLogEntry[]) : [];
+    rawLogs.value = Array.isArray(res) ? (res as AppLogEntry[]) : [];
   } finally {
     if (!silent) {
       loading.value = false;
@@ -176,7 +176,7 @@ function onClear() {
     content: t("logs.clearConfirm"),
     okType: "danger",
     onOk: async () => {
-      const api = window.electronAPI?.mcp;
+      const api = window.electronAPI?.app;
       if (!api) return;
       await api.clearLogs();
       message.success(t("logs.clearSuccess"));

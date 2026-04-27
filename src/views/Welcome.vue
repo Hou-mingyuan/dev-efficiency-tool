@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMcpStore } from "@/store/mcp";
+import { useAppStore } from "@/store/app";
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -7,7 +7,7 @@ import { prefetchCriticalRoutes } from "@/router";
 
 const { t } = useI18n();
 const router = useRouter();
-const mcpStore = useMcpStore();
+const appStore = useAppStore();
 
 const step = ref(0);
 const methPath = ref("");
@@ -30,14 +30,14 @@ const stepItems = computed(() => [
 ]);
 
 function syncOptionsFromConfig() {
-  const list = mcpStore.config.aiProviders?.length
-    ? mcpStore.config.aiProviders
+  const list = appStore.config.aiProviders?.length
+    ? appStore.config.aiProviders
     : [];
   providerOptions.value = list.map((p) => ({ value: p.id, label: p.name }));
 }
 
 watch(
-  () => mcpStore.config.aiProviders,
+  () => appStore.config.aiProviders,
   () => {
     syncOptionsFromConfig();
   },
@@ -45,7 +45,7 @@ watch(
 );
 
 watch(selectedProviderId, (id) => {
-  const p = mcpStore.config.aiProviders.find((x) => x.id === id);
+  const p = appStore.config.aiProviders.find((x) => x.id === id);
   wizardApiKey.value = p?.apiKey || "";
   apiKeyTestResult.value = "idle";
   apiKeyTestMsg.value = "";
@@ -61,7 +61,7 @@ function isIpcError(v: unknown): v is IpcErrorResult {
 }
 
 function buildTestProvider(): AiProvider | null {
-  const base = mcpStore.config.aiProviders.find(
+  const base = appStore.config.aiProviders.find(
     (p) => p.id === selectedProviderId.value,
   );
   if (!base) return null;
@@ -149,13 +149,13 @@ function onPrev() {
 
 async function onFinish() {
   try {
-    const nextProviders = mcpStore.config.aiProviders.map((p) => {
+    const nextProviders = appStore.config.aiProviders.map((p) => {
       if (p.id === selectedProviderId.value) {
         return { ...p, apiKey: wizardApiKey.value, enabled: true };
       }
       return { ...p, enabled: false };
     });
-    await mcpStore.setConfig({
+    await appStore.setConfig({
       methodologyPath: methPath.value,
       projectPath: projPath.value,
       activeProviderId: selectedProviderId.value,
@@ -170,8 +170,8 @@ async function onFinish() {
 }
 
 onMounted(async () => {
-  await mcpStore.fetchConfig();
-  const c = mcpStore.config;
+  await appStore.fetchConfig();
+  const c = appStore.config;
   methPath.value = c.methodologyPath || "";
   projPath.value = c.projectPath || "";
   syncOptionsFromConfig();

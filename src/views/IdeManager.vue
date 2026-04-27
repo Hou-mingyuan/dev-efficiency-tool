@@ -72,7 +72,7 @@ const loading = ref(false);
 const installingId = ref("");
 
 async function fetchConfigs() {
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) return;
   loading.value = true;
   try {
@@ -88,7 +88,7 @@ async function fetchConfigs() {
 }
 
 async function onInstall(ide: IdeConfigInfo) {
-  const api = window.electronAPI?.mcp;
+  const api = window.electronAPI?.app;
   if (!api) return;
   installingId.value = ide.id;
   try {
