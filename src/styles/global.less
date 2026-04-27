@@ -111,7 +111,13 @@ button, a,
 .ant-input:focus,
 .ant-input-affix-wrapper-focused,
 .ant-input-number-focused {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 12%, transparent) !important;
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 12%, transparent),
+              0 0 0 1px var(--app-primary) !important;
+  background-image: linear-gradient(var(--app-bg-container), var(--app-bg-container)),
+                    var(--app-primary-gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
 }
 .ant-select-selector {
   border-radius: var(--app-radius-sm) !important;
@@ -129,18 +135,33 @@ button, a,
   border-radius: 0 var(--app-radius-sm) var(--app-radius-sm) 0 !important;
 }
 
-/* ---- Ant Button soft ---- */
+/* ---- Ant Button soft + ripple ---- */
 .ant-btn {
   border-radius: var(--app-radius-sm) !important;
   font-weight: 500;
   transition: all var(--app-transition);
+  position: relative;
+  overflow: hidden;
+}
+.ant-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.35) 0%, transparent 60%);
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.4s, transform 0.5s;
+  pointer-events: none;
+}
+.ant-btn:active::after {
+  opacity: 1;
+  transform: scale(2.5);
+  transition: opacity 0s, transform 0s;
 }
 .ant-btn-primary {
   background: var(--app-primary-gradient) !important;
   border: none !important;
   box-shadow: 0 2px 12px color-mix(in srgb, var(--app-primary) 35%, transparent);
-  position: relative;
-  overflow: hidden;
 }
 .ant-btn-primary::before {
   content: '';
@@ -300,12 +321,23 @@ button, a,
 .ant-empty {
   padding: 32px 0;
 }
+.ant-empty-image {
+  height: 80px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .ant-empty-image svg {
   opacity: 0.4;
+}
+.ant-empty-image .ant-empty-img-simple,
+.ant-empty-image .ant-empty-img-default {
+  filter: saturate(0.6) opacity(0.5);
 }
 .ant-empty-description {
   color: var(--app-text-tertiary) !important;
   font-size: 13px;
+  margin-top: 4px;
 }
 
 /* ---- Ant Form item spacing ---- */
@@ -735,6 +767,15 @@ button, a,
   .ide-card .ide-label {
     color: var(--app-text-secondary);
   }
+}
+
+/* ---- Theme transition ---- */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease,
+              box-shadow 0.4s ease, fill 0.4s ease, stroke 0.4s ease !important;
 }
 
 /* ---- Common page header ---- */

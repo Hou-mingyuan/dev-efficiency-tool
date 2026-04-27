@@ -368,10 +368,22 @@ export default {
   appShell: {
     language: "Language",
     collapseSider: "Expand or collapse the sidebar",
+    online: "Online",
+    offline: "Offline",
+  },
+  contextMenu: {
+    copyMarkdown: "Copy Markdown",
+    copyHtml: "Copy HTML",
+    save: "Save to file",
+    fullscreen: "Fullscreen preview",
   },
   update: {
     versionLine: "A new version is available: {version}.",
     versionUnknown: "An update is available.",
+    downloading: "Downloading update…",
+    downloaded: "Update downloaded. Restart to apply.",
+    checkUpdate: "Check for updates",
+    upToDate: "You are up to date",
   },
   notification: {
     title: "Notifications",

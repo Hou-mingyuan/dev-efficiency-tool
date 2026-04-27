@@ -94,16 +94,47 @@
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
   }
   pre {
-    background: var(--app-code-bg, #f5f5f5);
+    background: #1e293b;
     padding: 18px 20px;
     border-radius: var(--app-radius-md, 12px);
     overflow-x: auto;
     border: 1px solid var(--app-border-secondary, rgba(0,0,0,0.05));
+    position: relative;
+    .code-lang-label {
+      position: absolute;
+      top: 6px;
+      right: 12px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+    }
   }
   pre code {
     background: transparent;
     padding: 0;
+    color: #e2e8f0;
   }
+  /* highlight.js token colors */
+  pre .hljs-keyword { color: #c792ea; }
+  pre .hljs-string { color: #c3e88d; }
+  pre .hljs-number { color: #f78c6c; }
+  pre .hljs-comment { color: #636e7b; font-style: italic; }
+  pre .hljs-function { color: #82aaff; }
+  pre .hljs-title { color: #82aaff; }
+  pre .hljs-params { color: #e2e8f0; }
+  pre .hljs-built_in { color: #ffcb6b; }
+  pre .hljs-type { color: #ffcb6b; }
+  pre .hljs-attr { color: #f78c6c; }
+  pre .hljs-literal { color: #ff5370; }
+  pre .hljs-variable { color: #f07178; }
+  pre .hljs-selector-class { color: #ffcb6b; }
+  pre .hljs-selector-tag { color: #ff5370; }
+  pre .hljs-tag { color: #f07178; }
+  pre .hljs-name { color: #f07178; }
+  pre .hljs-attribute { color: #c792ea; }
+  pre .hljs-meta { color: #89ddff; }
   table {
     width: 100%;
     border-collapse: collapse;

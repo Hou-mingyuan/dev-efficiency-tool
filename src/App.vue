@@ -2,11 +2,14 @@
 import {
   AppstoreOutlined,
   BgColorsOutlined,
+  CloseOutlined,
   DashboardOutlined,
   FormOutlined,
   HeartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MinusOutlined,
+  BlockOutlined,
   BulbOutlined,
   BulbFilled,
   ProfileOutlined,
@@ -133,7 +136,11 @@ const currentPageTitle = computed(() => {
   return map[path] || "";
 });
 
-const applyDomTheme = (name: "light" | "dark") => {
+const applyDomTheme = (name: "light" | "dark", animate = false) => {
+  if (animate) {
+    document.documentElement.classList.add("theme-transitioning");
+    setTimeout(() => document.documentElement.classList.remove("theme-transitioning"), 500);
+  }
   isDark.value = name === "dark";
   currentTheme.value = name;
   document.documentElement.setAttribute("data-theme", name);
@@ -157,7 +164,7 @@ const loadTheme = async () => {
 
 const onToggleTheme = async () => {
   const next = isDark.value ? "light" : "dark";
-  applyDomTheme(next);
+  applyDomTheme(next, true);
   await window.electronAPI?.app.setTheme(next);
 };
 
@@ -229,6 +236,10 @@ watch(
   () => route.path,
   (p) => {
     syncMenuFromRoute(p);
+    if (p.startsWith("/gen/") && !localStorage.getItem("lng-shortcuts-shown")) {
+      localStorage.setItem("lng-shortcuts-shown", "1");
+      setTimeout(() => { shortcutsOpen.value = true; }, 600);
+    }
   },
   { immediate: true },
 );
@@ -282,9 +293,15 @@ const extractVersion = (info: unknown): string => {
   return "";
 };
 
+const isOnline = ref(navigator.onLine);
+const handleOnline = () => { isOnline.value = true; };
+const handleOffline = () => { isOnline.value = false; };
+
 let removeUpdateListener: (() => void) | undefined;
 
 onMounted(() => {
+  window.addEventListener("online", handleOnline);
+  window.addEventListener("offline", handleOffline);
   void loadTheme();
   void loadLocale();
   loadAccent();
@@ -310,6 +327,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("resize", checkScreenSize);
   window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("online", handleOnline);
+  window.removeEventListener("offline", handleOffline);
   removeUpdateListener?.();
 });
 
@@ -428,7 +447,10 @@ onBeforeUnmount(() => {
             </template>
           </a-menu>
           <div v-if="!collapsed" class="app-sider__footer">
-            <span class="app-sider__version">v{{ appVersion }}</span>
+            <span class="app-sider__status">
+              <span class="status-dot" :class="isOnline ? 'status-dot--online' : 'status-dot--offline'" />
+              <span class="app-sider__version">v{{ appVersion }}</span>
+            </span>
           </div>
         </a-layout-sider>
         <a-layout>
@@ -447,6 +469,7 @@ onBeforeUnmount(() => {
               </a-button>
               <span v-if="currentPageTitle" class="app-header__page-title">{{ currentPageTitle }}</span>
             </div>
+            <div class="app-header__drag-region" />
             <div class="app-header__right">
               <a-select
                 v-model:value="displayLocale"
@@ -492,6 +515,11 @@ onBeforeUnmount(() => {
                 </a-button>
               </a-tooltip>
               <NotificationCenter />
+              <div class="app-header__winctrl">
+                <button class="winctrl-btn" @click="window.electronAPI?.win.minimize()" aria-label="Minimize"><MinusOutlined /></button>
+                <button class="winctrl-btn" @click="window.electronAPI?.win.maximize()" aria-label="Maximize"><BlockOutlined /></button>
+                <button class="winctrl-btn winctrl-btn--close" @click="window.electronAPI?.win.close()" aria-label="Close"><CloseOutlined /></button>
+              </div>
             </div>
           </a-layout-header>
           <div v-if="pageLoading" class="app-loading-bar" />
@@ -611,6 +639,12 @@ onBeforeUnmount(() => {
     text-align: center;
     z-index: 1;
   }
+  &__status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
   &__version {
     font-size: 11px;
     color: var(--app-text-quaternary);
@@ -631,21 +665,28 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px 0 12px;
+  padding: 0 0 0 12px;
   background: var(--app-glass-bg);
   backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
   -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
   border-bottom: 1px solid var(--app-glass-border);
-  height: 56px;
+  height: 48px;
   position: sticky;
   top: 0;
   z-index: 100;
+
+  &__drag-region {
+    flex: 1;
+    height: 100%;
+    -webkit-app-region: drag;
+  }
 
   &__left,
   &__right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    -webkit-app-region: no-drag;
   }
   &__page-title {
     font-size: 15px;
@@ -689,6 +730,33 @@ onBeforeUnmount(() => {
   &__select {
     min-width: 108px;
   }
+  &__winctrl {
+    display: flex;
+    align-items: stretch;
+    height: 48px;
+    margin-left: 4px;
+  }
+}
+
+.winctrl-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 48px;
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  &:hover {
+    background: var(--app-bg-hover);
+    color: var(--app-text);
+  }
+  &--close:hover {
+    background: #e81123;
+    color: #fff;
+  }
 }
 
 .app-content {
@@ -697,7 +765,7 @@ onBeforeUnmount(() => {
   background: var(--app-bg);
   overflow-y: auto;
   overflow-x: hidden;
-  height: calc(100vh - 56px);
+  height: calc(100vh - 48px);
   position: relative;
 }
 
@@ -790,6 +858,21 @@ onBeforeUnmount(() => {
   &--active {
     border-color: var(--app-text);
     box-shadow: 0 0 0 2px var(--app-bg), 0 0 0 4px var(--app-primary);
+  }
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  &--online {
+    background: var(--app-success);
+    box-shadow: 0 0 6px var(--app-success);
+  }
+  &--offline {
+    background: var(--app-error);
+    box-shadow: 0 0 6px var(--app-error);
   }
 }
 

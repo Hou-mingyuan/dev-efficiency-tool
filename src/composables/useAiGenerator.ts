@@ -4,6 +4,49 @@ import { useAppStore } from "@/store/app";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { message } from "ant-design-vue";
+import hljs from "highlight.js/lib/core";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import python from "highlight.js/lib/languages/python";
+import java from "highlight.js/lib/languages/java";
+import sql from "highlight.js/lib/languages/sql";
+import jsonLang from "highlight.js/lib/languages/json";
+import xml from "highlight.js/lib/languages/xml";
+import css from "highlight.js/lib/languages/css";
+import bash from "highlight.js/lib/languages/bash";
+import yaml from "highlight.js/lib/languages/yaml";
+import markdownLang from "highlight.js/lib/languages/markdown";
+
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("js", javascript);
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("ts", typescript);
+hljs.registerLanguage("python", python);
+hljs.registerLanguage("java", java);
+hljs.registerLanguage("sql", sql);
+hljs.registerLanguage("json", jsonLang);
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("html", xml);
+hljs.registerLanguage("css", css);
+hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("shell", bash);
+hljs.registerLanguage("yaml", yaml);
+hljs.registerLanguage("markdown", markdownLang);
+
+const renderer = {
+  code({ text, lang }: { text: string; lang?: string | null }) {
+    let highlighted: string;
+    if (lang && hljs.getLanguage(lang)) {
+      highlighted = hljs.highlight(text, { language: lang }).value;
+    } else {
+      highlighted = hljs.highlightAuto(text).value;
+    }
+    const langLabel = lang ? `<span class="code-lang-label">${lang}</span>` : "";
+    return `<pre>${langLabel}<code class="hljs">${highlighted}</code></pre>`;
+  },
+};
+
+marked.use({ renderer });
 
 export type DocType = "prd" | "requirements" | "ui" | "design";
 
@@ -381,9 +424,15 @@ export function useAiGenerator(docType: DocType) {
     teardownListeners();
     setupListeners();
     try {
+      const isZh = t("app.name") !== "Dev Efficiency Tool";
       let finalContent = userContent.value;
       if (scopeLevel.value === "module") {
-        finalContent = `【模块级别需求】以下描述的是系统中某个模块的需求，请基于项目分析结果，明确该模块在整个系统中的位置、与其他模块的依赖关系、共用的基础设施和接口，然后再进行输出。\n\n${finalContent}`;
+        finalContent = isZh
+          ? `【模块级别需求】以下描述的是系统中某个模块的需求，请基于项目分析结果，明确该模块在整个系统中的位置、与其他模块的依赖关系、共用的基础设施和接口，然后再进行输出。\n\n${finalContent}`
+          : `[Module Level] The following describes requirements for a module within the system. Based on the project analysis, clarify the module's position, dependencies, and shared infrastructure before generating output.\n\n${finalContent}`;
+      }
+      if (!isZh) {
+        finalContent += "\n\n[Please respond in English.]";
       }
       const res = await window.electronAPI.ai.generate({
         docType,
@@ -447,6 +496,25 @@ export function useAiGenerator(docType: DocType) {
     message.success(t("common.copied"));
   }
 
+  const contextMenuVisible = ref(false);
+  const contextMenuPos = ref({ x: 0, y: 0 });
+
+  function onPreviewContextMenu(e: MouseEvent) {
+    if (!result.value) return;
+    e.preventDefault();
+    contextMenuPos.value = { x: e.clientX, y: e.clientY };
+    contextMenuVisible.value = true;
+    const hide = () => { contextMenuVisible.value = false; document.removeEventListener("click", hide); };
+    setTimeout(() => document.addEventListener("click", hide), 0);
+  }
+
+  function copyHtml() {
+    if (!renderedHtml.value) return;
+    void navigator.clipboard.writeText(renderedHtml.value);
+    message.success(t("common.copied"));
+    contextMenuVisible.value = false;
+  }
+
   function importFromPreviousResult() {
     const prev = appStore.lastGenResult;
     if (prev) {
@@ -498,6 +566,10 @@ export function useAiGenerator(docType: DocType) {
     selectOutputDir,
     saveProviderField,
     clearDraft,
+    contextMenuVisible,
+    contextMenuPos,
+    onPreviewContextMenu,
+    copyHtml,
     checkProjectCache,
     analyzeProject,
     clearProjectCache,

@@ -368,10 +368,22 @@ export default {
   appShell: {
     language: "语言",
     collapseSider: "展开或折叠侧栏",
+    online: "在线",
+    offline: "离线",
+  },
+  contextMenu: {
+    copyMarkdown: "复制 Markdown",
+    copyHtml: "复制 HTML",
+    save: "保存到文件",
+    fullscreen: "全屏预览",
   },
   update: {
     versionLine: "新版本 {version} 可下载。",
     versionUnknown: "检测到更新。",
+    downloading: "正在下载更新…",
+    downloaded: "更新已下载，重启应用即可生效。",
+    checkUpdate: "检查更新",
+    upToDate: "当前已是最新版本",
   },
   notification: {
     title: "通知中心",

@@ -25,6 +25,12 @@ function listenPair<T, U>(channel: string, callback: (a: T, b: U) => void): IpcC
 }
 
 export interface ElectronAPI {
+  win: {
+    minimize: () => Promise<void>;
+    maximize: () => Promise<void>;
+    close: () => Promise<void>;
+    isMaximized: () => Promise<boolean>;
+  };
   project: {
     analyze: (projectPath: string) => Promise<unknown>;
     getCache: (projectPath: string) => Promise<unknown>;
@@ -44,6 +50,7 @@ export interface ElectronAPI {
     addHistory: (record: unknown) => Promise<unknown>;
     readOutputFile: (path: string) => Promise<unknown>;
     updateHistoryOutput: (data: unknown) => Promise<unknown>;
+    deleteHistory: (id: string) => Promise<unknown>;
     onChunk: (callback: (chunk: unknown) => void) => IpcCleanup;
     offChunk: (cleanup?: IpcCleanup) => void;
     onDone: (callback: (content: unknown, recordId: unknown) => void) => IpcCleanup;
@@ -92,6 +99,12 @@ export interface ElectronAPI {
 }
 
 const electronAPI: ElectronAPI = {
+  win: {
+    minimize: () => ipcRenderer.invoke("win:minimize"),
+    maximize: () => ipcRenderer.invoke("win:maximize"),
+    close: () => ipcRenderer.invoke("win:close"),
+    isMaximized: () => ipcRenderer.invoke("win:isMaximized"),
+  },
   project: {
     analyze: (projectPath) => ipcRenderer.invoke("project:analyze", projectPath),
     getCache: (projectPath) => ipcRenderer.invoke("project:getCache", projectPath),
@@ -111,6 +124,7 @@ const electronAPI: ElectronAPI = {
     addHistory: (record) => ipcRenderer.invoke("ai:addHistory", record),
     readOutputFile: (path) => ipcRenderer.invoke("ai:readOutputFile", path),
     updateHistoryOutput: (data) => ipcRenderer.invoke("ai:updateHistoryOutput", data),
+    deleteHistory: (id) => ipcRenderer.invoke("ai:deleteHistory", id),
     onChunk: (callback) => listenPayload("ai:chunk", callback),
     offChunk: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();

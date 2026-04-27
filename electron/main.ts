@@ -276,6 +276,7 @@ function createMainWindow() {
     minWidth: 900,
     minHeight: 600,
     title: "开发效率提升工具",
+    frame: false,
     icon: path.join(__dirname, "../public/icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -449,6 +450,15 @@ function setupCSP() {
 /* ------------------------------------------------------------------ */
 
 function registerIpcHandlers() {
+  // Window controls (frameless)
+  ipcMain.handle("win:minimize", () => { BrowserWindow.getFocusedWindow()?.minimize(); });
+  ipcMain.handle("win:maximize", () => {
+    const w = BrowserWindow.getFocusedWindow();
+    if (w?.isMaximized()) w.unmaximize(); else w?.maximize();
+  });
+  ipcMain.handle("win:close", () => { BrowserWindow.getFocusedWindow()?.close(); });
+  ipcMain.handle("win:isMaximized", () => BrowserWindow.getFocusedWindow()?.isMaximized() ?? false);
+
   // Locale (NEW – menu i18n)
   ipcMain.handle("app:setLocale", (_e, locale: string) => {
     const normalized = locale.startsWith("zh") ? "zh" : "en";
@@ -935,6 +945,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("ai:getHistory", () => appManager?.getGenerationHistory() ?? []);
   ipcMain.handle("ai:addHistory", (_e, record: any) => { appManager?.addGenerationRecord(record); });
+  ipcMain.handle("ai:deleteHistory", (_e, id: string) => { appManager?.deleteGenerationRecord(id); return true; });
   ipcMain.handle("ai:readOutputFile", wrapIPC(async (_e: any, p: string) => {
     if (!p || !fs.existsSync(p)) return null;
     return fs.readFileSync(p, "utf-8");

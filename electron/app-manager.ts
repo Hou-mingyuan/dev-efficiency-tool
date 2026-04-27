@@ -428,6 +428,21 @@ export class AppManager {
     }
   }
 
+  deleteGenerationRecord(id: string): void {
+    const list = this.getGenerationHistory();
+    const filtered = list.filter((r) => r.id !== id);
+    if (filtered.length === list.length) return;
+    try {
+      const dir = path.dirname(this.genHistoryPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.genHistoryPath, JSON.stringify(filtered, null, 2), "utf-8");
+      this.addLog("info", `已删除生成记录: ${id}`, "gen-history");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.addLog("warn", `删除生成记录失败: ${msg}`, "gen-history");
+    }
+  }
+
   updateGenerationOutputPath(id: string, outputPath: string): void {
     const list = this.getGenerationHistory();
     const i = list.findIndex((r) => r.id === id);

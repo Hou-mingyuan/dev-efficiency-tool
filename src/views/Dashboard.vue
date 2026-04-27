@@ -10,6 +10,8 @@ import {
   DeleteOutlined,
   FolderOpenOutlined,
   HistoryOutlined,
+  SearchOutlined,
+  ExportOutlined,
 } from "@ant-design/icons-vue";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, ref, watch, nextTick } from "vue";
@@ -60,6 +62,7 @@ const newProject = ref({ name: "", projectPath: "", outputPath: "", methodologyP
 
 const historyList = ref<GenerationRecord[]>([]);
 const historyLoading = ref(false);
+const historySearch = ref("");
 
 const docTypes = [
   { key: "prd", icon: ProfileOutlined, route: "/gen/prd" },
@@ -77,9 +80,17 @@ const statsByType = computed(() => {
 });
 
 const recentHistory = computed(() => {
-  return [...historyList.value]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 8);
+  let list = [...historyList.value]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (historySearch.value.trim()) {
+    const q = historySearch.value.toLowerCase();
+    list = list.filter((r) =>
+      (r.preview || "").toLowerCase().includes(q) ||
+      (r.projectName || "").toLowerCase().includes(q) ||
+      (r.docType || "").toLowerCase().includes(q),
+    );
+  }
+  return list.slice(0, 20);
 });
 
 const totalGenerated = computed(() => historyList.value.length);
@@ -128,6 +139,23 @@ function docTypeLabel(dt: string): string {
     design: t("nav.genDesign"),
   };
   return labels[dt] || dt;
+}
+
+async function deleteHistoryItem(e: Event, id: string) {
+  e.stopPropagation();
+  try {
+    await window.electronAPI.ai.deleteHistory(id);
+    historyList.value = historyList.value.filter((r) => r.id !== id);
+    message.success(`${t("common.delete")} ${t("common.success")}`);
+  } catch {
+    message.error(t("common.error"));
+  }
+}
+
+async function exportHistory() {
+  const data = JSON.stringify(historyList.value, null, 2);
+  await navigator.clipboard.writeText(data);
+  message.success(t("common.copied"));
 }
 
 function goGenerate(route: string) {
@@ -302,8 +330,24 @@ onMounted(() => {
     <!-- Recent History -->
     <div class="dash-recent">
       <div class="dash-recent__header">
-        <HistoryOutlined />
-        <span>{{ t('dash.recentHistory') }}</span>
+        <div class="dash-recent__header-left">
+          <HistoryOutlined />
+          <span>{{ t('dash.recentHistory') }}</span>
+        </div>
+        <div class="dash-recent__header-right">
+          <a-input-search
+            v-model:value="historySearch"
+            :placeholder="t('common.search')"
+            size="small"
+            style="width: 180px"
+            allow-clear
+          />
+          <a-tooltip :title="t('common.export')">
+            <a-button type="text" size="small" @click="exportHistory">
+              <template #icon><ExportOutlined /></template>
+            </a-button>
+          </a-tooltip>
+        </div>
       </div>
       <a-spin :spinning="historyLoading">
         <div v-if="recentHistory.length" class="dash-recent__list">
@@ -326,10 +370,28 @@ onMounted(() => {
               </a-tag>
               <span class="dash-recent__preview">{{ item.preview || item.projectName || '—' }}</span>
             </div>
-            <span class="dash-recent__time">{{ formatTime(item.createdAt) }}</span>
+            <div class="dash-recent__item-right">
+              <span class="dash-recent__time">{{ formatTime(item.createdAt) }}</span>
+              <a-popconfirm
+                :title="t('dash.deleteProjectConfirm')"
+                :ok-text="t('common.confirm')"
+                :cancel-text="t('common.cancel')"
+                @confirm="deleteHistoryItem($event, item.id)"
+              >
+                <a-button
+                  type="text"
+                  size="small"
+                  danger
+                  class="dash-recent__delete"
+                  @click.stop
+                >
+                  <template #icon><DeleteOutlined /></template>
+                </a-button>
+              </a-popconfirm>
+            </div>
           </div>
         </div>
-        <a-empty v-else :description="t('dash.noHistory')" />
+        <a-empty v-else :description="historySearch ? t('globalSearch.noResults') : t('dash.noHistory')" />
       </a-spin>
     </div>
 
@@ -608,12 +670,22 @@ onMounted(() => {
   &__header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 16px 20px;
+    justify-content: space-between;
+    padding: 12px 20px;
     font-size: 15px;
     font-weight: 600;
     color: var(--app-text);
     border-bottom: 1px solid var(--app-border-secondary);
+  }
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  &__header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   &__list {
@@ -649,11 +721,23 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  &__item-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
   &__time {
     font-size: 12px;
     color: var(--app-text-quaternary);
     white-space: nowrap;
-    margin-left: 16px;
+  }
+  &__delete {
+    opacity: 0;
+    transition: opacity var(--app-transition);
+  }
+  &__item:hover &__delete {
+    opacity: 1;
   }
 }
 
