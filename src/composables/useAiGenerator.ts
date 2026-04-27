@@ -143,10 +143,27 @@ export function useAiGenerator(docType: DocType) {
 
   let cleanupChunk: (() => void) | null = null;
   let cleanupDone: (() => void) | null = null;
+  let renderRafId: number | null = null;
+  let pendingRender = false;
 
   function renderMarkdown(md: string): void {
     const raw = marked.parse(md) as string;
     renderedHtml.value = DOMPurify.sanitize(raw);
+  }
+
+  function throttledRender(): void {
+    if (renderRafId !== null) {
+      pendingRender = true;
+      return;
+    }
+    renderRafId = requestAnimationFrame(() => {
+      renderMarkdown(result.value);
+      renderRafId = null;
+      if (pendingRender) {
+        pendingRender = false;
+        throttledRender();
+      }
+    });
   }
 
   function setupListeners() {
@@ -154,10 +171,14 @@ export function useAiGenerator(docType: DocType) {
     if (!api) return;
     cleanupChunk = api.ai.onChunk((chunk: string) => {
       result.value += chunk;
-      renderMarkdown(result.value);
+      throttledRender();
     });
     cleanupDone = api.ai.onDone((fullContent: string, recordId: string) => {
       result.value = fullContent;
+      if (renderRafId !== null) {
+        cancelAnimationFrame(renderRafId);
+        renderRafId = null;
+      }
       renderMarkdown(fullContent);
       lastRecordId.value = recordId;
       generating.value = false;
@@ -441,22 +462,6 @@ export function useAiGenerator(docType: DocType) {
     appStore.lastGenType = docType;
     message.success(t("gen.common.importNextStepOk"));
   }
-
-  function onKeydownGenerate(e: KeyboardEvent) {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      if (!generating.value) {
-        void generate();
-      }
-    }
-  }
-
-  onMounted(() => {
-    document.addEventListener("keydown", onKeydownGenerate);
-  });
-  onUnmounted(() => {
-    document.removeEventListener("keydown", onKeydownGenerate);
-  });
 
   return {
     projectName,

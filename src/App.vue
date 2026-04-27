@@ -27,6 +27,7 @@ const router = useRouter();
 const route = useRoute();
 const notificationStore = useNotificationStore();
 const { t, locale } = useI18n();
+const appVersion = ref("");
 
 const keepAliveViews = ["GeneratePRD", "GenerateRequirements", "GenerateUI", "GenerateDesign"];
 
@@ -235,6 +236,9 @@ let removeUpdateListener: (() => void) | undefined;
 onMounted(() => {
   void loadTheme();
   void loadLocale();
+  window.electronAPI?.app.getVersion().then((v) => {
+    if (v && typeof v === "string") appVersion.value = v;
+  });
   if (!localStorage.getItem("lng-guide-done")) {
     setTimeout(() => { showGuide.value = true; }, 800);
   }
@@ -357,7 +361,7 @@ onBeforeUnmount(() => {
             </a-menu-item>
           </a-menu>
           <div v-if="!collapsed" class="app-sider__footer">
-            <span class="app-sider__version">v0.1.0</span>
+            <span class="app-sider__version">v{{ appVersion }}</span>
           </div>
         </a-layout-sider>
         <a-layout>

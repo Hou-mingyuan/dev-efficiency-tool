@@ -281,6 +281,13 @@ export default {
       imageGenSuccess: "{count} image(s) generated to output directory",
       savedTo: "Saved to",
       pagesCount: "page(s)",
+      refreshPreview: "Refresh Preview",
+      preparing: "Preparing…",
+      renderedPages: "Rendered {current}/{total} page(s)",
+      removedPages: "Removed {count} missing page(s)",
+      allFilesExist: "All files exist",
+      refreshFailed: "Refresh failed",
+      moduleLevelPrompt: "[Module Level] The following describes a module UI within the system. Please maintain consistency with the system's overall navigation style, design language, and component library to ensure the page integrates seamlessly.",
     },
     design: {
       title: "Generate detailed design",

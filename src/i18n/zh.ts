@@ -281,6 +281,13 @@ export default {
       imageGenSuccess: "已生成 {count} 张图片到输出目录",
       savedTo: "已保存到",
       pagesCount: "个页面",
+      refreshPreview: "刷新预览",
+      preparing: "准备中…",
+      renderedPages: "已渲染 {current}/{total} 页",
+      removedPages: "已移除 {count} 个不存在的页面",
+      allFilesExist: "所有文件均存在",
+      refreshFailed: "刷新失败",
+      moduleLevelPrompt: "【模块级别需求】以下描述的是系统中某个模块的 UI，请保持与系统整体的导航风格、设计语言、组件库一致，确保页面能无缝融入现有系统。",
     },
     design: {
       title: "生成详细设计",

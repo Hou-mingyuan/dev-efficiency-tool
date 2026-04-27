@@ -225,7 +225,7 @@
           <a-space>
             <span v-if="generating || imageGenerating" class="gen-status">{{ imageProgress?.message || t("gen.common.generating") }}</span>
             <a-button v-if="generatedPages.length && !imageGenerating" size="small" @click="refreshPreview">
-              {{ t("gen.ui.refreshPreview") || "刷新预览" }}
+              {{ t("gen.ui.refreshPreview") }}
             </a-button>
           </a-space>
         </template>
@@ -468,7 +468,7 @@ async function generateUIImage() {
   }
   teardownListeners();
   imageGenerating.value = true;
-  imageProgress.value = { stage: "generating", current: 0, total: 0, message: "准备中..." };
+  imageProgress.value = { stage: "generating", current: 0, total: 0, message: t("gen.ui.preparing") };
   result.value = "";
   renderedHtml.value = "";
   generatedImagePaths.value = [];
@@ -481,7 +481,7 @@ async function generateUIImage() {
     const p = page as { name: string; imagePath: string; htmlPath: string; index: number; total: number };
     generatedPages.value = [...generatedPages.value, { name: p.name, imagePath: p.imagePath, htmlPath: p.htmlPath }];
     generatedImagePaths.value = [...generatedImagePaths.value, p.imagePath, p.htmlPath];
-    result.value = `已渲染 ${p.index + 1}/${p.total} 页`;
+    result.value = t("gen.ui.renderedPages", { current: p.index + 1, total: p.total });
   });
 
   try {
@@ -503,7 +503,7 @@ async function generateUIImage() {
 
     let imgUserContent = userContent.value;
     if (scopeLevel.value === "module") {
-      imgUserContent = `【模块级别需求】以下描述的是系统中某个模块的 UI，请保持与系统整体的导航风格、设计语言、组件库一致，确保页面能无缝融入现有系统。\n\n${imgUserContent}`;
+      imgUserContent = `${t("gen.ui.moduleLevelPrompt")}\n\n${imgUserContent}`;
     }
 
     const refContent = referenceItems.value.map((r) => r.content).join("\n\n---\n\n");
@@ -552,20 +552,20 @@ async function refreshPreview() {
   try {
     const exists = await window.electronAPI.ai.checkFilesExist(allPaths);
     const remaining = generatedPages.value.filter((p) => exists[p.imagePath]);
-    if (remaining.length !== generatedPages.value.length) {
+    const removedCount = generatedPages.value.length - remaining.length;
+    if (removedCount > 0) {
       generatedPages.value = remaining;
       generatedImagePaths.value = generatedImagePaths.value.filter((f) => exists[f]);
-      const removed = generatedPages.value.length - remaining.length;
-      message.info(`已移除 ${generatedPages.value.length - remaining.length} 个不存在的页面`);
+      message.info(t("gen.ui.removedPages", { count: removedCount }));
     } else {
-      message.success("所有文件均存在");
+      message.success(t("gen.ui.allFilesExist"));
     }
     if (!remaining.length) {
       result.value = "";
       renderedHtml.value = "";
     }
   } catch {
-    message.error("刷新失败");
+    message.error(t("gen.ui.refreshFailed"));
   }
 }
 

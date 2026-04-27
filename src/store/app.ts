@@ -37,7 +37,7 @@ export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: "qwen",
-    name: "通义千问 (Qwen)",
+    name: "Qwen (Tongyi)",
     apiKey: "",
     baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     model: "qwen3.6-plus",
@@ -45,7 +45,7 @@ export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: "zhipu",
-    name: "智谱 (GLM)",
+    name: "Zhipu (GLM)",
     apiKey: "",
     baseUrl: "https://open.bigmodel.cn/api/paas/v4",
     model: "glm-5",
@@ -53,7 +53,7 @@ export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: "moonshot",
-    name: "月之暗面 (Kimi)",
+    name: "Moonshot (Kimi)",
     apiKey: "",
     baseUrl: "https://api.moonshot.cn/v1",
     model: "kimi-k2.6",
@@ -61,7 +61,7 @@ export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: "doubao",
-    name: "豆包 (Doubao)",
+    name: "Doubao (ByteDance)",
     apiKey: "",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     model: "doubao-seed-2.0-pro",
@@ -69,7 +69,7 @@ export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: "custom",
-    name: "自定义 (OpenAI 兼容)",
+    name: "Custom (OpenAI Compatible)",
     apiKey: "",
     baseUrl: "",
     model: "",
