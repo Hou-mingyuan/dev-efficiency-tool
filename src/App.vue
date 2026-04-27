@@ -451,7 +451,11 @@ onBeforeUnmount(() => {
 }
 
 .app-sider {
-  position: relative;
+  position: sticky !important;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   border-right: 1px solid var(--app-glass-border) !important;
   background: var(--app-glass-bg) !important;
   backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
@@ -594,8 +598,9 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: var(--app-page-padding-y) var(--app-page-padding-x) 32px;
   background: var(--app-bg);
-  overflow: auto;
-  min-height: calc(100vh - 56px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 56px);
   position: relative;
 }
 
