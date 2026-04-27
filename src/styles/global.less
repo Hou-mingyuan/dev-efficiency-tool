@@ -1,0 +1,426 @@
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --app-bg: #f5f5f5;
+  --app-bg-container: #ffffff;
+  --app-bg-elevated: #ffffff;
+  --app-bg-layout: #f5f5f5;
+  --app-bg-spotlight: #fafafa;
+  --app-bg-hover: rgba(0, 0, 0, 0.04);
+  --app-text: rgba(0, 0, 0, 0.88);
+  --app-text-secondary: rgba(0, 0, 0, 0.65);
+  --app-text-tertiary: rgba(0, 0, 0, 0.45);
+  --app-text-quaternary: rgba(0, 0, 0, 0.25);
+  --app-border: #d9d9d9;
+  --app-border-secondary: #f0f0f0;
+  --app-fill: rgba(0, 0, 0, 0.06);
+  --app-fill-secondary: rgba(0, 0, 0, 0.04);
+  --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --app-code-bg: #f5f5f5;
+}
+
+[data-theme="dark"] {
+  --app-bg: #0a0a0a;
+  --app-bg-container: #1f1f1f;
+  --app-bg-elevated: #262626;
+  --app-bg-layout: #141414;
+  --app-bg-spotlight: #2a2a2a;
+  --app-bg-hover: rgba(255, 255, 255, 0.08);
+  --app-text: rgba(255, 255, 255, 0.88);
+  --app-text-secondary: rgba(255, 255, 255, 0.65);
+  --app-text-tertiary: rgba(255, 255, 255, 0.45);
+  --app-text-quaternary: rgba(255, 255, 255, 0.25);
+  --app-border: #424242;
+  --app-border-secondary: #303030;
+  --app-fill: rgba(255, 255, 255, 0.12);
+  --app-fill-secondary: rgba(255, 255, 255, 0.06);
+  --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --app-code-bg: #2a2a2a;
+
+  color-scheme: dark;
+  color: var(--app-text);
+  background: var(--app-bg-layout);
+
+  body {
+    background: var(--app-bg-layout);
+    color: var(--app-text);
+  }
+
+  /* ---- Ant Layout ---- */
+  .ant-layout {
+    background: var(--app-bg-layout) !important;
+  }
+  .ant-layout-sider {
+    background: var(--app-bg-container) !important;
+  }
+  .ant-layout-header {
+    background: var(--app-bg-container) !important;
+  }
+
+  /* ---- Card ---- */
+  .ant-card {
+    background: var(--app-bg-container);
+    border-color: var(--app-border-secondary);
+    color: var(--app-text);
+  }
+  .ant-card-head {
+    background: var(--app-bg-container);
+    border-color: var(--app-border-secondary);
+    color: var(--app-text);
+  }
+  .ant-card-head-title {
+    color: var(--app-text);
+  }
+  .ant-card-body {
+    color: var(--app-text);
+  }
+
+  /* ---- Menu ---- */
+  .ant-menu {
+    background: var(--app-bg-container) !important;
+    color: var(--app-text-secondary) !important;
+  }
+  .ant-menu-item-selected {
+    color: #1677ff !important;
+  }
+
+  /* ---- Form ---- */
+  .ant-form-item-label > label {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Input / Select ---- */
+  .ant-input,
+  .ant-input-number,
+  .ant-input-affix-wrapper,
+  .ant-input-number-input,
+  .ant-input-password input {
+    background: var(--app-bg-elevated) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+  .ant-input::placeholder,
+  .ant-input-number-input::placeholder {
+    color: var(--app-text-quaternary) !important;
+  }
+  .ant-select-selector {
+    background: var(--app-bg-elevated) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+  .ant-select-selection-placeholder {
+    color: var(--app-text-quaternary) !important;
+  }
+  .ant-select-dropdown {
+    background: var(--app-bg-elevated) !important;
+  }
+  .ant-select-item {
+    color: var(--app-text) !important;
+  }
+  .ant-select-item-option-active {
+    background: var(--app-bg-hover) !important;
+  }
+  .ant-select-item-option-selected {
+    background: rgba(22, 119, 255, 0.15) !important;
+  }
+
+  /* ---- Button ---- */
+  .ant-btn-default {
+    background: var(--app-bg-elevated) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+  .ant-btn-default:hover {
+    border-color: #1677ff !important;
+    color: #1677ff !important;
+  }
+
+  /* ---- Tabs ---- */
+  .ant-tabs-tab {
+    color: var(--app-text-secondary) !important;
+  }
+  .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: #1677ff !important;
+  }
+  .ant-tabs-nav::before {
+    border-color: var(--app-border-secondary) !important;
+  }
+
+  /* ---- Table ---- */
+  .ant-table {
+    background: var(--app-bg-container) !important;
+    color: var(--app-text) !important;
+  }
+  .ant-table-thead > tr > th {
+    background: var(--app-bg-elevated) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border-secondary) !important;
+  }
+  .ant-table-tbody > tr > td {
+    border-color: var(--app-border-secondary) !important;
+    color: var(--app-text) !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: var(--app-bg-hover) !important;
+  }
+
+  /* ---- Collapse ---- */
+  .ant-collapse {
+    background: var(--app-bg-container);
+    border-color: var(--app-border-secondary);
+    color: var(--app-text);
+  }
+  .ant-collapse-header {
+    color: var(--app-text) !important;
+  }
+  .ant-collapse-content {
+    background: var(--app-bg-container) !important;
+    border-color: var(--app-border-secondary) !important;
+    color: var(--app-text);
+  }
+
+  /* ---- Descriptions ---- */
+  .ant-descriptions {
+    background: var(--app-bg-container);
+  }
+  .ant-descriptions-item-label {
+    background: var(--app-bg-elevated) !important;
+    color: var(--app-text-secondary) !important;
+  }
+  .ant-descriptions-item-content {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Tag ---- */
+  .ant-tag {
+    border-color: var(--app-border);
+  }
+
+  /* ---- Alert ---- */
+  .ant-alert-info {
+    background: #111d2c;
+    border-color: #15395b;
+  }
+  .ant-alert-info .ant-alert-message {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Modal ---- */
+  .ant-modal-content {
+    background: var(--app-bg-container) !important;
+    color: var(--app-text);
+  }
+  .ant-modal-header {
+    background: var(--app-bg-container) !important;
+    border-color: var(--app-border-secondary) !important;
+  }
+  .ant-modal-title {
+    color: var(--app-text) !important;
+  }
+  .ant-modal-close {
+    color: var(--app-text-secondary);
+  }
+
+  /* ---- Drawer ---- */
+  .ant-drawer-content {
+    background: var(--app-bg-container) !important;
+    color: var(--app-text);
+  }
+  .ant-drawer-header {
+    background: var(--app-bg-container) !important;
+    border-color: var(--app-border-secondary) !important;
+    color: var(--app-text);
+  }
+  .ant-drawer-title {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Popover / Tooltip ---- */
+  .ant-popover-inner {
+    background: var(--app-bg-elevated) !important;
+    color: var(--app-text);
+  }
+  .ant-tooltip-inner {
+    background: var(--app-bg-elevated) !important;
+  }
+
+  /* ---- List ---- */
+  .ant-list-item {
+    border-color: var(--app-border-secondary) !important;
+    color: var(--app-text);
+  }
+
+  /* ---- Steps ---- */
+  .ant-steps-item-title {
+    color: var(--app-text) !important;
+  }
+  .ant-steps-item-description {
+    color: var(--app-text-secondary) !important;
+  }
+
+  /* ---- Result ---- */
+  .ant-result-title {
+    color: var(--app-text) !important;
+  }
+  .ant-result-subtitle {
+    color: var(--app-text-secondary) !important;
+  }
+
+  /* ---- Typography ---- */
+  .ant-typography {
+    color: var(--app-text) !important;
+  }
+  h1.ant-typography,
+  h2.ant-typography,
+  h3.ant-typography,
+  h4.ant-typography,
+  h5.ant-typography {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Statistic ---- */
+  .ant-statistic-title {
+    color: var(--app-text-secondary) !important;
+  }
+  .ant-statistic-content {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Divider ---- */
+  .ant-divider {
+    border-color: var(--app-border-secondary) !important;
+  }
+
+  /* ---- Radio ---- */
+  .ant-radio-button-wrapper {
+    background: var(--app-bg-elevated) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+  .ant-radio-button-wrapper-checked {
+    background: #1677ff !important;
+    border-color: #1677ff !important;
+    color: #fff !important;
+  }
+  .ant-radio-wrapper {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Checkbox ---- */
+  .ant-checkbox-wrapper {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Switch ---- */
+  .ant-switch {
+    background: var(--app-fill);
+  }
+
+  /* ---- Spin ---- */
+  .ant-spin-text {
+    color: var(--app-text-secondary);
+  }
+
+  /* ---- Badge ---- */
+  .ant-badge-status-text {
+    color: var(--app-text);
+  }
+
+  /* ---- Empty ---- */
+  .ant-empty-description {
+    color: var(--app-text-tertiary);
+  }
+
+  /* ---- Breadcrumb ---- */
+  .ant-breadcrumb {
+    color: var(--app-text-secondary);
+  }
+
+  /* ---- Pagination ---- */
+  .ant-pagination-item {
+    background: var(--app-bg-elevated) !important;
+    border-color: var(--app-border) !important;
+  }
+  .ant-pagination-item a {
+    color: var(--app-text) !important;
+  }
+
+  /* ---- Scrollbar ---- */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--app-bg-layout);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* ---- Map Ant Design CSS vars for dark mode ---- */
+  --ant-color-text: var(--app-text);
+  --ant-color-text-secondary: var(--app-text-secondary);
+  --ant-color-text-tertiary: var(--app-text-tertiary);
+  --ant-color-text-quaternary: var(--app-text-quaternary);
+  --ant-color-border: var(--app-border);
+  --ant-color-border-secondary: var(--app-border-secondary);
+  --ant-color-bg-container: var(--app-bg-container);
+  --ant-color-bg-elevated: var(--app-bg-elevated);
+  --ant-color-bg-layout: var(--app-bg-layout);
+  --ant-color-bg-spotlight: var(--app-bg-spotlight);
+  --ant-color-bg-text-hover: var(--app-bg-hover);
+  --ant-color-primary-bg: #111d2c;
+
+  /* ---- Custom page styles ---- */
+  .page-container,
+  .page-title {
+    color: var(--app-text);
+  }
+  .ide-card .ide-label {
+    color: var(--app-text-secondary);
+  }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1200px) {
+  .generator-page__grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-content {
+    padding: 12px 12px 24px !important;
+  }
+  .app-header {
+    padding: 0 8px 0 4px !important;
+  }
+  .app-header__select {
+    min-width: 80px !important;
+  }
+  .page-container {
+    padding: 8px 12px !important;
+  }
+  .generator-page__header {
+    padding: 8px 0 !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .app-sider__title {
+    display: none !important;
+  }
+  .generator-actions .ant-space-item {
+    margin-bottom: 4px;
+  }
+}
