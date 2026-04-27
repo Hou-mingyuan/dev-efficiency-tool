@@ -382,4 +382,5 @@ async function loadHistoryRecord(item: GenerationRecord) {
 </script>
 
 <style lang="less" scoped>
+.page-container { position: relative; z-index: 1; }
 </style>

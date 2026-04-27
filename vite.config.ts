@@ -52,7 +52,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          "ant-design": ["ant-design-vue", "@ant-design/icons-vue", "@ant-design/colors"],
+          "ant-design": ["ant-design-vue"],
+          "ant-icons": ["@ant-design/icons-vue"],
           vendor: ["vue", "vue-router", "pinia", "vue-i18n"],
           markdown: ["marked", "dompurify"],
         },
