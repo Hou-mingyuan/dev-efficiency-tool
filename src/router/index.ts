@@ -20,14 +20,6 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, _from, next) => {
-  if (to.name !== "Welcome" && !localStorage.getItem("lng-setup-done")) {
-    next({ name: "Welcome" });
-  } else {
-    next();
-  }
-});
-
 export function prefetchCriticalRoutes(): void {
   void import("../views/Dashboard.vue");
   void import("../views/Settings.vue");
