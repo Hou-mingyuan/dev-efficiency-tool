@@ -86,7 +86,7 @@ function isIpcError(v: unknown): v is { __ipcError: true; message: string } {
   return typeof v === "object" && v !== null && (v as { __ipcError?: boolean }).__ipcError === true;
 }
 
-const maxDisplay = 1000;
+const maxDisplay = 500;
 const levelFilter = ref<"all" | AppLogLevel>("all");
 const sourceFilter = ref<string | undefined>(undefined);
 const searchText = ref("");
@@ -338,6 +338,8 @@ onUnmounted(() => {
   border-bottom: 1px solid color-mix(in srgb, var(--app-glass-border) 50%, transparent);
   align-items: start;
   transition: background var(--app-transition);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 36px;
 
   &:hover {
     background: var(--app-bg-hover);

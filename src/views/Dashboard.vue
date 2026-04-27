@@ -12,10 +12,31 @@ import {
   HistoryOutlined,
 } from "@ant-design/icons-vue";
 import { storeToRefs } from "pinia";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useAppStore } from "@/store/app";
+
+function useCountUp(target: () => number, duration = 600) {
+  const display = ref(0);
+  let raf = 0;
+  watch(target, (to) => {
+    cancelAnimationFrame(raf);
+    const from = display.value;
+    const diff = to - from;
+    if (diff === 0) return;
+    const start = performance.now();
+    const step = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      display.value = Math.round(from + diff * eased);
+      if (progress < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+  }, { immediate: true });
+  return display;
+}
 
 function isIpcError(v: unknown): v is IpcErrorResult {
   return (
@@ -62,12 +83,24 @@ const recentHistory = computed(() => {
 });
 
 const totalGenerated = computed(() => historyList.value.length);
+const animatedTotal = useCountUp(() => totalGenerated.value);
+const animatedStats = Object.fromEntries(
+  docTypes.map((dt) => [dt.key, useCountUp(() => statsByType.value[dt.key]?.length ?? 0)])
+) as Record<string, ReturnType<typeof useCountUp>>;
 
 async function loadHistory() {
   historyLoading.value = true;
   try {
     const res = await window.electronAPI.ai.getHistory();
+    if (isIpcError(res)) {
+      message.error(t("common.error"));
+      historyList.value = [];
+      return;
+    }
     historyList.value = Array.isArray(res) ? (res as GenerationRecord[]) : [];
+  } catch {
+    message.error(t("common.error"));
+    historyList.value = [];
   } finally {
     historyLoading.value = false;
   }
@@ -219,7 +252,16 @@ onMounted(() => {
 
     <!-- Stats Overview -->
     <div class="dash-stats-grid">
+      <template v-if="historyLoading">
+        <div v-for="n in 4" :key="n" class="dash-stat-card dash-stat-card--skeleton">
+          <a-skeleton-avatar :size="48" shape="square" active />
+          <div style="flex: 1">
+            <a-skeleton :paragraph="false" :title="{ width: '60%' }" active />
+          </div>
+        </div>
+      </template>
       <div
+        v-else
         v-for="dt in docTypes"
         :key="dt.key"
         class="dash-stat-card"
@@ -229,7 +271,7 @@ onMounted(() => {
           <component :is="dt.icon" class="dash-stat-card__icon" />
         </div>
         <div class="dash-stat-card__info">
-          <div class="dash-stat-card__count">{{ statsByType[dt.key]?.length ?? 0 }}</div>
+          <div class="dash-stat-card__count">{{ animatedStats[dt.key] }}</div>
           <div class="dash-stat-card__label">{{ docTypeLabel(dt.key) }}</div>
         </div>
         <RightOutlined class="dash-stat-card__arrow" />
@@ -239,7 +281,7 @@ onMounted(() => {
     <!-- Summary Banner -->
     <div class="dash-summary-banner">
       <div class="dash-summary-banner__content">
-        <div class="dash-summary-banner__number">{{ totalGenerated }}</div>
+        <div class="dash-summary-banner__number">{{ animatedTotal }}</div>
         <div class="dash-summary-banner__text">
           <div class="dash-summary-banner__title">{{ t('dash.totalGenerated') }}</div>
           <div class="dash-summary-banner__desc">{{ t('dash.totalDesc') }}</div>

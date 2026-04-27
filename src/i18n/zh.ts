@@ -72,6 +72,8 @@ export default {
     tabBackup: "备份恢复",
     aiConfig: "AI 模型配置",
     promptTemplate: "提示词模板",
+    methodologyPath: "方法论目录",
+    methodologyPathPlaceholder: "选择方法论包所在的根目录",
     projectPath: "项目目录",
     outputPath: "默认输出目录",
     cachePath: "项目分析缓存目录",
@@ -333,6 +335,7 @@ export default {
   theme: {
     light: "亮色模式",
     dark: "暗色模式",
+    accent: "主题色",
   },
   locale: {
     zh: "中文",

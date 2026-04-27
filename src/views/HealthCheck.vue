@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { message } from "ant-design-vue";
 import {
@@ -128,6 +128,10 @@ async function runCheck() {
     running.value = false;
   }
 }
+
+onMounted(() => {
+  runCheck();
+});
 </script>
 
 <template>

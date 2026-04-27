@@ -46,7 +46,11 @@ body,
   --app-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
+button, a,
+.ant-btn, .ant-input, .ant-input-number, .ant-input-affix-wrapper,
+.ant-select-selector, .ant-card, .ant-tag, .ant-switch,
+.ant-collapse-header, .ant-tabs-tab, .ant-menu-item,
+.ant-menu-submenu-title, .ant-radio-button-wrapper {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -220,8 +224,31 @@ body,
 .ant-menu-item-selected {
   background: color-mix(in srgb, var(--app-primary) 12%, transparent) !important;
   color: var(--app-primary) !important;
-  box-shadow: inset 3px 0 0 var(--app-primary);
   font-weight: 500;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--app-primary-gradient);
+    animation: menuIndicatorIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@keyframes menuIndicatorIn {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
 }
 
 /* ---- Ant Radio Button group pill ---- */
@@ -290,6 +317,7 @@ body,
 }
 
 [data-theme="dark"] {
+  --app-noise-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   --app-primary: #60a5fa;
   --app-primary-hover: #93c5fd;
   --app-primary-bg: rgba(59, 130, 246, 0.12);
@@ -327,6 +355,18 @@ body,
   body {
     background: var(--app-bg-layout);
     color: var(--app-text);
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--app-noise-overlay);
+    background-size: 200px 200px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
   }
 
   /* ---- Ant Layout ---- */
@@ -665,6 +705,17 @@ body,
   .ide-card .ide-label {
     color: var(--app-text-secondary);
   }
+}
+
+/* ---- Common page header ---- */
+.page-gradient-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  background: var(--app-primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ---- Responsive ---- */

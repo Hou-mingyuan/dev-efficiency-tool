@@ -41,6 +41,33 @@ function checkScreenSize() {
 
 const currentTheme = ref<"light" | "dark">("light");
 const isDark = ref(false);
+
+type AccentColor = "blue" | "green" | "purple" | "orange";
+const currentAccent = ref<AccentColor>("blue");
+
+const accentPresets: Record<AccentColor, { primary: string; hover: string; gradient: string; darkPrimary: string; darkHover: string; darkGradient: string }> = {
+  blue: { primary: "#3b82f6", hover: "#60a5fa", gradient: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)", darkPrimary: "#60a5fa", darkHover: "#93c5fd", darkGradient: "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)" },
+  green: { primary: "#10b981", hover: "#34d399", gradient: "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)", darkPrimary: "#34d399", darkHover: "#6ee7b7", darkGradient: "linear-gradient(135deg, #34d399 0%, #22d3ee 100%)" },
+  purple: { primary: "#8b5cf6", hover: "#a78bfa", gradient: "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)", darkPrimary: "#a78bfa", darkHover: "#c4b5fd", darkGradient: "linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)" },
+  orange: { primary: "#f59e0b", hover: "#fbbf24", gradient: "linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)", darkPrimary: "#fbbf24", darkHover: "#fde68a", darkGradient: "linear-gradient(135deg, #fbbf24 0%, #f87171 100%)" },
+};
+
+const applyAccent = (accent: AccentColor) => {
+  currentAccent.value = accent;
+  const preset = accentPresets[accent];
+  const root = document.documentElement;
+  root.style.setProperty("--app-primary", isDark.value ? preset.darkPrimary : preset.primary);
+  root.style.setProperty("--app-primary-hover", isDark.value ? preset.darkHover : preset.hover);
+  root.style.setProperty("--app-primary-gradient", isDark.value ? preset.darkGradient : preset.gradient);
+  localStorage.setItem("lng-accent", accent);
+};
+
+const loadAccent = () => {
+  const saved = localStorage.getItem("lng-accent") as AccentColor | null;
+  if (saved && accentPresets[saved]) {
+    applyAccent(saved);
+  }
+};
 const selectedKeys = ref<string[]>(["/"]);
 const openKeys = ref<string[]>(["ai-workshop"]);
 const searchOpen = ref(false);
@@ -90,11 +117,27 @@ const antTheme = computed(() => {
 
 const isShellRoute = computed(() => route.meta?.fullscreen !== true);
 
+const currentPageTitle = computed(() => {
+  const path = route.path;
+  const map: Record<string, string> = {
+    "/": t("nav.dashboard"),
+    "/settings": t("nav.settings"),
+    "/gen/prd": t("nav.genPrd"),
+    "/gen/requirements": t("nav.genRequirements"),
+    "/gen/ui": t("nav.genUi"),
+    "/gen/design": t("nav.genDesign"),
+    "/health": t("nav.health"),
+    "/logs": t("nav.logs"),
+  };
+  return map[path] || "";
+});
+
 const applyDomTheme = (name: "light" | "dark") => {
   isDark.value = name === "dark";
   currentTheme.value = name;
   document.documentElement.setAttribute("data-theme", name);
   localStorage.setItem("lng-theme", name);
+  applyAccent(currentAccent.value);
 };
 
 const loadTheme = async () => {
@@ -236,6 +279,7 @@ let removeUpdateListener: (() => void) | undefined;
 onMounted(() => {
   void loadTheme();
   void loadLocale();
+  loadAccent();
   window.electronAPI?.app.getVersion().then((v) => {
     if (v && typeof v === "string") appVersion.value = v;
   });
@@ -287,6 +331,7 @@ onBeforeUnmount(() => {
           collapsible
           class="app-sider"
           :width="220"
+          :collapsed-width="64"
         >
           <div class="app-sider__brand">
             <div class="app-sider__logo">
@@ -378,6 +423,7 @@ onBeforeUnmount(() => {
                 <MenuUnfoldOutlined v-if="collapsed" />
                 <MenuFoldOutlined v-else />
               </a-button>
+              <span v-if="currentPageTitle" class="app-header__page-title">{{ currentPageTitle }}</span>
             </div>
             <div class="app-header__right">
               <a-select
@@ -394,6 +440,23 @@ onBeforeUnmount(() => {
                   {{ $t("locale.en") }}
                 </a-select-option>
               </a-select>
+              <a-popover trigger="click" placement="bottom">
+                <template #content>
+                  <div class="accent-picker">
+                    <div
+                      v-for="(_, key) in accentPresets"
+                      :key="key"
+                      class="accent-picker__dot"
+                      :class="{ 'accent-picker__dot--active': currentAccent === key }"
+                      :style="{ background: accentPresets[key].gradient }"
+                      @click="applyAccent(key as AccentColor)"
+                    />
+                  </div>
+                </template>
+                <a-button class="app-header__icon" type="text" :aria-label="$t('theme.accent')">
+                  <BgColorsOutlined />
+                </a-button>
+              </a-popover>
               <a-tooltip :title="isDark ? $t('theme.dark') : $t('theme.light')">
                 <a-button
                   class="app-header__icon"
@@ -460,6 +523,9 @@ onBeforeUnmount(() => {
   background: var(--app-glass-bg) !important;
   backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
   &::after {
     content: '';
@@ -558,6 +624,14 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: 10px;
   }
+  &__page-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--app-text);
+    margin-left: 4px;
+    opacity: 0.85;
+    white-space: nowrap;
+  }
   &__title {
     font-size: 16px;
     font-weight: 600;
@@ -618,7 +692,9 @@ onBeforeUnmount(() => {
   filter: blur(80px);
   opacity: 0.07;
   will-change: transform;
+  contain: layout style;
   animation: orbFloat 20s ease-in-out infinite alternate;
+  transform: translateZ(0);
 }
 
 .app-orb--1 {
@@ -653,6 +729,27 @@ onBeforeUnmount(() => {
   33% { transform: translate(30px, -20px) scale(1.05); }
   66% { transform: translate(-20px, 30px) scale(0.95); }
   100% { transform: translate(10px, -10px) scale(1.02); }
+}
+
+.accent-picker {
+  display: flex;
+  gap: 10px;
+  padding: 4px;
+}
+.accent-picker__dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+  &:hover {
+    transform: scale(1.2);
+  }
+  &--active {
+    border-color: var(--app-text);
+    box-shadow: 0 0 0 2px var(--app-bg), 0 0 0 4px var(--app-primary);
+  }
 }
 
 .page-fade-enter-active,

@@ -72,6 +72,8 @@ export default {
     tabBackup: "Backup & restore",
     aiConfig: "AI providers",
     promptTemplate: "Prompt templates",
+    methodologyPath: "Methodology directory",
+    methodologyPathPlaceholder: "Select the root directory of the methodology package",
     projectPath: "Project directory",
     outputPath: "Default output folder",
     cachePath: "Project analysis cache directory",
@@ -333,6 +335,7 @@ export default {
   theme: {
     light: "Light",
     dark: "Dark",
+    accent: "Accent Color",
   },
   locale: {
     zh: "中文",

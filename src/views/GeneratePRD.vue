@@ -165,7 +165,17 @@
         size="small"
       >
         <template #extra>
-          <span v-if="generating" class="gen-status">{{ t("gen.common.generating") }}</span>
+          <a-space>
+            <span v-if="generating" class="gen-status">{{ t("gen.common.generating") }}</span>
+            <a-button
+              v-if="renderedHtml"
+              type="text"
+              size="small"
+              @click="fullscreenPreview = true"
+            >
+              <FullscreenOutlined />
+            </a-button>
+          </a-space>
         </template>
         <a-spin :spinning="generating" class="preview-spin">
           <div class="generator-page__preview-body">
@@ -179,6 +189,17 @@
         </a-spin>
       </a-card>
     </div>
+
+    <a-modal
+      v-model:open="fullscreenPreview"
+      :title="t('gen.common.preview')"
+      width="90vw"
+      :footer="null"
+      centered
+      class="fullscreen-preview-modal"
+    >
+      <div class="markdown-body fullscreen-preview-body" v-html="renderedHtml" />
+    </a-modal>
 
     <a-drawer
       v-model:open="historyOpen"
@@ -218,6 +239,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { computed, ref } from "vue";
 import { Modal, message } from "ant-design-vue";
+import { FullscreenOutlined } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useAiGenerator } from "@/composables/useAiGenerator";
@@ -227,6 +249,7 @@ import "@/styles/generator.less";
 defineOptions({ name: "GeneratePRD" });
 
 const { t } = useI18n();
+const fullscreenPreview = ref(false);
 const route = useRoute();
 
 const {

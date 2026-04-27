@@ -279,6 +279,18 @@ onUnmounted(() => {
               layout="vertical"
               class="settings-form"
             >
+              <a-form-item :label="t('settings.methodologyPath')">
+                <a-input-group compact>
+                  <a-input
+                    v-model:value="draft.methodologyPath"
+                    style="width: calc(100% - 88px)"
+                    :placeholder="t('settings.methodologyPathPlaceholder')"
+                  />
+                  <a-button @click="selectDir('methodologyPath')">
+                    {{ t("common.selectDir") }}
+                  </a-button>
+                </a-input-group>
+              </a-form-item>
               <a-form-item :label="t('settings.projectPath')">
                 <a-input-group compact>
                   <a-input
@@ -556,6 +568,34 @@ onUnmounted(() => {
 .settings-tabs {
   :deep(.ant-tabs-nav) {
     margin-bottom: 20px;
+
+    &::before {
+      border: none !important;
+    }
+  }
+  :deep(.ant-tabs-nav-list) {
+    background: var(--app-fill);
+    border-radius: var(--app-radius-lg);
+    padding: 3px;
+  }
+  :deep(.ant-tabs-tab) {
+    border-radius: var(--app-radius-md) !important;
+    padding: 6px 18px !important;
+    margin: 0 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none !important;
+    background: transparent;
+    &::before,
+    &::after {
+      display: none !important;
+    }
+  }
+  :deep(.ant-tabs-tab-active) {
+    background: var(--app-bg-container) !important;
+    box-shadow: var(--app-shadow);
+  }
+  :deep(.ant-tabs-ink-bar) {
+    display: none !important;
   }
 }
 
