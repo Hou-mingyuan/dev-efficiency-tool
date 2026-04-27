@@ -146,6 +146,20 @@ onMounted(() => {
       </a-button>
     </div>
 
+    <!-- Memory Progress -->
+    <div v-if="result" class="health-memory-bar">
+      <div class="health-memory-bar__label">
+        <span>{{ t("health.memory") }}</span>
+        <span :style="{ color: overallColor }">{{ memoryPercent }}%</span>
+      </div>
+      <a-progress
+        :percent="memoryPercent"
+        :stroke-color="memoryStatus === 'success' ? '#10b981' : memoryStatus === 'warning' ? '#f59e0b' : '#ef4444'"
+        :show-info="false"
+        size="small"
+      />
+    </div>
+
     <!-- Overall Status -->
     <div v-if="result" class="health-overall" :style="{ borderColor: overallColor }">
       <div class="health-overall__icon" :style="{ color: overallColor }">
@@ -242,6 +256,24 @@ onMounted(() => {
     font-size: 12px;
     color: var(--app-text-tertiary);
     margin-top: 2px;
+  }
+}
+
+.health-memory-bar {
+  padding: 16px 24px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  border: 1px solid var(--app-glass-border);
+  margin-bottom: 20px;
+
+  &__label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--app-text);
   }
 }
 

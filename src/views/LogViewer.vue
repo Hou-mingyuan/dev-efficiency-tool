@@ -59,7 +59,7 @@
             {{ levelLabel(entry.level) }}
           </a-tag>
           <span class="log-source" :title="entry.source">{{ entry.source }}</span>
-          <span class="log-msg">{{ entry.message }}</span>
+          <span class="log-msg" :class="{ 'log-msg--json': isJson(entry.message) }">{{ formatMsg(entry.message) }}</span>
         </div>
       </div>
     </a-spin>
@@ -138,6 +138,20 @@ function levelColor(level: AppLogLevel): string {
   if (level === "error") return "red";
   if (level === "warn") return "gold";
   return "blue";
+}
+
+function isJson(msg: string): boolean {
+  const trimmed = msg.trim();
+  return (trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+}
+
+function formatMsg(msg: string): string {
+  if (!isJson(msg)) return msg;
+  try {
+    return JSON.stringify(JSON.parse(msg), null, 2);
+  } catch {
+    return msg;
+  }
 }
 
 function levelLabel(level: AppLogLevel): string {
@@ -376,5 +390,14 @@ onUnmounted(() => {
   word-break: break-word;
   line-height: 1.6;
   color: var(--app-text);
+
+  &--json {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-size: 11px;
+    background: var(--app-code-bg, #f8fafc);
+    padding: 4px 8px;
+    border-radius: var(--app-radius-xs, 6px);
+    border: 1px solid var(--app-border-secondary);
+  }
 }
 </style>

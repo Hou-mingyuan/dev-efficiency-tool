@@ -338,6 +338,7 @@ onMounted(() => {
       >
         <component :is="dt.icon" class="dash-quick-card__icon" />
         <div class="dash-quick-card__label">{{ docTypeLabel(dt.key) }}</div>
+        <div class="dash-quick-card__desc">{{ t(`gen.${dt.key}.description`) }}</div>
         <div class="dash-quick-card__hint">{{ t('dash.clickToGenerate') }}</div>
       </div>
     </div>
@@ -685,6 +686,15 @@ onMounted(() => {
     font-size: 14px;
     font-weight: 600;
     color: var(--app-text);
+  }
+  &__desc {
+    font-size: 12px;
+    color: var(--app-text-tertiary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   &__hint {
     font-size: 11px;

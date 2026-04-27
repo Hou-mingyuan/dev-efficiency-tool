@@ -116,6 +116,7 @@ const antTheme = computed(() => {
 });
 
 const isShellRoute = computed(() => route.meta?.fullscreen !== true);
+const pageLoading = ref(false);
 
 const currentPageTitle = computed(() => {
   const path = route.path;
@@ -202,6 +203,13 @@ const displayLocale = computed<"zh" | "en">({
   set(v) {
     void setLocale(v);
   },
+});
+
+router.beforeEach(() => {
+  pageLoading.value = true;
+});
+router.afterEach(() => {
+  setTimeout(() => { pageLoading.value = false; }, 200);
 });
 
 const syncMenuFromRoute = (path: string) => {
@@ -472,6 +480,7 @@ onBeforeUnmount(() => {
               <NotificationCenter />
             </div>
           </a-layout-header>
+          <div v-if="pageLoading" class="app-loading-bar" />
           <a-layout-content class="app-content">
             <div class="app-content__orbs" aria-hidden="true">
               <div class="app-orb app-orb--1" />
@@ -729,6 +738,24 @@ onBeforeUnmount(() => {
   33% { transform: translate(30px, -20px) scale(1.05); }
   66% { transform: translate(-20px, 30px) scale(0.95); }
   100% { transform: translate(10px, -10px) scale(1.02); }
+}
+
+.app-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  background: var(--app-primary-gradient);
+  animation: loadingBarSlide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: left;
+}
+
+@keyframes loadingBarSlide {
+  0% { transform: scaleX(0); opacity: 1; }
+  50% { transform: scaleX(0.7); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
 }
 
 .accent-picker {

@@ -447,6 +447,18 @@ onMounted(async () => {
 
 .step-panel {
   text-align: center;
+  animation: stepFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .welcome-title {

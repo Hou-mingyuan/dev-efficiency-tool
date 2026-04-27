@@ -154,13 +154,10 @@ function onClearAll() {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.06));
   flex-wrap: wrap;
-}
-
-[data-theme="dark"] .nc-popover__head {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  background: var(--app-fill-secondary, rgba(0, 0, 0, 0.02));
 }
 
 .nc-popover__title {
@@ -182,10 +179,13 @@ function onClearAll() {
   gap: 12px;
   padding: 12px 14px;
   cursor: pointer;
-  transition: background var(--app-transition, 0.2s ease);
+  transition: background var(--app-transition, 0.2s ease), transform 0.15s ease;
   border-bottom: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.04));
   border-radius: var(--app-radius-sm, 8px);
   margin: 2px 4px;
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
 .nc-item:last-child {
