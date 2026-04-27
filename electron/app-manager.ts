@@ -257,6 +257,8 @@ export class AppManager {
     const candidates = [
       path.join(process.resourcesPath || "", "methodology-core"),
       path.join(__dirname, "..", "methodology-core"),
+      path.join(process.resourcesPath || "", "mcp-core"),
+      path.join(__dirname, "..", "mcp-core"),
       path.resolve(__dirname, "../../lng-methodology-mcp"),
       path.resolve(__dirname, "../../lng-team-methodology-mcp-0.5.0/package"),
     ];
