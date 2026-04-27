@@ -188,7 +188,7 @@
           >
             {{ genMode === 'image' ? t('gen.ui.generateImage') : t('gen.common.generate') }}
           </a-button>
-          <a-button v-if="generating" danger @click="stopGenerate">
+          <a-button v-if="generating || imageGenerating" danger @click="genMode === 'image' ? stopImageGenerate() : stopGenerate()">
             {{ t("gen.common.stopGenerate") }}
           </a-button>
           <a-button v-if="genMode === 'doc'" :disabled="generating || !userContent.trim()" @click="onRegenerate">
@@ -414,6 +414,13 @@ async function onImageDrop(e: DragEvent) {
       /* ignore */
     }
   }
+}
+
+async function stopImageGenerate() {
+  try {
+    await window.electronAPI.ai.stopGenerate();
+  } catch { /* ignore */ }
+  imageGenerating.value = false;
 }
 
 async function generateUIImage() {

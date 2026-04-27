@@ -44,7 +44,7 @@ export function useAiGenerator(docType: DocType) {
   const projectCacheInfo = ref<ProjectCacheInfo | null>(null);
   const analyzingProject = ref(false);
 
-  const DRAFT_KEY = `lng-draft-${docType}`;
+  const DRAFT_KEY = `devtool-draft-${docType}`;
 
   function saveDraft() {
     try {

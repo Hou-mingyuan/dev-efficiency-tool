@@ -11,7 +11,8 @@
     "build:skip-check": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "pack": "vite build && npx electron-builder --win --config"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",

@@ -26,7 +26,7 @@ import { ProjectAnalyzer } from "./project-analyzer";
 const { autoUpdater } = pkg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_DIR = path.join(os.homedir(), ".lng-methodology-desktop");
+const APP_DIR = path.join(os.homedir(), ".dev-efficiency-tool");
 
 /* ------------------------------------------------------------------ */
 /*  Menu i18n labels                                                   */
