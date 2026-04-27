@@ -271,13 +271,22 @@ function saveWindowState() {
 
 function createMainWindow() {
   const state = loadWindowState();
+  const iconCandidates = [
+    path.join(__dirname, "../public/icon.png"),
+    path.join(process.resourcesPath || "", "app.asar", "dist", "icon.png"),
+  ];
+  let windowIcon: string | undefined;
+  for (const p of iconCandidates) {
+    if (fs.existsSync(p)) { windowIcon = p; break; }
+  }
+
   mainWindow = new BrowserWindow({
     ...state,
     minWidth: 900,
     minHeight: 600,
     title: "开发效率提升工具",
     frame: false,
-    icon: path.join(__dirname, "../public/icon.png"),
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -292,7 +301,27 @@ function createMainWindow() {
     saveWindowState();
     if (tray) {
       e.preventDefault();
-      mainWindow?.hide();
+      const t = MENU_LABELS[currentLocale] || MENU_LABELS.zh;
+      const options = {
+        type: "question" as const,
+        buttons: currentLocale === "zh"
+          ? ["最小化到托盘", "退出应用", "取消"]
+          : ["Minimize to Tray", "Quit", "Cancel"],
+        defaultId: 0,
+        cancelId: 2,
+        title: currentLocale === "zh" ? "关闭窗口" : "Close Window",
+        message: currentLocale === "zh"
+          ? "是否将应用最小化到系统托盘？"
+          : "Minimize application to system tray?",
+      };
+      const choice = dialog.showMessageBoxSync(mainWindow!, options);
+      if (choice === 0) {
+        mainWindow?.hide();
+      } else if (choice === 1) {
+        tray?.destroy();
+        tray = null;
+        app.quit();
+      }
     }
   });
   mainWindow.on("closed", () => {
@@ -340,12 +369,19 @@ function createChildWindow(route: string) {
 /* ------------------------------------------------------------------ */
 
 function createTray() {
-  const iconPath = path.join(__dirname, "../public/icon.png");
-  let img: Electron.NativeImage;
-  try {
-    img = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
-  } catch {
-    img = nativeImage.createEmpty();
+  const candidates = [
+    path.join(__dirname, "../public/icon.png"),
+    path.join(process.resourcesPath || "", "app.asar", "dist", "icon.png"),
+    path.join(__dirname, "../dist/icon.png"),
+  ];
+  let img: Electron.NativeImage = nativeImage.createEmpty();
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      try {
+        img = nativeImage.createFromPath(p).resize({ width: 16, height: 16 });
+        break;
+      } catch { /* try next */ }
+    }
   }
   tray = new Tray(img);
   tray.setToolTip("开发效率提升工具");
