@@ -69,16 +69,12 @@ const open = computed({
 const menuItems = [
   { path: "/", i18nKey: "nav.dashboard" as const },
   { path: "/settings", i18nKey: "nav.settings" as const },
-  { path: "/methodology", i18nKey: "nav.methodology" as const },
-  { path: "/ide", i18nKey: "nav.ide" as const },
   { path: "/health", i18nKey: "nav.health" as const },
   { path: "/logs", i18nKey: "nav.logs" as const },
-  { path: "/parser", i18nKey: "nav.parser" as const },
   { path: "/gen/prd", i18nKey: "nav.genPrd" as const },
   { path: "/gen/requirements", i18nKey: "nav.genRequirements" as const },
   { path: "/gen/ui", i18nKey: "nav.genUi" as const },
   { path: "/gen/design", i18nKey: "nav.genDesign" as const },
-  { path: "/welcome", i18nKey: "welcome.title" as const },
 ] as const;
 
 const filteredItems = computed(() => {

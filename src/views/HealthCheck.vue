@@ -9,9 +9,7 @@ import {
   DesktopOutlined,
   CloudServerOutlined,
   HddOutlined,
-  FolderOutlined,
   FileTextOutlined,
-  ApiOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons-vue";
 
@@ -20,10 +18,8 @@ const { t } = useI18n();
 interface HealthResult {
   nodeVersion: string;
   electronVersion: string;
-  methodologyPath: string;
   entryExists: boolean;
   methodologyFileCount: number;
-  portAvailable: boolean;
   platform: string;
   arch: string;
   memory: { total: number; free: number };
@@ -56,7 +52,7 @@ const overallLevel = computed((): Overall | null => {
   if (!result.value) return null;
   const r = result.value;
   if (!r.entryExists) return "error";
-  if (!r.portAvailable || r.methodologyFileCount === 0) return "warning";
+  if (r.methodologyFileCount === 0) return "warning";
   return "success";
 });
 
@@ -105,22 +101,10 @@ const healthItems = computed(() => {
       status: memoryStatus.value as "success" | "warning" | "error",
     },
     {
-      icon: FolderOutlined,
-      label: t("health.methodologyPath"),
-      value: r.methodologyPath || "—",
-      status: (r.methodologyPath ? "success" : "warning") as "success" | "warning",
-    },
-    {
       icon: FileTextOutlined,
       label: t("health.docCount"),
       value: String(r.methodologyFileCount),
       status: (r.methodologyFileCount > 0 ? "success" : "warning") as "success" | "warning",
-    },
-    {
-      icon: ApiOutlined,
-      label: t("health.portAvailable"),
-      value: r.portAvailable ? t("health.available") : t("health.unavailable"),
-      status: (r.portAvailable ? "success" : "error") as "success" | "error",
     },
   ];
 });

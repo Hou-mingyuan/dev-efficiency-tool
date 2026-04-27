@@ -3,11 +3,8 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-rou
 const routes: RouteRecordRaw[] = [
   { path: "/", name: "Dashboard", component: () => import("../views/Dashboard.vue") },
   { path: "/settings", name: "Settings", component: () => import("../views/Settings.vue") },
-  { path: "/methodology", name: "Methodology", component: () => import("../views/Methodology.vue") },
-  { path: "/ide", name: "IdeManager", component: () => import("../views/IdeManager.vue") },
   { path: "/health", name: "HealthCheck", component: () => import("../views/HealthCheck.vue") },
   { path: "/logs", name: "LogViewer", component: () => import("../views/LogViewer.vue") },
-  { path: "/parser", name: "DocumentParser", component: () => import("../views/DocumentParser.vue") },
   { path: "/gen/prd", name: "GeneratePRD", component: () => import("../views/GeneratePRD.vue") },
   { path: "/gen/requirements", name: "GenerateRequirements", component: () => import("../views/GenerateRequirements.vue") },
   { path: "/gen/ui", name: "GenerateUI", component: () => import("../views/GenerateUI.vue") },
