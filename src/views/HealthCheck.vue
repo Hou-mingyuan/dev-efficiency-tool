@@ -12,6 +12,15 @@
       </a-tag>
     </div>
     <a-spin :spinning="running" :tip="t('health.checking')">
+      <a-empty
+        v-if="!result && !running"
+        :description="t('health.emptyHint')"
+        class="health-empty"
+      >
+        <a-button type="primary" @click="runCheck">
+          {{ t("health.runCheck") }}
+        </a-button>
+      </a-empty>
       <a-descriptions
         v-if="result"
         bordered

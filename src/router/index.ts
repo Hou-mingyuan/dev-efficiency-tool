@@ -12,7 +12,7 @@ const routes: RouteRecordRaw[] = [
   { path: "/gen/requirements", name: "GenerateRequirements", component: () => import("../views/GenerateRequirements.vue") },
   { path: "/gen/ui", name: "GenerateUI", component: () => import("../views/GenerateUI.vue") },
   { path: "/gen/design", name: "GenerateDesign", component: () => import("../views/GenerateDesign.vue") },
-  { path: "/welcome", name: "Welcome", component: () => import("../views/Welcome.vue") },
+  { path: "/welcome", name: "Welcome", component: () => import("../views/Welcome.vue"), meta: { fullscreen: true } },
 ];
 
 const router = createRouter({
@@ -20,9 +20,14 @@ const router = createRouter({
   routes,
 });
 
-/**
- * Eagerly warm the two most used chunks after shell load.
- */
+router.beforeEach((to, _from, next) => {
+  if (to.name !== "Welcome" && !localStorage.getItem("lng-setup-done")) {
+    next({ name: "Welcome" });
+  } else {
+    next();
+  }
+});
+
 export function prefetchCriticalRoutes(): void {
   void import("../views/Dashboard.vue");
   void import("../views/Settings.vue");

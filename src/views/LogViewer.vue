@@ -202,18 +202,38 @@ async function onExport() {
   }
 }
 
-onMounted(() => {
-  void fetchLogs(false);
+function startLogPoll(): void {
+  if (pollTimer) return;
   pollTimer = setInterval(() => {
     void fetchLogs(true);
-  }, 3000);
-});
+  }, 5000);
+}
 
-onUnmounted(() => {
+function stopLogPoll(): void {
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+}
+
+function onVisibility(): void {
+  if (document.visibilityState === "visible") {
+    void fetchLogs(true);
+    startLogPoll();
+  } else {
+    stopLogPoll();
+  }
+}
+
+onMounted(() => {
+  void fetchLogs(false);
+  startLogPoll();
+  document.addEventListener("visibilitychange", onVisibility);
+});
+
+onUnmounted(() => {
+  stopLogPoll();
+  document.removeEventListener("visibilitychange", onVisibility);
 });
 </script>
 

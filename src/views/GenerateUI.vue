@@ -7,7 +7,7 @@
 
     <div class="generator-page__grid">
       <a-card class="generator-page__panel" :title="t('gen.common.input')" size="small">
-        <a-form layout="vertical">
+        <a-form layout="vertical" :disabled="generating || imageGenerating">
           <a-form-item :label="t('gen.common.scopeLevel')">
             <a-radio-group v-model:value="scopeLevel">
               <a-radio-button value="project">{{ t('gen.common.scopeProject') }}</a-radio-button>
@@ -221,8 +221,21 @@
         size="small"
       >
         <template #extra>
-          <span v-if="generating || imageGenerating" class="gen-status">{{ t("gen.common.generating") }}</span>
+          <a-space>
+            <span v-if="generating || imageGenerating" class="gen-status">{{ imageProgress?.message || t("gen.common.generating") }}</span>
+            <a-button v-if="generatedPages.length && !imageGenerating" size="small" @click="refreshPreview">
+              {{ t("gen.ui.refreshPreview") || "刷新预览" }}
+            </a-button>
+          </a-space>
         </template>
+        <div v-if="imageGenerating && imageProgress" class="image-progress-bar">
+          <a-progress
+            :percent="imageProgress.stage === 'generating' ? undefined : (imageProgress.total > 0 ? Math.round((imageProgress.current / imageProgress.total) * 100) : 0)"
+            :status="imageProgress.stage === 'done' ? 'success' : 'active'"
+            :stroke-color="{ from: '#108ee9', to: '#87d068' }"
+          />
+          <div class="image-progress-text">{{ imageProgress.message }}</div>
+        </div>
         <a-spin :spinning="generating || imageGenerating" class="preview-spin">
           <div class="generator-page__preview-body">
             <a-empty v-if="!result && !generating && !imageGenerating" :description="t('gen.common.noResult')" />
@@ -299,13 +312,15 @@
 <script setup lang="ts">
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Modal, message } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useAiGenerator } from "@/composables/useAiGenerator";
 
 import "@/styles/generator.less";
+
+defineOptions({ name: "GenerateUI" });
 
 const { t } = useI18n();
 const route = useRoute();
@@ -347,9 +362,27 @@ const {
   setupListeners,
 } = useAiGenerator("ui");
 
-const genMode = ref<"doc" | "image">("doc");
-const imageFormat = ref<"png" | "jpeg">("png");
+const UI_PREFS_KEY = "devtool-ui-prefs";
+const savedPrefs = (() => {
+  try {
+    const raw = localStorage.getItem(UI_PREFS_KEY);
+    return raw ? JSON.parse(raw) as { genMode?: string; imageFormat?: string } : {};
+  } catch { return {}; }
+})();
+
+const genMode = ref<"doc" | "image">(savedPrefs.genMode === "image" ? "image" : "doc");
+const imageFormat = ref<"png" | "jpeg">(savedPrefs.imageFormat === "jpeg" ? "jpeg" : "png");
 const imageGenerating = ref(false);
+const imageProgress = ref<{ stage: string; current: number; total: number; message: string } | null>(null);
+
+watch([genMode, imageFormat], () => {
+  try {
+    localStorage.setItem(UI_PREFS_KEY, JSON.stringify({
+      genMode: genMode.value,
+      imageFormat: imageFormat.value,
+    }));
+  } catch { /* ignore */ }
+});
 const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mimeType: string }>>([]);
 const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
@@ -434,10 +467,21 @@ async function generateUIImage() {
   }
   teardownListeners();
   imageGenerating.value = true;
+  imageProgress.value = { stage: "generating", current: 0, total: 0, message: "准备中..." };
   result.value = "";
   renderedHtml.value = "";
   generatedImagePaths.value = [];
   generatedPages.value = [];
+
+  const cleanupProgress = window.electronAPI.ai.onImageProgress((p) => {
+    imageProgress.value = p as { stage: string; current: number; total: number; message: string };
+  });
+  const cleanupPageReady = window.electronAPI.ai.onPageReady((page) => {
+    const p = page as { name: string; imagePath: string; htmlPath: string; index: number; total: number };
+    generatedPages.value = [...generatedPages.value, { name: p.name, imagePath: p.imagePath, htmlPath: p.htmlPath }];
+    generatedImagePaths.value = [...generatedImagePaths.value, p.imagePath, p.htmlPath];
+    result.value = `已渲染 ${p.index + 1}/${p.total} 页`;
+  });
 
   try {
     const mcpStore = (await import("@/store/mcp")).useMcpStore();
@@ -480,8 +524,8 @@ async function generateUIImage() {
       const data = res as { htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> };
       result.value = data.htmlResult;
       renderedHtml.value = data.htmlResult;
-      generatedImagePaths.value = data.savedFiles;
-      generatedPages.value = data.pages || [];
+      if (data.pages?.length) generatedPages.value = data.pages;
+      if (data.savedFiles?.length) generatedImagePaths.value = data.savedFiles;
       lastRecordId.value = data.recordId;
       const imgCount = data.savedFiles.filter((f) => !f.endsWith(".html")).length;
       message.success(t("gen.ui.imageGenSuccess", { count: imgCount }));
@@ -491,8 +535,36 @@ async function generateUIImage() {
       ? String((err as { message: string }).message) : String(err);
     message.error(msg);
   } finally {
+    cleanupProgress();
+    cleanupPageReady();
+    window.electronAPI.ai.offImageProgress();
+    window.electronAPI.ai.offPageReady();
     imageGenerating.value = false;
+    imageProgress.value = null;
     setupListeners();
+  }
+}
+
+async function refreshPreview() {
+  if (!generatedPages.value.length) return;
+  const allPaths = generatedPages.value.flatMap((p) => [p.imagePath, p.htmlPath]);
+  try {
+    const exists = await window.electronAPI.ai.checkFilesExist(allPaths);
+    const remaining = generatedPages.value.filter((p) => exists[p.imagePath]);
+    if (remaining.length !== generatedPages.value.length) {
+      generatedPages.value = remaining;
+      generatedImagePaths.value = generatedImagePaths.value.filter((f) => exists[f]);
+      const removed = generatedPages.value.length - remaining.length;
+      message.info(`已移除 ${generatedPages.value.length - remaining.length} 个不存在的页面`);
+    } else {
+      message.success("所有文件均存在");
+    }
+    if (!remaining.length) {
+      result.value = "";
+      renderedHtml.value = "";
+    }
+  } catch {
+    message.error("刷新失败");
   }
 }
 
@@ -739,6 +811,19 @@ async function loadHistoryRecord(item: GenerationRecord) {
   font-size: 12px;
   color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
   word-break: break-all;
+  margin-top: 4px;
+}
+
+.image-progress-bar {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--app-bg-layout, #f5f5f5);
+  border-radius: 8px;
+}
+
+.image-progress-text {
+  font-size: 13px;
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
   margin-top: 4px;
 }
 </style>

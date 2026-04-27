@@ -569,9 +569,9 @@ function registerIpcHandlers() {
   // Export / import
   ipcMain.handle("app:exportLogs", wrapIPC(async () => {
     const { filePath } = await dialog.showSaveDialog(mainWindow!, {
-      title: "导出日志",
+      title: currentLocale === "zh" ? "导出日志" : "Export Logs",
       defaultPath: `mcp-logs-${new Date().toISOString().slice(0, 10)}.txt`,
-      filters: [{ name: "文本文件", extensions: ["txt"] }],
+      filters: [{ name: currentLocale === "zh" ? "文本文件" : "Text Files", extensions: ["txt"] }],
     });
     if (!filePath) return false;
     const text = (mcpManager?.getLogs() || [])
@@ -582,7 +582,7 @@ function registerIpcHandlers() {
   }));
   ipcMain.handle("app:exportConfig", wrapIPC(async () => {
     const { filePath } = await dialog.showSaveDialog(mainWindow!, {
-      title: "导出配置",
+      title: currentLocale === "zh" ? "导出配置" : "Export Config",
       defaultPath: "mcp-config-backup.json",
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
@@ -595,12 +595,32 @@ function registerIpcHandlers() {
   }));
   ipcMain.handle("app:importConfig", wrapIPC(async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow!, {
-      title: "导入配置",
+      title: currentLocale === "zh" ? "导入配置" : "Import Config",
       filters: [{ name: "JSON", extensions: ["json"] }],
       properties: ["openFile"],
     });
     if (!filePaths?.length) return null;
-    const data = JSON.parse(fs.readFileSync(filePaths[0], "utf-8"));
+    const raw = fs.readFileSync(filePaths[0], "utf-8");
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(currentLocale === "zh" ? "配置文件格式错误，请选择有效的 JSON 文件" : "Invalid config file format. Please select a valid JSON file.");
+    }
+    if (typeof data !== "object" || data === null || Array.isArray(data)) {
+      throw new Error(currentLocale === "zh" ? "配置文件结构无效" : "Invalid config file structure");
+    }
+    const requiredFields = ["port", "transport"];
+    for (const field of requiredFields) {
+      if (!(field in data)) {
+        throw new Error(currentLocale === "zh"
+          ? `配置文件缺少必要字段: ${field}`
+          : `Config file missing required field: ${field}`);
+      }
+    }
+    if (data.port !== undefined && (typeof data.port !== "number" || data.port < 1 || data.port > 65535)) {
+      throw new Error(currentLocale === "zh" ? "端口号无效（1-65535）" : "Invalid port number (1-65535)");
+    }
     mcpManager?.setConfig(data);
     return mcpManager?.getConfig();
   }));
@@ -609,8 +629,8 @@ function registerIpcHandlers() {
   ipcMain.handle("app:parseDocument", wrapIPC(async (_e: any, p: string) => mcpManager?.parseDocument(p)));
   ipcMain.handle("app:selectFile", wrapIPC(async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow!, {
-      title: "选择文档",
-      filters: [{ name: "文档", extensions: ["docx", "xlsx", "pdf", "md", "txt"] }],
+      title: currentLocale === "zh" ? "选择文档" : "Select Document",
+      filters: [{ name: currentLocale === "zh" ? "文档" : "Documents", extensions: ["docx", "xlsx", "pdf", "md", "txt"] }],
       properties: ["openFile"],
     });
     return filePaths?.[0] || null;
@@ -618,8 +638,8 @@ function registerIpcHandlers() {
 
   ipcMain.handle("app:selectImages", wrapIPC(async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow!, {
-      title: "选择图片",
-      filters: [{ name: "图片", extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp"] }],
+      title: currentLocale === "zh" ? "选择图片" : "Select Images",
+      filters: [{ name: currentLocale === "zh" ? "图片" : "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp"] }],
       properties: ["openFile", "multiSelections"],
     });
     return filePaths || [];
@@ -643,7 +663,7 @@ function registerIpcHandlers() {
   }));
   ipcMain.handle("app:selectDirectory", wrapIPC(async (_e: any, title?: string) => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow!, {
-      title: title || "选择目录",
+      title: title || (currentLocale === "zh" ? "选择目录" : "Select Directory"),
       properties: ["openDirectory"],
     });
     return filePaths?.[0] || null;
@@ -671,7 +691,9 @@ function registerIpcHandlers() {
       provider = mcpManager?.getActiveProvider() ?? null;
     }
     if (!provider) {
-      throw new Error("未配置可用的 AI 服务商。请前往「配置管理 → AI 模型配置」启用并设置 API Key。");
+      throw new Error(currentLocale === "zh"
+        ? "未配置可用的 AI 服务商。请前往「配置管理 → AI 模型配置」启用并设置 API Key。"
+        : "No AI provider configured. Go to Settings → AI Providers to enable and set an API Key.");
     }
 
     const customPrompts = mcpManager?.getConfig().customPrompts;
@@ -708,7 +730,7 @@ function registerIpcHandlers() {
         if (win && !win.isDestroyed()) win.webContents.send("ai:chunk", chunk);
       }, images, abortController.signal);
     } catch (streamErr: unknown) {
-      if (abortController.signal.aborted) throw new Error("已停止生成");
+      if (abortController.signal.aborted) throw new Error(currentLocale === "zh" ? "已停止生成" : "Generation stopped");
       result = await aiService.generate(provider, system, user, images, abortController.signal);
     } finally {
       if (currentAbortController === abortController) currentAbortController = null;
@@ -740,7 +762,7 @@ function registerIpcHandlers() {
       if (custom) provider = custom;
     }
     if (!provider) provider = mcpManager?.getActiveProvider() ?? null;
-    if (!provider) throw new Error("未配置可用的 AI 服务商。");
+    if (!provider) throw new Error(currentLocale === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
 
     const images = req.images as Array<{ base64: string; mimeType: string }> | undefined;
 
@@ -765,23 +787,38 @@ function registerIpcHandlers() {
       userPrompt += `**参考文档内容：**\n${req.referenceContent}\n\n---\n\n`;
     }
 
+    if (images && images.length > 0) {
+      userPrompt += `**重要：已附带 ${images.length} 张参考图片。你必须严格分析这些图片中的视觉风格（配色、字体、间距、圆角、阴影、布局结构），并在生成的 HTML/CSS 中精确复现这些风格，不得使用默认模板或凭空设计。**\n\n`;
+    }
+
     if (req.projectName) userPrompt += `**项目/模块名称：** ${req.projectName}\n\n`;
     userPrompt += req.userContent || "请根据参考图片生成 UI 页面";
 
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
+    const sendProgress = (stage: string, current: number, total: number, msg: string) => {
+      try { win?.webContents.send("ai:imageProgress", { stage, current, total, message: msg }); } catch { /* ignore */ }
+    };
 
     const abortController = new AbortController();
     currentAbortController = abortController;
 
+    sendProgress("generating", 0, 0, "AI 正在生成 UI 代码...");
+
+    let chunkCount = 0;
     let htmlResult: string;
     try {
-      htmlResult = await aiService.generateStream(provider, systemPrompt, userPrompt, () => {}, images, abortController.signal);
+      htmlResult = await aiService.generateStream(provider, systemPrompt, userPrompt, () => {
+        chunkCount++;
+        if (chunkCount % 10 === 0) sendProgress("generating", chunkCount, 0, `AI 生成中... (${chunkCount} 片段)`);
+      }, images, abortController.signal);
     } catch (streamErr: unknown) {
-      if (abortController.signal.aborted) throw new Error("已停止生成");
+      if (abortController.signal.aborted) throw new Error(currentLocale === "zh" ? "已停止生成" : "Generation stopped");
       htmlResult = await aiService.generate(provider, systemPrompt, userPrompt, images, abortController.signal);
     } finally {
       if (currentAbortController === abortController) currentAbortController = null;
     }
+
+    sendProgress("parsing", 0, 0, "正在解析 HTML 页面...");
 
     htmlResult = htmlResult.replace(/^```html?\s*/i, "").replace(/```\s*$/, "").trim();
 
@@ -797,8 +834,10 @@ function registerIpcHandlers() {
       pages.push({ name: "UI Design", html: htmlResult });
     }
 
+    sendProgress("rendering", 0, pages.length, `共 ${pages.length} 个页面，准备渲染...`);
+
     const outputDir = req.outputDir || mcpManager?.getConfig().outputPath;
-    if (!outputDir) throw new Error("未指定输出目录");
+    if (!outputDir) throw new Error(currentLocale === "zh" ? "未指定输出目录" : "No output directory specified");
     fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -812,6 +851,7 @@ function registerIpcHandlers() {
 
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
+      sendProgress("rendering", i + 1, pages.length, `正在渲染: ${page.name} (${i + 1}/${pages.length})`);
       const suffix = pages.length > 1 ? `-${i + 1}` : "";
       const safeName = page.name.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40);
       const imgFileName = `ui-${safeName}${suffix}-${timestamp}.${imgFormat}`;
@@ -839,7 +879,10 @@ function registerIpcHandlers() {
       savedFiles.push(htmlFilePath);
 
       pageResults.push({ name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath });
+      try { win?.webContents.send("ai:pageReady", { name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath, index: i, total: pages.length }); } catch { /* ignore */ }
     }
+
+    sendProgress("done", pages.length, pages.length, `全部完成，共 ${pages.length} 个页面`);
 
     const recordId = randomUUID();
     mcpManager?.addGenerationRecord({
@@ -852,6 +895,14 @@ function registerIpcHandlers() {
     });
     mcpManager?.addLog("info", `UI 图片已生成 ${pages.length} 张: ${savedFiles.filter((f) => f.endsWith(`.${imgFormat}`)).join(", ")}`, "ai-gen-ui");
     return { htmlResult, savedFiles, recordId, pages: pageResults };
+  }));
+
+  ipcMain.handle("ai:checkFilesExist", wrapIPC(async (_e: any, paths: string[]) => {
+    const result: Record<string, boolean> = {};
+    for (const p of paths) {
+      result[p] = fs.existsSync(p);
+    }
+    return result;
   }));
 
   ipcMain.handle("ai:renderHtmlToImage", wrapIPC(async (_e: any, req: any) => {
@@ -1160,7 +1211,7 @@ function registerIpcHandlers() {
 
   // Project analysis
   ipcMain.handle("project:analyze", wrapIPC(async (_e: any, projectPath: string) => {
-    if (!projectPath) throw new Error("未指定项目路径");
+    if (!projectPath) throw new Error(currentLocale === "zh" ? "未指定项目路径" : "No project path specified");
     const result = projectAnalyzer.analyze(projectPath);
     mcpManager?.addLog("info", `项目分析完成: ${projectPath} (${result.structure.totalFiles} 文件)`, "project-analyzer");
     return result;
@@ -1235,7 +1286,11 @@ app.whenReady().then(async () => {
   registerShortcuts();
 
   if (startHidden) mainWindow?.hide();
-  if (mcpManager.getConfig().autoStart) await mcpManager.start();
+  if (mcpManager.getConfig().autoStart) {
+    mcpManager.start().catch((err) => {
+      mcpManager?.addLog("error", `MCP auto-start failed: ${err instanceof Error ? err.message : String(err)}`, "app");
+    });
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

@@ -45,13 +45,18 @@ export interface ElectronAPI {
     readOutputFile: (path: string) => Promise<unknown>;
     updateHistoryOutput: (data: unknown) => Promise<unknown>;
     onChunk: (callback: (chunk: unknown) => void) => IpcCleanup;
-    offChunk: () => void;
+    offChunk: (cleanup?: IpcCleanup) => void;
     onDone: (callback: (content: unknown, recordId: unknown) => void) => IpcCleanup;
-    offDone: () => void;
+    offDone: (cleanup?: IpcCleanup) => void;
     testConnection: (provider: unknown) => Promise<unknown>;
     listModels: (provider: unknown) => Promise<unknown>;
     renderHtmlToImage: (req: unknown) => Promise<unknown>;
     generateUIImage: (req: unknown) => Promise<unknown>;
+    onImageProgress: (callback: (progress: unknown) => void) => IpcCleanup;
+    offImageProgress: (cleanup?: IpcCleanup) => void;
+    onPageReady: (callback: (page: unknown) => void) => IpcCleanup;
+    offPageReady: (cleanup?: IpcCleanup) => void;
+    checkFilesExist: (paths: string[]) => Promise<Record<string, boolean>>;
   };
   mcp: {
     getStatus: () => Promise<unknown>;
@@ -67,7 +72,7 @@ export interface ElectronAPI {
     getIdeConfigs: () => Promise<unknown>;
     installToIde: (ideId: unknown) => Promise<unknown>;
     onConfigChanged: (callback: (config: unknown) => void) => IpcCleanup;
-    offConfigChanged: () => void;
+    offConfigChanged: (cleanup?: IpcCleanup) => void;
   };
   app: {
     openExternal: (url: string) => Promise<unknown>;
@@ -114,17 +119,30 @@ const electronAPI: ElectronAPI = {
     readOutputFile: (path) => ipcRenderer.invoke("ai:readOutputFile", path),
     updateHistoryOutput: (data) => ipcRenderer.invoke("ai:updateHistoryOutput", data),
     onChunk: (callback) => listenPayload("ai:chunk", callback),
-    offChunk: () => {
-      ipcRenderer.removeAllListeners("ai:chunk");
+    offChunk: (cleanup?: IpcCleanup) => {
+      if (cleanup) cleanup();
+      else ipcRenderer.removeAllListeners("ai:chunk");
     },
     onDone: (callback) => listenPair("ai:done", callback),
-    offDone: () => {
-      ipcRenderer.removeAllListeners("ai:done");
+    offDone: (cleanup?: IpcCleanup) => {
+      if (cleanup) cleanup();
+      else ipcRenderer.removeAllListeners("ai:done");
     },
     testConnection: (provider) => ipcRenderer.invoke("ai:testConnection", provider),
     listModels: (provider) => ipcRenderer.invoke("ai:listModels", provider),
     renderHtmlToImage: (req) => ipcRenderer.invoke("ai:renderHtmlToImage", req),
     generateUIImage: (req) => ipcRenderer.invoke("ai:generateUIImage", req),
+    onImageProgress: (callback) => listenPayload("ai:imageProgress", callback),
+    offImageProgress: (cleanup?: IpcCleanup) => {
+      if (cleanup) cleanup();
+      else ipcRenderer.removeAllListeners("ai:imageProgress");
+    },
+    onPageReady: (callback) => listenPayload("ai:pageReady", callback),
+    offPageReady: (cleanup?: IpcCleanup) => {
+      if (cleanup) cleanup();
+      else ipcRenderer.removeAllListeners("ai:pageReady");
+    },
+    checkFilesExist: (paths) => ipcRenderer.invoke("ai:checkFilesExist", paths),
   },
   mcp: {
     getStatus: () => ipcRenderer.invoke("mcp:getStatus"),
@@ -141,8 +159,9 @@ const electronAPI: ElectronAPI = {
     getIdeConfigs: () => ipcRenderer.invoke("mcp:getIdeConfigs"),
     installToIde: (id) => ipcRenderer.invoke("mcp:installToIde", id),
     onConfigChanged: (callback) => listenPayload("mcp:configChanged", callback),
-    offConfigChanged: () => {
-      ipcRenderer.removeAllListeners("mcp:configChanged");
+    offConfigChanged: (cleanup?: IpcCleanup) => {
+      if (cleanup) cleanup();
+      else ipcRenderer.removeAllListeners("mcp:configChanged");
     },
   },
   app: {

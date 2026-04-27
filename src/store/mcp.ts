@@ -173,13 +173,35 @@ export const useMcpStore = defineStore("mcp", () => {
     if (status.value?.running) needMcpRestart.value = true;
   }
 
+  function resumeTimer(): void {
+    if (pollTimer) return;
+    pollTimer = setInterval(() => {
+      void fetchStatus();
+    }, pollIntervalMs);
+  }
+
+  function pauseTimer(): void {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function onVisibilityChange(): void {
+    if (document.visibilityState === "visible") {
+      void fetchStatus();
+      resumeTimer();
+    } else {
+      pauseTimer();
+    }
+  }
+
   function startPolling(interval = 5000): void {
     if (pollDepth === 0) {
       void fetchStatus();
       pollIntervalMs = interval;
-      pollTimer = setInterval(() => {
-        void fetchStatus();
-      }, pollIntervalMs);
+      resumeTimer();
+      document.addEventListener("visibilitychange", onVisibilityChange);
     }
     pollDepth++;
   }
@@ -187,10 +209,8 @@ export const useMcpStore = defineStore("mcp", () => {
   function stopPolling(): void {
     pollDepth = Math.max(0, pollDepth - 1);
     if (pollDepth > 0) return;
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    pauseTimer();
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   return {

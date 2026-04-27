@@ -36,6 +36,8 @@ const { lastStatusFetchError, status: mcpServiceStatus } = storeToRefs(mcpStore)
 const notificationStore = useNotificationStore();
 const { t, locale } = useI18n();
 
+const keepAliveViews = ["GeneratePRD", "GenerateRequirements", "GenerateUI", "GenerateDesign"];
+
 const collapsed = ref(false);
 
 function checkScreenSize() {
@@ -93,7 +95,7 @@ const antTheme = computed(() => {
   };
 });
 
-const isShellRoute = computed(() => true);
+const isShellRoute = computed(() => route.meta?.fullscreen !== true);
 
 const applyDomTheme = (name: "light" | "dark") => {
   isDark.value = name === "dark";
@@ -370,6 +372,12 @@ const mcpStatusLabel = computed(() => {
                 <span>{{ $t("nav.genDesign") }}</span>
               </a-menu-item>
             </a-sub-menu>
+            <a-menu-item key="/methodology">
+              <template #icon>
+                <FileTextOutlined />
+              </template>
+              <span>{{ $t("nav.methodology") }}</span>
+            </a-menu-item>
             <a-menu-item key="/ide">
               <template #icon>
                 <CodeOutlined />
@@ -454,7 +462,13 @@ const mcpStatusLabel = computed(() => {
             <GlobalSearch v-model:visible="searchOpen" />
             <ShortcutsHelp v-model:visible="shortcutsOpen" />
             <ErrorBoundary>
-              <router-view />
+              <router-view v-slot="{ Component }">
+                <transition name="page-fade" mode="out-in">
+                  <keep-alive :include="keepAliveViews">
+                    <component :is="Component" />
+                  </keep-alive>
+                </transition>
+              </router-view>
             </ErrorBoundary>
           </a-layout-content>
         </a-layout>
@@ -550,6 +564,14 @@ const mcpStatusLabel = computed(() => {
   overflow: auto;
   min-height: calc(100vh - 56px);
 }
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
 .app-mcp-dot {
   display: inline-block;
   width: 10px;
@@ -557,14 +579,14 @@ const mcpStatusLabel = computed(() => {
   border-radius: 50%;
   margin-right: 4px;
   &--running {
-    background: #52c41a;
+    background: var(--app-success, #52c41a);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
   }
   &--stopped {
-    background: #8c8c8c;
+    background: var(--app-muted, #8c8c8c);
   }
   &--error {
-    background: #f5222d;
+    background: var(--app-error, #f5222d);
   }
 }
 </style>

@@ -146,6 +146,7 @@ export default {
     installStatus: "安装",
     installSuccess: "已成功安装到 {name}",
     installFailed: "安装失败，请查看日志。",
+    emptyHint: "未检测到任何 IDE，请确认已安装 Cursor、VS Code 或 Trae",
   },
   methodology: {
     title: "方法论文档",
@@ -184,6 +185,7 @@ export default {
     no: "否",
     available: "可用",
     unavailable: "不可用",
+    emptyHint: "点击上方按钮运行健康检查，查看系统环境状态",
   },
   logs: {
     title: "日志查看",

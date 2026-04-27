@@ -7,7 +7,7 @@
 
     <div class="generator-page__grid">
       <a-card class="generator-page__panel" :title="t('gen.common.input')" size="small">
-        <a-form layout="vertical">
+        <a-form layout="vertical" :disabled="generating">
           <a-form-item :label="t('gen.common.scopeLevel')">
             <a-radio-group v-model:value="scopeLevel">
               <a-radio-button value="project">{{ t('gen.common.scopeProject') }}</a-radio-button>
@@ -317,6 +317,8 @@ import { useAiGenerator } from "@/composables/useAiGenerator";
 import { useMcpStore } from "@/store/mcp";
 
 import "@/styles/generator.less";
+
+defineOptions({ name: "GenerateDesign" });
 
 const { t } = useI18n();
 const route = useRoute();

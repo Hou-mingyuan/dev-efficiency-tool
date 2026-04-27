@@ -7,8 +7,17 @@
       <aside class="methodology-sider">
         <div class="sider-header">{{ t("methodology.fileList") }}</div>
         <a-spin :spinning="listLoading" :tip="t('methodology.loading')">
+          <a-alert
+            v-if="listError"
+            type="error"
+            :message="listError"
+            show-icon
+            class="list-error-alert"
+            closable
+            @close="listError = ''"
+          />
           <a-empty
-            v-if="!listLoading && files.length === 0"
+            v-else-if="!listLoading && files.length === 0"
             :description="t('methodology.noFiles')"
           />
           <a-list
@@ -21,7 +30,11 @@
             <template #renderItem="{ item }">
               <a-list-item
                 :class="['file-item', { 'file-item--active': selectedPath === item.path }]"
+                tabindex="0"
+                role="button"
                 @click="onSelectFile(item)"
+                @keydown.enter="onSelectFile(item)"
+                @keydown.space.prevent="onSelectFile(item)"
               >
                 <span class="file-name" :title="item.name">{{ item.name }}</span>
                 <span class="file-size">{{ formatSize(item.size) }}</span>
@@ -81,6 +94,7 @@ const contentLoading = ref(false);
 const selectedPath = ref<string | null>(null);
 const rawMarkdown = ref("");
 const readError = ref("");
+const listError = ref("");
 
 const sanitizedHtml = computed(() => {
   if (readError.value || !rawMarkdown.value) return "";
@@ -101,8 +115,10 @@ async function loadFileList() {
     const res = await api.getMethodologyFiles();
     if (isIpcError(res)) {
       files.value = [];
+      listError.value = res.message || t("common.error");
       return;
     }
+    listError.value = "";
     files.value = Array.isArray(res) ? (res as MethodologyFileInfo[]) : [];
   } finally {
     listLoading.value = false;

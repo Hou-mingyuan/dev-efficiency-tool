@@ -10,7 +10,11 @@
       class="ide-alert"
     />
     <a-spin :spinning="loading" :tip="t('common.loading')">
-      <a-list :data-source="ideList" :split="false" class="ide-list">
+      <a-empty
+        v-if="!loading && ideList.length === 0"
+        :description="t('ide.emptyHint')"
+      />
+      <a-list v-else :data-source="ideList" :split="false" class="ide-list">
         <template #renderItem="{ item }">
           <a-list-item class="ide-list-item">
             <a-card :title="item.name" class="ide-card" size="small">

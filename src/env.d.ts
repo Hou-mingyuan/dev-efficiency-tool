@@ -122,9 +122,9 @@ declare global {
       readOutputFile: (path: string) => Promise<string | null | IpcErrorResult>;
       updateHistoryOutput: (data: { id: string; outputPath: string }) => Promise<unknown>;
       onChunk: (callback: (chunk: string) => void) => IpcCleanup;
-      offChunk: () => void;
+      offChunk: (cleanup?: IpcCleanup) => void;
       onDone: (callback: (content: string, recordId: string) => void) => IpcCleanup;
-      offDone: () => void;
+      offDone: (cleanup?: IpcCleanup) => void;
       testConnection: (provider: AiProvider) => Promise<unknown>;
       listModels: (provider: AiProvider) => Promise<string[] | IpcErrorResult>;
       renderHtmlToImage: (req: {
@@ -143,6 +143,11 @@ declare global {
         referenceContent?: string;
         projectPath?: string;
       }) => Promise<{ htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> } | IpcErrorResult>;
+      onImageProgress: (callback: (progress: { stage: string; current: number; total: number; message: string }) => void) => () => void;
+      offImageProgress: (cleanup?: IpcCleanup) => void;
+      onPageReady: (callback: (page: { name: string; imagePath: string; htmlPath: string; index: number; total: number }) => void) => () => void;
+      offPageReady: (cleanup?: IpcCleanup) => void;
+      checkFilesExist: (paths: string[]) => Promise<Record<string, boolean>>;
     };
     mcp: {
       getStatus: () => Promise<McpStatus | IpcErrorResult>;
@@ -158,7 +163,7 @@ declare global {
       getIdeConfigs: () => Promise<unknown>;
       installToIde: (ideId: string) => Promise<unknown>;
       onConfigChanged: (callback: (config: McpConfig) => void) => IpcCleanup;
-      offConfigChanged: () => void;
+      offConfigChanged: (cleanup?: IpcCleanup) => void;
     };
     app: {
       openExternal: (url: string) => Promise<unknown>;

@@ -146,6 +146,7 @@ export default {
     installStatus: "Install status",
     installSuccess: "Installed to {name}",
     installFailed: "Install failed. Check logs for details.",
+    emptyHint: "No IDE detected. Make sure Cursor, VS Code, or Trae is installed",
   },
   methodology: {
     title: "Methodology",
@@ -184,6 +185,7 @@ export default {
     no: "No",
     available: "Available",
     unavailable: "Unavailable",
+    emptyHint: "Click the button above to run a health check and view system status",
   },
   logs: {
     title: "Logs",

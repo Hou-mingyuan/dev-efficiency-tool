@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from "vue";
 import { useI18n } from "vue-i18n";
 import { useMcpStore } from "@/store/mcp";
 import { marked } from "marked";
@@ -56,6 +56,8 @@ export function useAiGenerator(docType: DocType) {
           customProviderId: customProviderId.value,
           outputFormat: outputFormat.value,
           scopeLevel: scopeLevel.value,
+          referenceProjectPath: referenceProjectPath.value,
+          customOutputPath: customOutputPath.value,
         }),
       );
     } catch {
@@ -73,6 +75,8 @@ export function useAiGenerator(docType: DocType) {
         customProviderId?: string;
         outputFormat?: string;
         scopeLevel?: string;
+        referenceProjectPath?: string;
+        customOutputPath?: string;
       };
       if (d.projectName) projectName.value = d.projectName;
       if (d.userContent) userContent.value = d.userContent;
@@ -83,6 +87,8 @@ export function useAiGenerator(docType: DocType) {
       if (d.scopeLevel === "project" || d.scopeLevel === "module") {
         scopeLevel.value = d.scopeLevel;
       }
+      if (d.referenceProjectPath) referenceProjectPath.value = d.referenceProjectPath;
+      if (d.customOutputPath) customOutputPath.value = d.customOutputPath;
     } catch {
       /* ignore */
     }
@@ -94,7 +100,7 @@ export function useAiGenerator(docType: DocType) {
 
   let draftTimer: ReturnType<typeof setTimeout> | null = null;
   watch(
-    [projectName, userContent, customProviderId, outputFormat, scopeLevel],
+    [projectName, userContent, customProviderId, outputFormat, scopeLevel, referenceProjectPath, customOutputPath],
     () => {
       if (draftTimer) clearTimeout(draftTimer);
       draftTimer = setTimeout(saveDraft, 1500);
@@ -177,8 +183,12 @@ export function useAiGenerator(docType: DocType) {
     }
   }
 
+  function getEffectiveProjectPath(): string | undefined {
+    return referenceProjectPath.value || mcpStore.config.projectPath || undefined;
+  }
+
   async function checkProjectCache() {
-    const projectPath = mcpStore.config.projectPath;
+    const projectPath = getEffectiveProjectPath();
     if (!projectPath) {
       projectCacheStatus.value = "none";
       projectCacheInfo.value = null;
@@ -201,7 +211,7 @@ export function useAiGenerator(docType: DocType) {
   }
 
   async function analyzeProject() {
-    const projectPath = mcpStore.config.projectPath;
+    const projectPath = getEffectiveProjectPath();
     if (!projectPath) {
       message.warning(t("gen.cache.noProjectPath"));
       return;
@@ -229,7 +239,7 @@ export function useAiGenerator(docType: DocType) {
   }
 
   async function clearProjectCache() {
-    const projectPath = mcpStore.config.projectPath;
+    const projectPath = getEffectiveProjectPath();
     if (!projectPath) return;
     try {
       await window.electronAPI.project.clearCache(projectPath);
@@ -245,8 +255,14 @@ export function useAiGenerator(docType: DocType) {
     void mcpStore.fetchConfig();
     setupListeners();
     restoreDraft();
-    window.addEventListener("keydown", onKeydown);
     void checkProjectCache();
+  });
+  onActivated(() => {
+    window.addEventListener("keydown", onKeydown);
+  });
+  onDeactivated(() => {
+    window.removeEventListener("keydown", onKeydown);
+    saveDraft();
   });
   onUnmounted(() => {
     if (draftTimer) {
@@ -306,6 +322,12 @@ export function useAiGenerator(docType: DocType) {
       return;
     }
     referenceProjectPath.value = dirPath;
+    const info = await window.electronAPI.project.getCacheInfo(dirPath).catch(() => null);
+    if (!info || typeof info !== "object" || !("expired" in info) || (info as ProjectCacheInfo).expired) {
+      void analyzeProject();
+    } else {
+      await checkProjectCache();
+    }
   }
 
   async function stopGenerate() {
