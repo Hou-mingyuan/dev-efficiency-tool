@@ -7,57 +7,318 @@ body,
 }
 
 :root {
-  --app-primary: #1677ff;
-  --app-primary-hover: #4096ff;
-  --app-primary-bg: #e6f4ff;
-  --app-success: #52c41a;
-  --app-error: #f5222d;
-  --app-warning: #faad14;
-  --app-muted: #8c8c8c;
-  --app-bg: #f5f5f5;
+  --app-primary: #3b82f6;
+  --app-primary-hover: #60a5fa;
+  --app-primary-bg: #eff6ff;
+  --app-primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --app-success: #10b981;
+  --app-error: #ef4444;
+  --app-warning: #f59e0b;
+  --app-muted: #94a3b8;
+  --app-bg: #f1f5f9;
   --app-bg-container: #ffffff;
   --app-bg-elevated: #ffffff;
-  --app-bg-layout: #f5f5f5;
-  --app-bg-spotlight: #fafafa;
-  --app-bg-hover: rgba(0, 0, 0, 0.04);
-  --app-text: rgba(0, 0, 0, 0.88);
-  --app-text-secondary: rgba(0, 0, 0, 0.65);
-  --app-text-tertiary: rgba(0, 0, 0, 0.45);
-  --app-text-quaternary: rgba(0, 0, 0, 0.25);
-  --app-border: #d9d9d9;
-  --app-border-secondary: #f0f0f0;
-  --app-fill: rgba(0, 0, 0, 0.06);
-  --app-fill-secondary: rgba(0, 0, 0, 0.04);
-  --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --app-code-bg: #f5f5f5;
-  --app-page-padding-x: 24px;
-  --app-page-padding-y: 20px;
+  --app-bg-layout: #f1f5f9;
+  --app-bg-spotlight: #f8fafc;
+  --app-bg-hover: rgba(59, 130, 246, 0.06);
+  --app-text: rgba(15, 23, 42, 0.9);
+  --app-text-secondary: rgba(51, 65, 85, 0.72);
+  --app-text-tertiary: rgba(100, 116, 139, 0.65);
+  --app-text-quaternary: rgba(148, 163, 184, 0.5);
+  --app-border: rgba(226, 232, 240, 0.8);
+  --app-border-secondary: rgba(241, 245, 249, 0.9);
+  --app-fill: rgba(59, 130, 246, 0.06);
+  --app-fill-secondary: rgba(59, 130, 246, 0.03);
+  --app-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04);
+  --app-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08), 0 16px 48px rgba(0, 0, 0, 0.04);
+  --app-code-bg: #f8fafc;
+  --app-page-padding-x: 28px;
+  --app-page-padding-y: 24px;
+  --app-radius-xs: 6px;
+  --app-radius-sm: 8px;
+  --app-radius-md: 12px;
+  --app-radius-lg: 16px;
+  --app-radius-xl: 20px;
+  --app-glass-bg: rgba(255, 255, 255, 0.72);
+  --app-glass-border: rgba(255, 255, 255, 0.5);
+  --app-glass-blur: 16px;
+  --app-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- Global smooth scrollbar (auto-hide) ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 99px;
+  transition: background 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+*:not(:hover)::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+/* ---- Ant Card soft + glow ---- */
+.ant-card {
+  border-radius: var(--app-radius-lg) !important;
+  border: 1px solid var(--app-border-secondary) !important;
+  box-shadow: var(--app-shadow) !important;
+  overflow: hidden;
+  transition: box-shadow var(--app-transition), border-color var(--app-transition), transform var(--app-transition);
+}
+.ant-card:hover {
+  box-shadow: var(--app-shadow-md) !important;
+  border-color: color-mix(in srgb, var(--app-primary) 20%, var(--app-border-secondary)) !important;
+}
+.ant-card-head {
+  border-bottom: 1px solid var(--app-border-secondary) !important;
+  border-radius: var(--app-radius-lg) var(--app-radius-lg) 0 0 !important;
+}
+
+/* ---- Ant Input / Select rounded ---- */
+.ant-input,
+.ant-input-number,
+.ant-input-affix-wrapper,
+.ant-input-password {
+  border-radius: var(--app-radius-sm) !important;
+  transition: border-color var(--app-transition), box-shadow var(--app-transition);
+}
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input-number-focused {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 12%, transparent) !important;
+}
+.ant-select-selector {
+  border-radius: var(--app-radius-sm) !important;
+}
+.ant-select-dropdown {
+  border-radius: var(--app-radius-md) !important;
+  box-shadow: var(--app-shadow-md) !important;
+  overflow: hidden;
+}
+.ant-input-group .ant-input:first-child,
+.ant-input-group .ant-input-number:first-child {
+  border-radius: var(--app-radius-sm) 0 0 var(--app-radius-sm) !important;
+}
+.ant-input-group .ant-btn:last-child {
+  border-radius: 0 var(--app-radius-sm) var(--app-radius-sm) 0 !important;
+}
+
+/* ---- Ant Button soft ---- */
+.ant-btn {
+  border-radius: var(--app-radius-sm) !important;
+  font-weight: 500;
+  transition: all var(--app-transition);
+}
+.ant-btn-primary {
+  background: var(--app-primary-gradient) !important;
+  border: none !important;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--app-primary) 35%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+.ant-btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+.ant-btn-primary:hover {
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--app-primary) 50%, transparent) !important;
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+.ant-btn-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+/* ---- Ant Tag pill ---- */
+.ant-tag {
+  border-radius: 99px !important;
+  padding: 2px 12px !important;
+  font-size: 12px;
+}
+
+/* ---- Ant Modal / Drawer rounded ---- */
+.ant-modal-content {
+  border-radius: var(--app-radius-xl) !important;
+  box-shadow: var(--app-shadow-lg) !important;
+  overflow: hidden;
+}
+.ant-drawer .ant-drawer-content {
+  border-radius: var(--app-radius-xl) 0 0 var(--app-radius-xl) !important;
+}
+
+/* ---- Ant Collapse soft ---- */
+.ant-collapse {
+  border-radius: var(--app-radius-md) !important;
+  overflow: hidden;
+}
+.ant-collapse-item:last-child {
+  border-radius: 0 0 var(--app-radius-md) var(--app-radius-md) !important;
+}
+
+/* ---- Ant Tabs modern ---- */
+.ant-tabs-nav::before {
+  border-bottom: 1px solid var(--app-border-secondary) !important;
+}
+.ant-tabs-tab {
+  border-radius: var(--app-radius-sm) var(--app-radius-sm) 0 0 !important;
+  transition: color var(--app-transition);
+}
+
+/* ---- Ant Table rounded ---- */
+.ant-table-wrapper {
+  border-radius: var(--app-radius-md) !important;
+  overflow: hidden;
+}
+
+/* ---- Ant Alert rounded ---- */
+.ant-alert {
+  border-radius: var(--app-radius-md) !important;
+}
+
+/* ---- Ant Tooltip / Popover ---- */
+.ant-tooltip-inner {
+  border-radius: var(--app-radius-sm) !important;
+}
+.ant-popover-inner {
+  border-radius: var(--app-radius-md) !important;
+  box-shadow: var(--app-shadow-md) !important;
+}
+.ant-popconfirm .ant-popover-inner {
+  border-radius: var(--app-radius-md) !important;
+}
+
+/* ---- Ant Menu rounded items ---- */
+.ant-menu-inline .ant-menu-item,
+.ant-menu-inline .ant-menu-submenu-title {
+  border-radius: var(--app-radius-sm) !important;
+  margin: 3px 8px !important;
+  width: calc(100% - 16px) !important;
+  transition: all var(--app-transition);
+  position: relative;
+}
+.ant-menu-inline .ant-menu-item:hover,
+.ant-menu-inline .ant-menu-submenu-title:hover {
+  background: var(--app-bg-hover) !important;
+}
+.ant-menu-item-selected {
+  background: color-mix(in srgb, var(--app-primary) 12%, transparent) !important;
+  color: var(--app-primary) !important;
+  box-shadow: inset 3px 0 0 var(--app-primary);
+  font-weight: 500;
+}
+
+/* ---- Ant Radio Button group pill ---- */
+.ant-radio-group {
+  .ant-radio-button-wrapper:first-child {
+    border-radius: var(--app-radius-sm) 0 0 var(--app-radius-sm) !important;
+  }
+  .ant-radio-button-wrapper:last-child {
+    border-radius: 0 var(--app-radius-sm) var(--app-radius-sm) 0 !important;
+  }
+}
+
+/* ---- Ant Switch rounded ---- */
+.ant-switch {
+  min-width: 44px;
+}
+.ant-switch-checked {
+  background: var(--app-primary) !important;
+}
+
+/* ---- Ant Statistic soft ---- */
+.ant-statistic-content-value {
+  font-weight: 600;
+}
+
+/* ---- Ant Empty illustration modern ---- */
+.ant-empty {
+  padding: 32px 0;
+}
+.ant-empty-image svg {
+  opacity: 0.4;
+}
+.ant-empty-description {
+  color: var(--app-text-tertiary) !important;
+  font-size: 13px;
+}
+
+/* ---- Ant Form item spacing ---- */
+.ant-form-vertical .ant-form-item-label > label {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* ---- Ant Descriptions modern ---- */
+.ant-descriptions-bordered .ant-descriptions-view {
+  border-radius: var(--app-radius-md) !important;
+  overflow: hidden;
+}
+
+/* ---- Global focus ring ---- */
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 12%, transparent) !important;
+}
+
+/* ---- Ant Spin dots color ---- */
+.ant-spin-dot-item {
+  background-color: var(--app-primary) !important;
+}
+
+/* ---- Progress bar gradient ---- */
+.ant-progress-bg {
+  background: var(--app-primary-gradient) !important;
 }
 
 [data-theme="dark"] {
-  --app-primary: #1677ff;
-  --app-primary-hover: #4096ff;
-  --app-primary-bg: #111d2c;
-  --app-success: #49aa19;
-  --app-error: #d32029;
-  --app-warning: #d89614;
-  --app-muted: #5a5a5a;
-  --app-bg: #0a0a0a;
-  --app-bg-container: #1f1f1f;
-  --app-bg-elevated: #262626;
-  --app-bg-layout: #141414;
-  --app-bg-spotlight: #2a2a2a;
-  --app-bg-hover: rgba(255, 255, 255, 0.08);
-  --app-text: rgba(255, 255, 255, 0.88);
-  --app-text-secondary: rgba(255, 255, 255, 0.65);
-  --app-text-tertiary: rgba(255, 255, 255, 0.45);
-  --app-text-quaternary: rgba(255, 255, 255, 0.25);
-  --app-border: #424242;
-  --app-border-secondary: #303030;
-  --app-fill: rgba(255, 255, 255, 0.12);
-  --app-fill-secondary: rgba(255, 255, 255, 0.06);
-  --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  --app-code-bg: #2a2a2a;
+  --app-primary: #60a5fa;
+  --app-primary-hover: #93c5fd;
+  --app-primary-bg: rgba(59, 130, 246, 0.12);
+  --app-primary-gradient: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  --app-success: #34d399;
+  --app-error: #f87171;
+  --app-warning: #fbbf24;
+  --app-muted: #64748b;
+  --app-bg: #080d1a;
+  --app-bg-container: rgba(22, 33, 50, 0.88);
+  --app-bg-elevated: rgba(30, 42, 62, 0.92);
+  --app-bg-layout: #080d1a;
+  --app-bg-spotlight: rgba(40, 54, 75, 0.5);
+  --app-bg-hover: rgba(96, 165, 250, 0.1);
+  --app-text: rgba(248, 250, 252, 0.92);
+  --app-text-secondary: rgba(203, 213, 225, 0.72);
+  --app-text-tertiary: rgba(148, 163, 184, 0.55);
+  --app-text-quaternary: rgba(100, 116, 139, 0.4);
+  --app-border: rgba(51, 65, 85, 0.6);
+  --app-border-secondary: rgba(30, 41, 59, 0.8);
+  --app-fill: rgba(96, 165, 250, 0.1);
+  --app-fill-secondary: rgba(96, 165, 250, 0.05);
+  --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.2);
+  --app-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35), 0 12px 48px rgba(0, 0, 0, 0.15);
+  --app-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(0, 0, 0, 0.2);
+  --app-code-bg: rgba(30, 41, 59, 0.6);
+  --app-glass-bg: rgba(12, 20, 38, 0.72);
+  --app-glass-border: rgba(51, 65, 85, 0.35);
+  --app-glass-blur: 24px;
 
   color-scheme: dark;
   color: var(--app-text);
@@ -220,11 +481,18 @@ body,
 
   /* ---- Alert ---- */
   .ant-alert-info {
-    background: #111d2c;
-    border-color: #15395b;
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.2);
+    backdrop-filter: blur(8px);
   }
   .ant-alert-info .ant-alert-message {
     color: var(--app-text) !important;
+  }
+
+  /* ---- Card dark glow ---- */
+  .ant-card:hover {
+    border-color: color-mix(in srgb, var(--app-primary) 25%, var(--app-border)) !important;
+    box-shadow: var(--app-shadow-md), 0 0 20px color-mix(in srgb, var(--app-primary) 8%, transparent) !important;
   }
 
   /* ---- Modal ---- */
@@ -367,20 +635,12 @@ body,
     color: var(--app-text) !important;
   }
 
-  /* ---- Scrollbar ---- */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: var(--app-bg-layout);
-  }
+  /* ---- Scrollbar (dark) ---- */
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.2);
   }
 
   /* ---- Map Ant Design CSS vars for dark mode ---- */

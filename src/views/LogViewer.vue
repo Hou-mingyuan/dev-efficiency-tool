@@ -1,18 +1,17 @@
 <template>
-  <div class="page-container log-viewer">
-    <a-typography-title :level="4" class="page-title">
-      {{ t("logs.title") }}
-    </a-typography-title>
-    <div class="toolbar">
-      <a-button @click="refreshNow">{{ t("common.refresh") }}</a-button>
-      <a-button danger @click="onClear">
-        {{ t("logs.clear") }}
-      </a-button>
-      <a-button @click="onExport">{{ t("logs.export") }}</a-button>
-      <span class="auto-hint">{{ t("logs.autoRefresh") }}</span>
+  <div class="page-logs">
+    <div class="logs-header">
+      <div class="logs-header__text">
+        <h2 class="logs-header__title">{{ t("logs.title") }}</h2>
+        <span class="logs-header__hint">{{ t("logs.autoRefresh") }}</span>
+      </div>
+      <div class="logs-header__actions">
+        <a-button @click="refreshNow">{{ t("common.refresh") }}</a-button>
+        <a-button danger @click="onClear">{{ t("logs.clear") }}</a-button>
+        <a-button @click="onExport">{{ t("logs.export") }}</a-button>
+      </div>
     </div>
-    <div class="filters">
-      <span class="filter-label">{{ t("logs.filter") }}</span>
+    <div class="logs-filters">
       <a-radio-group v-model:value="levelFilter" button-style="solid" size="small">
         <a-radio-button value="all">{{ t("logs.all") }}</a-radio-button>
         <a-radio-button value="info">{{ t("logs.info") }}</a-radio-button>
@@ -33,13 +32,10 @@
         allow-clear
         class="search-input"
       />
+      <span v-if="rawLogs.length" class="logs-filters__stats">
+        {{ t("logs.statsSummary", logStats) }}
+      </span>
     </div>
-    <a-typography-text v-if="rawLogs.length" class="log-stats" type="secondary">
-      {{ t("logs.statsSummary", logStats) }}
-    </a-typography-text>
-    <a-typography-text type="secondary" class="display-limit">
-      {{ t("logs.displayLimit", { n: maxDisplay }) }}
-    </a-typography-text>
     <a-spin :spinning="loading" :tip="t('common.loading')">
       <a-empty v-if="!loading && displayEntries.length === 0" :description="t('logs.noLogs')" />
       <div
@@ -238,105 +234,124 @@ onUnmounted(() => {
 </script>
 
 <style lang="less" scoped>
-.page-container {
+.page-logs {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 4px 24px;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  padding: 16px 24px;
-  box-sizing: border-box;
+  gap: 16px;
 }
 
-.page-title {
-  margin: 0 0 16px !important;
-  flex-shrink: 0;
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  &__text {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  &__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    background: var(--app-primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  &__hint {
+    font-size: 12px;
+    color: var(--app-text-quaternary);
+  }
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
 }
 
-.toolbar {
+.logs-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 12px;
-}
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  border: 1px solid var(--app-glass-border);
 
-.auto-hint {
-  font-size: 12px;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
-  margin-left: 4px;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 8px;
-}
-
-.filter-label {
-  font-size: 13px;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  &__stats {
+    font-size: 12px;
+    color: var(--app-text-tertiary);
+    margin-left: auto;
+  }
 }
 
 .search-input {
-  max-width: 280px;
-  min-width: 160px;
-}
-
-.log-stats {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 12px;
-}
-
-.display-limit {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 12px;
+  max-width: 240px;
+  min-width: 140px;
 }
 
 .log-scroller {
-  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
-  border-radius: 6px;
-  max-height: min(60vh, 640px);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--app-radius-lg);
+  max-height: min(65vh, 700px);
   overflow: auto;
   contain: content;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12px;
   line-height: 1.5;
-  background: var(--ant-color-bg-layout, #fafafa);
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
 }
 
 .log-header {
   display: grid;
   grid-template-columns: 180px 72px minmax(80px, 160px) 1fr;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 12px 16px;
   font-weight: 600;
-  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
-  border-bottom: 1px solid var(--ant-color-border, #d9d9d9);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--app-text-tertiary);
+  border-bottom: 1px solid var(--app-glass-border);
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--ant-color-bg-elevated, #fff);
+  background: var(--app-bg-spotlight);
+  backdrop-filter: blur(var(--app-glass-blur));
 }
 
 .log-line {
   display: grid;
   grid-template-columns: 180px 72px minmax(80px, 160px) 1fr;
   gap: 8px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  padding: 8px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--app-glass-border) 50%, transparent);
   align-items: start;
-}
+  transition: background var(--app-transition);
 
-.log-line:nth-child(odd) {
-  background: var(--ant-color-bg-container, #fff);
+  &:hover {
+    background: var(--app-bg-hover);
+  }
+  &:nth-child(odd) {
+    background: color-mix(in srgb, var(--app-bg-spotlight) 50%, transparent);
+    &:hover {
+      background: var(--app-bg-hover);
+    }
+  }
 }
 
 .log-time {
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--app-text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -348,7 +363,7 @@ onUnmounted(() => {
 }
 
 .log-source {
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--app-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -357,5 +372,7 @@ onUnmounted(() => {
 .log-msg {
   white-space: pre-wrap;
   word-break: break-word;
+  line-height: 1.6;
+  color: var(--app-text);
 }
 </style>

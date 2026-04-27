@@ -147,18 +147,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  gap: 8px;
+  margin-bottom: 14px;
+  gap: 12px;
 }
 
 .ide-label {
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.45));
-  font-size: 13px;
+  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .ide-actions {
-  margin-top: 16px;
-  padding-top: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid var(--app-border-secondary, #f0f0f0);
 }
 </style>

@@ -126,12 +126,8 @@ watch(
   margin-top: 16px;
   padding: 12px 0;
   font-size: 13px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
   text-align: center;
-}
-
-[data-theme="dark"] .global-search__empty {
-  color: rgba(255, 255, 255, 0.45);
 }
 
 .global-search__list {
@@ -141,17 +137,13 @@ watch(
 }
 
 .global-search__row {
-  padding: 10px 12px !important;
-  border-radius: 6px;
+  padding: 10px 14px !important;
+  border-radius: var(--app-radius-sm, 8px);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--app-transition, 0.2s ease);
 }
 
 .global-search__row:hover {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="dark"] .global-search__row:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--app-bg-hover, rgba(59, 130, 246, 0.06));
 }
 </style>

@@ -134,6 +134,7 @@
           <a-button type="primary" :loading="generating" @click="generate">
             {{ t("gen.common.generate") }}
           </a-button>
+          <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
           <a-button v-if="generating" danger @click="stopGenerate">
             {{ t("gen.common.stopGenerate") }}
           </a-button>
@@ -381,39 +382,4 @@ async function loadHistoryRecord(item: GenerationRecord) {
 </script>
 
 <style lang="less" scoped>
-.ref-tags {
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.generator-actions {
-  margin-top: 8px;
-}
-
-.gen-status {
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.45));
-  font-size: 12px;
-}
-
-.preview-spin {
-  min-height: 200px;
-}
-
-.cache-info-line {
-  font-size: 12px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.45));
-  margin-top: 4px;
-}
-
-.history-preview {
-  font-size: 12px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
-  margin: 8px 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 120px;
-  overflow: hidden;
-}
 </style>

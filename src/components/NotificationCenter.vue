@@ -179,11 +179,13 @@ function onClearAll() {
 
 .nc-item {
   display: flex;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background var(--app-transition, 0.2s ease);
+  border-bottom: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.04));
+  border-radius: var(--app-radius-sm, 8px);
+  margin: 2px 4px;
 }
 
 .nc-item:last-child {
@@ -191,23 +193,11 @@ function onClearAll() {
 }
 
 .nc-item:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--app-bg-hover, rgba(59, 130, 246, 0.06));
 }
 
 .nc-item--unread {
-  background: rgba(24, 144, 255, 0.06);
-}
-
-[data-theme="dark"] .nc-item {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-}
-
-[data-theme="dark"] .nc-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .nc-item--unread {
-  background: rgba(24, 144, 255, 0.12);
+  background: color-mix(in srgb, var(--app-primary) 6%, transparent);
 }
 
 .nc-item__icon {
@@ -215,17 +205,17 @@ function onClearAll() {
   font-size: 16px;
   line-height: 1.4;
   margin-top: 2px;
-  color: #1890ff;
+  color: var(--app-primary, #3b82f6);
 }
 
 .nc-item--type-success .nc-item__icon {
-  color: #52c41a;
+  color: var(--app-success, #10b981);
 }
 .nc-item--type-warning .nc-item__icon {
-  color: #faad14;
+  color: var(--app-warning, #f59e0b);
 }
 .nc-item--type-error .nc-item__icon {
-  color: #ff4d4f;
+  color: var(--app-error, #ef4444);
 }
 
 .nc-item__body {
@@ -249,22 +239,15 @@ function onClearAll() {
 .nc-item__time {
   flex-shrink: 0;
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-[data-theme="dark"] .nc-item__time {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 .nc-item__message {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.55);
-  margin-top: 2px;
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  margin-top: 4px;
   word-break: break-word;
   white-space: pre-wrap;
-}
-
-[data-theme="dark"] .nc-item__message {
-  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.6;
 }
 </style>

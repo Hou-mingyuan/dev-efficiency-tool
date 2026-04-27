@@ -442,6 +442,22 @@ export function useAiGenerator(docType: DocType) {
     message.success(t("gen.common.importNextStepOk"));
   }
 
+  function onKeydownGenerate(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (!generating.value) {
+        void generate();
+      }
+    }
+  }
+
+  onMounted(() => {
+    document.addEventListener("keydown", onKeydownGenerate);
+  });
+  onUnmounted(() => {
+    document.removeEventListener("keydown", onKeydownGenerate);
+  });
+
   return {
     projectName,
     userContent,

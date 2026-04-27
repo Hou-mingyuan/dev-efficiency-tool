@@ -370,21 +370,79 @@ onMounted(async () => {
   justify-content: center;
   padding: 24px 16px 48px;
   box-sizing: border-box;
+  background: var(--app-bg, #f1f5f9);
+  position: relative;
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.12;
+    pointer-events: none;
+    will-change: transform;
+    animation: welcomeOrb 18s ease-in-out infinite alternate;
+  }
+  &::before {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, #3b82f6, transparent 70%);
+    top: -15%;
+    left: -10%;
+    animation-delay: 0s;
+  }
+  &::after {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, #8b5cf6, transparent 70%);
+    bottom: -15%;
+    right: -10%;
+    animation-delay: -9s;
+  }
+}
+
+@keyframes welcomeOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -30px) scale(1.1); }
+  100% { transform: translate(-20px, 20px) scale(0.95); }
 }
 
 .welcome-card {
   width: 100%;
-  max-width: 640px;
-  border-radius: 12px;
+  max-width: 680px;
+  border-radius: var(--app-radius-xl, 20px) !important;
+  background: var(--app-glass-bg, rgba(255, 255, 255, 0.72)) !important;
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid var(--app-glass-border, rgba(255, 255, 255, 0.5)) !important;
+  box-shadow: var(--app-shadow-lg), 0 0 60px color-mix(in srgb, var(--app-primary) 6%, transparent) !important;
+  position: relative;
+  z-index: 1;
+  animation: welcomeCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes welcomeCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 .welcome-steps {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .welcome-body {
   min-height: 200px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .step-panel {
@@ -392,21 +450,33 @@ onMounted(async () => {
 }
 
 .welcome-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0 0 8px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 0 12px;
   line-height: 1.35;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: welcomeTitleShimmer 4s ease-in-out infinite;
+}
+
+@keyframes welcomeTitleShimmer {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
 }
 
 .welcome-sub {
   margin: 0;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
-  font-size: 14px;
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.65));
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .step-heading {
-  font-size: 1.1rem;
-  margin: 0 0 16px;
+  font-size: 1.15rem;
+  margin: 0 0 18px;
   text-align: left;
   font-weight: 600;
 }
@@ -419,7 +489,7 @@ onMounted(async () => {
 }
 
 .wizard-form {
-  max-width: 400px;
+  max-width: 440px;
   margin: 0 auto;
   text-align: left;
 }
@@ -427,7 +497,7 @@ onMounted(async () => {
 .welcome-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
 }
 
@@ -441,7 +511,7 @@ onMounted(async () => {
   justify-content: center;
   gap: 8px;
   margin-top: 16px;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.65));
   font-size: 14px;
 }
 
@@ -455,7 +525,7 @@ onMounted(async () => {
 
 @media (min-width: 480px) {
   .welcome-title {
-    font-size: 1.75rem;
+    font-size: 1.85rem;
   }
 }
 </style>

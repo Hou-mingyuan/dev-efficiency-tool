@@ -263,8 +263,11 @@ onUnmounted(() => {
 
 <template>
   <div class="page-settings">
-    <a-card :title="t('settings.title')">
-      <a-tabs v-model:activeKey="tabKey">
+    <div class="settings-header">
+      <h2 class="settings-header__title">{{ t('settings.title') }}</h2>
+    </div>
+    <div class="settings-body">
+      <a-tabs v-model:activeKey="tabKey" class="settings-tabs">
         <a-tab-pane
           key="basic"
           :tab="t('settings.tabBasic')"
@@ -279,24 +282,6 @@ onUnmounted(() => {
               layout="vertical"
               class="settings-form"
             >
-              <a-form-item :label="t('settings.port')">
-                <a-input-number
-                  v-model:value="draft.port"
-                  :min="1"
-                  :max="65535"
-                  style="width: 200px"
-                />
-              </a-form-item>
-              <a-form-item :label="t('settings.transport')">
-                <a-radio-group v-model:value="draft.transport">
-                  <a-radio value="sse">
-                    {{ t("settings.transportSse") }}
-                  </a-radio>
-                  <a-radio value="stdio">
-                    {{ t("settings.transportStdio") }}
-                  </a-radio>
-                </a-radio-group>
-              </a-form-item>
               <a-form-item :label="t('settings.projectPath')">
                 <a-input-group compact>
                   <a-input
@@ -347,9 +332,6 @@ onUnmounted(() => {
                     {{ t("settings.clearAllCaches") }}
                   </a-button>
                 </a-popconfirm>
-              </a-form-item>
-              <a-form-item :label="t('settings.autoStart')">
-                <a-switch v-model:checked="draft.autoStart" />
               </a-form-item>
             </a-form>
           </a-space>
@@ -540,7 +522,7 @@ onUnmounted(() => {
           </a-space>
         </a-tab-pane>
       </a-tabs>
-    </a-card>
+    </div>
   </div>
 </template>
 
@@ -549,6 +531,35 @@ onUnmounted(() => {
   max-width: 900px;
   margin: 0 auto;
   padding: 0 4px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.settings-header {
+  padding: 4px 0 16px;
+  &__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    background: var(--app-primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+.settings-body {
+  border-radius: var(--app-radius-lg);
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  border: 1px solid var(--app-glass-border);
+  padding: 20px 24px;
+}
+
+.settings-tabs {
+  :deep(.ant-tabs-nav) {
+    margin-bottom: 20px;
+  }
 }
 
 .settings-form {
@@ -561,15 +572,16 @@ onUnmounted(() => {
 }
 
 .settings-backup-hint {
-  margin: 0 0 8px;
-  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  margin: 0 0 12px;
+  color: var(--app-text, rgba(15, 23, 42, 0.88));
   max-width: 52em;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .settings-backup-title {
   margin: 0;
   font-size: 12px;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--app-text-tertiary, rgba(100, 116, 139, 0.65));
+  font-weight: 500;
 }
 </style>

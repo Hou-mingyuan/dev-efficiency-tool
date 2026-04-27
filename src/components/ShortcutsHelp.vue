@@ -108,22 +108,19 @@ const rows = computed(() => [
 .shortcuts-help__hint {
   margin: 0 0 12px;
   font-size: 13px;
-  color: rgba(0, 0, 0, 0.55);
-}
-
-[data-theme="dark"] .shortcuts-help__hint {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  line-height: 1.6;
 }
 
 .shortcuts-help__list {
   :deep(.ant-list-item-meta-description) {
-    font-family: ui-monospace, Menlo, Monaco, "Courier New", monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, monospace;
     font-size: 13px;
-    color: rgba(0, 0, 0, 0.65);
-  }
-
-  [data-theme="dark"] &:deep(.ant-list-item-meta-description) {
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--app-text-secondary, rgba(0, 0, 0, 0.65));
+    background: var(--app-bg-spotlight, #f8fafc);
+    padding: 3px 10px;
+    border-radius: var(--app-radius-xs, 6px);
+    display: inline-block;
   }
 }
 

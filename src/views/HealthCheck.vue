@@ -1,77 +1,19 @@
-<template>
-  <div class="page-container health-check">
-    <a-typography-title :level="4" class="page-title">
-      {{ t("health.title") }}
-    </a-typography-title>
-    <div class="toolbar">
-      <a-button type="primary" :loading="running" @click="runCheck">
-        {{ t("health.runCheck") }}
-      </a-button>
-      <a-tag v-if="result" :color="overallColor">
-        {{ overallStatusText }}
-      </a-tag>
-    </div>
-    <a-spin :spinning="running" :tip="t('health.checking')">
-      <a-empty
-        v-if="!result && !running"
-        :description="t('health.emptyHint')"
-        class="health-empty"
-      >
-        <a-button type="primary" @click="runCheck">
-          {{ t("health.runCheck") }}
-        </a-button>
-      </a-empty>
-      <a-descriptions
-        v-if="result"
-        bordered
-        :column="1"
-        size="middle"
-        class="health-desc"
-      >
-        <a-descriptions-item :label="t('health.nodeVersion')">
-          <a-tag color="blue">{{ result.nodeVersion }}</a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.electronVersion')">
-          <a-tag color="blue">{{ result.electronVersion }}</a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.platform')">
-          <a-tag color="geekblue">{{ result.platform }}</a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.arch')">
-          <a-tag color="geekblue">{{ result.arch }}</a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.memory')">
-          <a-tag :color="memoryTagColor">
-            {{ t("health.memoryFormat", { free: result.memory.free, total: result.memory.total }) }}
-          </a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.methodologyPath')">
-          <code class="path-text">{{ result.methodologyPath || "—" }}</code>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.entryExists')">
-          <a-tag :color="result.entryExists ? 'success' : 'error'">
-            {{ result.entryExists ? t("health.yes") : t("health.no") }}
-          </a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.docCount')">
-          <a-tag :color="docCountColor">
-            {{ result.methodologyFileCount }}
-          </a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item :label="t('health.portAvailable')">
-          <a-tag :color="result.portAvailable ? 'success' : 'error'">
-            {{ result.portAvailable ? t("health.available") : t("health.unavailable") }}
-          </a-tag>
-        </a-descriptions-item>
-      </a-descriptions>
-    </a-spin>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { message } from "ant-design-vue";
+import {
+  CheckCircleOutlined,
+  WarningOutlined,
+  CloseCircleOutlined,
+  DesktopOutlined,
+  CloudServerOutlined,
+  HddOutlined,
+  FolderOutlined,
+  FileTextOutlined,
+  ApiOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons-vue";
 
 const { t } = useI18n();
 
@@ -94,19 +36,17 @@ function isIpcError(v: unknown): v is { __ipcError: true; message: string } {
 const result = ref<HealthResult | null>(null);
 const running = ref(false);
 
-const memoryTagColor = computed(() => {
-  if (!result.value) return "default";
+const memoryPercent = computed(() => {
+  if (!result.value) return 0;
   const { free, total } = result.value.memory;
-  if (total <= 0) return "default";
-  const ratio = free / total;
-  if (ratio < 0.1) return "red";
-  if (ratio < 0.2) return "warning";
-  return "success";
+  if (total <= 0) return 0;
+  return Math.round(((total - free) / total) * 100);
 });
 
-const docCountColor = computed(() => {
-  if (!result.value) return "default";
-  if (result.value.methodologyFileCount === 0) return "warning";
+const memoryStatus = computed(() => {
+  const p = memoryPercent.value;
+  if (p > 90) return "error";
+  if (p > 80) return "warning";
   return "success";
 });
 
@@ -122,10 +62,10 @@ const overallLevel = computed((): Overall | null => {
 
 const overallColor = computed(() => {
   const o = overallLevel.value;
-  if (o === "success") return "success";
-  if (o === "warning") return "warning";
-  if (o === "error") return "error";
-  return "default";
+  if (o === "success") return "#10b981";
+  if (o === "warning") return "#f59e0b";
+  if (o === "error") return "#ef4444";
+  return "var(--app-muted)";
 });
 
 const overallStatusText = computed(() => {
@@ -134,6 +74,55 @@ const overallStatusText = computed(() => {
   if (o === "warning") return t("health.statusWarning");
   if (o === "error") return t("health.statusError");
   return t("health.checking");
+});
+
+const healthItems = computed(() => {
+  if (!result.value) return [];
+  const r = result.value;
+  return [
+    {
+      icon: DesktopOutlined,
+      label: t("health.platform"),
+      value: `${r.platform} / ${r.arch}`,
+      status: "success" as const,
+    },
+    {
+      icon: CloudServerOutlined,
+      label: t("health.nodeVersion"),
+      value: r.nodeVersion,
+      status: "success" as const,
+    },
+    {
+      icon: ThunderboltOutlined,
+      label: t("health.electronVersion"),
+      value: r.electronVersion,
+      status: "success" as const,
+    },
+    {
+      icon: HddOutlined,
+      label: t("health.memory"),
+      value: t("health.memoryFormat", { free: r.memory.free, total: r.memory.total }),
+      status: memoryStatus.value as "success" | "warning" | "error",
+    },
+    {
+      icon: FolderOutlined,
+      label: t("health.methodologyPath"),
+      value: r.methodologyPath || "—",
+      status: (r.methodologyPath ? "success" : "warning") as "success" | "warning",
+    },
+    {
+      icon: FileTextOutlined,
+      label: t("health.docCount"),
+      value: String(r.methodologyFileCount),
+      status: (r.methodologyFileCount > 0 ? "success" : "warning") as "success" | "warning",
+    },
+    {
+      icon: ApiOutlined,
+      label: t("health.portAvailable"),
+      value: r.portAvailable ? t("health.available") : t("health.unavailable"),
+      status: (r.portAvailable ? "success" : "error") as "success" | "error",
+    },
+  ];
 });
 
 async function runCheck() {
@@ -157,33 +146,191 @@ async function runCheck() {
 }
 </script>
 
+<template>
+  <div class="page-health">
+    <div class="health-header">
+      <div class="health-header__text">
+        <h2 class="health-header__title">{{ t("health.title") }}</h2>
+        <p class="health-header__desc">{{ t("health.emptyHint") }}</p>
+      </div>
+      <a-button type="primary" :loading="running" size="large" @click="runCheck">
+        {{ t("health.runCheck") }}
+      </a-button>
+    </div>
+
+    <!-- Overall Status -->
+    <div v-if="result" class="health-overall" :style="{ borderColor: overallColor }">
+      <div class="health-overall__icon" :style="{ color: overallColor }">
+        <CheckCircleOutlined v-if="overallLevel === 'success'" />
+        <WarningOutlined v-else-if="overallLevel === 'warning'" />
+        <CloseCircleOutlined v-else />
+      </div>
+      <div class="health-overall__info">
+        <div class="health-overall__status" :style="{ color: overallColor }">{{ overallStatusText }}</div>
+        <div class="health-overall__hint">{{ t("health.title") }}</div>
+      </div>
+    </div>
+
+    <a-spin :spinning="running" :tip="t('health.checking')">
+      <a-empty v-if="!result && !running" :description="t('health.emptyHint')" />
+      <div v-if="result" class="health-grid">
+        <div
+          v-for="(item, idx) in healthItems"
+          :key="idx"
+          class="health-card"
+        >
+          <div class="health-card__top">
+            <div class="health-card__icon-wrap" :class="`health-card__icon-wrap--${item.status}`">
+              <component :is="item.icon" />
+            </div>
+            <div
+              class="health-card__dot"
+              :class="`health-card__dot--${item.status}`"
+            />
+          </div>
+          <div class="health-card__label">{{ item.label }}</div>
+          <div class="health-card__value">{{ item.value }}</div>
+        </div>
+      </div>
+    </a-spin>
+  </div>
+</template>
+
 <style lang="less" scoped>
-.page-container {
-  padding: 16px 24px;
-  box-sizing: border-box;
+.page-health {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 4px 24px;
+  position: relative;
+  z-index: 1;
 }
 
-.page-title {
-  margin: 0 0 16px !important;
-}
-
-.toolbar {
+.health-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   margin-bottom: 20px;
+  gap: 16px;
+
+  &__text {
+    flex: 1;
+  }
+  &__title {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    background: var(--app-primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  &__desc {
+    margin: 0;
+    font-size: 13px;
+    color: var(--app-text-tertiary);
+  }
 }
 
-.health-desc {
-  max-width: 800px;
+.health-overall {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  border: 1px solid;
+  margin-bottom: 20px;
+  transition: all var(--app-transition);
+
+  &__icon {
+    font-size: 36px;
+  }
+  &__status {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  &__hint {
+    font-size: 12px;
+    color: var(--app-text-tertiary);
+    margin-top: 2px;
+  }
 }
 
-.path-text {
-  display: block;
-  word-break: break-all;
-  font-size: 12px;
-  background: var(--ant-color-bg-layout, #f5f5f5);
-  padding: 4px 8px;
-  border-radius: 4px;
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.health-card {
+  padding: 20px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  border: 1px solid var(--app-glass-border);
+  transition: all var(--app-transition);
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--app-primary) 30%, transparent);
+    box-shadow: var(--app-shadow-md);
+    transform: translateY(-2px);
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  &__icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--app-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+
+    &--success {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+    &--warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+    }
+    &--error {
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+    }
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+
+    &--success { background: #10b981; }
+    &--warning { background: #f59e0b; }
+    &--error { background: #ef4444; }
+  }
+
+  &__label {
+    font-size: 12px;
+    color: var(--app-text-tertiary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  &__value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--app-text);
+    word-break: break-all;
+  }
 }
 </style>

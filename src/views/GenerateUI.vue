@@ -188,6 +188,7 @@
           >
             {{ genMode === 'image' ? t('gen.ui.generateImage') : t('gen.common.generate') }}
           </a-button>
+          <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
           <a-button v-if="generating || imageGenerating" danger @click="genMode === 'image' ? stopImageGenerate() : stopGenerate()">
             {{ t("gen.common.stopGenerate") }}
           </a-button>
@@ -678,42 +679,6 @@ async function loadHistoryRecord(item: GenerationRecord) {
 </script>
 
 <style lang="less" scoped>
-.ref-tags {
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.generator-actions {
-  margin-top: 8px;
-}
-
-.gen-status {
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.45));
-  font-size: 12px;
-}
-
-.preview-spin {
-  min-height: 200px;
-}
-
-.cache-info-line {
-  font-size: 12px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.45));
-  margin-top: 4px;
-}
-
-.history-preview {
-  font-size: 12px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
-  margin: 8px 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 120px;
-  overflow: hidden;
-}
-
 .ref-image-grid {
   display: flex;
   flex-wrap: wrap;
@@ -731,8 +696,12 @@ async function loadHistoryRecord(item: GenerationRecord) {
   width: 120px;
   height: 90px;
   object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid var(--app-border-secondary, #e8e8e8);
+  border-radius: var(--app-radius-sm);
+  border: 1px solid var(--app-glass-border);
+  transition: transform var(--app-transition);
+  &:hover {
+    transform: scale(1.05);
+  }
 }
 
 .ref-image-remove {
@@ -764,8 +733,8 @@ async function loadHistoryRecord(item: GenerationRecord) {
 }
 
 .ui-preview-html {
-  border: 1px solid var(--app-border-secondary, #e8e8e8);
-  border-radius: 8px;
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--app-radius-md);
   overflow: auto;
   max-height: 600px;
   padding: 0;
@@ -790,8 +759,8 @@ async function loadHistoryRecord(item: GenerationRecord) {
 }
 
 .ui-page-image {
-  border: 1px solid var(--app-border-secondary, #e8e8e8);
-  border-radius: 8px;
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--app-radius-md);
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -802,9 +771,11 @@ async function loadHistoryRecord(item: GenerationRecord) {
 
 .ui-saved-files {
   margin-top: 12px;
-  padding: 12px;
-  background: var(--app-bg-layout, #f5f5f5);
-  border-radius: 6px;
+  padding: 14px 16px;
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--app-radius-md);
 }
 
 .ui-saved-file {
@@ -815,10 +786,12 @@ async function loadHistoryRecord(item: GenerationRecord) {
 }
 
 .image-progress-bar {
-  padding: 12px 16px;
+  padding: 14px 18px;
   margin-bottom: 12px;
-  background: var(--app-bg-layout, #f5f5f5);
-  border-radius: 8px;
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--app-radius-md);
 }
 
 .image-progress-text {

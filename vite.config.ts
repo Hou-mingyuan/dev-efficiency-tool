@@ -48,12 +48,11 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   build: {
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks: {
-          "ant-design": ["ant-design-vue"],
-          "ant-icons": ["@ant-design/icons-vue"],
+          "ant-design": ["ant-design-vue", "@ant-design/icons-vue", "@ant-design/colors"],
           vendor: ["vue", "vue-router", "pinia", "vue-i18n"],
           markdown: ["marked", "dompurify"],
         },

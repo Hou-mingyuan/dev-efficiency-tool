@@ -2,11 +2,7 @@
 import {
   AppstoreOutlined,
   BgColorsOutlined,
-
-  CodeOutlined,
   DashboardOutlined,
-  FileSearchOutlined,
-  FileTextOutlined,
   FormOutlined,
   HeartOutlined,
   MenuFoldOutlined,
@@ -21,18 +17,14 @@ import {
 import { theme } from "ant-design-vue";
 import enUS from "ant-design-vue/es/locale/en_US";
 import zhCN from "ant-design-vue/es/locale/zh_CN";
-import { storeToRefs } from "pinia";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import NotificationCenter from "@/components/NotificationCenter.vue";
-import { useMcpStore } from "@/store/mcp";
 import { useNotificationStore } from "@/store/notification";
 
 const router = useRouter();
 const route = useRoute();
-const mcpStore = useMcpStore();
-const { lastStatusFetchError, status: mcpServiceStatus } = storeToRefs(mcpStore);
 const notificationStore = useNotificationStore();
 const { t, locale } = useI18n();
 
@@ -246,7 +238,6 @@ onMounted(() => {
   if (!localStorage.getItem("lng-guide-done")) {
     setTimeout(() => { showGuide.value = true; }, 800);
   }
-  mcpStore.startPolling(5000);
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
   window.addEventListener("keydown", onKeydown);
@@ -263,29 +254,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("resize", checkScreenSize);
   window.removeEventListener("keydown", onKeydown);
-  mcpStore.stopPolling();
   removeUpdateListener?.();
 });
 
-const mcpStatus = computed(() => {
-  if (lastStatusFetchError.value) {
-    return "error" as const;
-  }
-  if (mcpServiceStatus.value?.running) {
-    return "running" as const;
-  }
-  return "stopped" as const;
-});
-
-const mcpStatusLabel = computed(() => {
-  if (mcpStatus.value === "error") {
-    return t("status.unknown");
-  }
-  if (mcpStatus.value === "running") {
-    return t("status.running");
-  }
-  return t("status.stopped");
-});
 </script>
 
 <template>
@@ -372,12 +343,6 @@ const mcpStatusLabel = computed(() => {
                 <span>{{ $t("nav.genDesign") }}</span>
               </a-menu-item>
             </a-sub-menu>
-            <a-menu-item key="/ide">
-              <template #icon>
-                <CodeOutlined />
-              </template>
-              <span>{{ $t("nav.ide") }}</span>
-            </a-menu-item>
             <a-menu-item key="/health">
               <template #icon>
                 <HeartOutlined />
@@ -390,13 +355,10 @@ const mcpStatusLabel = computed(() => {
               </template>
               <span>{{ $t("nav.logs") }}</span>
             </a-menu-item>
-            <a-menu-item key="/parser">
-              <template #icon>
-                <FileSearchOutlined />
-              </template>
-              <span>{{ $t("nav.parser") }}</span>
-            </a-menu-item>
           </a-menu>
+          <div v-if="!collapsed" class="app-sider__footer">
+            <span class="app-sider__version">v0.1.0</span>
+          </div>
         </a-layout-sider>
         <a-layout>
           <a-layout-header
@@ -414,15 +376,6 @@ const mcpStatusLabel = computed(() => {
               </a-button>
             </div>
             <div class="app-header__right">
-              <a-tooltip
-                :title="mcpStatusLabel"
-              >
-                <span
-                  class="app-mcp-dot"
-                  :class="`app-mcp-dot--${mcpStatus}`"
-                  :aria-label="mcpStatusLabel"
-                />
-              </a-tooltip>
               <a-select
                 v-model:value="displayLocale"
                 class="app-header__select"
@@ -453,6 +406,11 @@ const mcpStatusLabel = computed(() => {
             </div>
           </a-layout-header>
           <a-layout-content class="app-content">
+            <div class="app-content__orbs" aria-hidden="true">
+              <div class="app-orb app-orb--1" />
+              <div class="app-orb app-orb--2" />
+              <div class="app-orb app-orb--3" />
+            </div>
             <GlobalSearch v-model:visible="searchOpen" />
             <ShortcutsHelp v-model:visible="shortcutsOpen" />
             <ErrorBoundary>
@@ -487,100 +445,222 @@ const mcpStatusLabel = computed(() => {
 .app-layout {
   min-height: 100vh;
 }
+
 .app-sider {
+  position: relative;
+  border-right: 1px solid var(--app-glass-border) !important;
+  background: var(--app-glass-bg) !important;
+  backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to top, color-mix(in srgb, var(--app-primary) 5%, transparent), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
   &__brand {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 56px;
+    height: 64px;
     padding: 0 16px;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid var(--app-glass-border);
+    margin-bottom: 8px;
   }
   &__logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #1a6cff 0%, #0fd99e 60%, #4cd4a7 100%);
-    box-shadow: 0 2px 8px rgba(26, 108, 255, 0.25);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--app-radius-md);
+    background: var(--app-primary-gradient);
+    box-shadow:
+      0 4px 16px color-mix(in srgb, var(--app-primary) 35%, transparent),
+      inset 0 1px 1px rgba(255, 255, 255, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     position: relative;
+    transition: transform var(--app-transition), box-shadow var(--app-transition);
+    &:hover {
+      transform: scale(1.08);
+      box-shadow:
+        0 6px 24px color-mix(in srgb, var(--app-primary) 45%, transparent),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    }
     &-letter {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 800;
       color: #fff;
       letter-spacing: -0.5px;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       line-height: 1;
     }
   }
+  &__footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    text-align: center;
+    z-index: 1;
+  }
+  &__version {
+    font-size: 11px;
+    color: var(--app-text-quaternary);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
 }
+
 .app-menu {
   border-right: 0;
+  background: transparent !important;
+  padding: 4px 0;
+  position: relative;
+  z-index: 1;
 }
+
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 0 8px;
-  background: var(--app-bg-container, #fff);
-  border-bottom: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.06));
+  padding: 0 20px 0 12px;
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
+  border-bottom: 1px solid var(--app-glass-border);
   height: 56px;
   position: sticky;
   top: 0;
   z-index: 100;
+
   &__left,
   &__right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
   &__title {
     font-size: 16px;
     font-weight: 600;
-    color: var(--app-text, rgba(0, 0, 0, 0.85));
+    color: var(--app-text);
   }
   &__fold {
-    color: var(--app-text, rgba(0, 0, 0, 0.85));
+    color: var(--app-text);
+    border-radius: var(--app-radius-sm) !important;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--app-transition);
+    &:hover {
+      background: var(--app-bg-hover);
+    }
   }
   &__right .app-header__icon {
-    color: var(--app-text, rgba(0, 0, 0, 0.85));
+    color: var(--app-text);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--app-radius-sm) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--app-transition);
+    &:hover {
+      background: var(--app-bg-hover);
+    }
   }
   &__select {
     min-width: 108px;
   }
 }
+
 .app-content {
   margin: 0;
-  padding: 20px 24px 32px;
-  background: var(--app-bg, #f5f5f5);
+  padding: var(--app-page-padding-y) var(--app-page-padding-x) 32px;
+  background: var(--app-bg);
   overflow: auto;
   min-height: calc(100vh - 56px);
+  position: relative;
 }
+
+.app-content__orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.app-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.07;
+  will-change: transform;
+  animation: orbFloat 20s ease-in-out infinite alternate;
+}
+
+.app-orb--1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #3b82f6, transparent 70%);
+  top: -10%;
+  right: -5%;
+  animation-delay: 0s;
+}
+
+.app-orb--2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #8b5cf6, transparent 70%);
+  bottom: 10%;
+  left: 5%;
+  animation-delay: -7s;
+}
+
+.app-orb--3 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, #06b6d4, transparent 70%);
+  top: 40%;
+  right: 30%;
+  animation-delay: -14s;
+}
+
+@keyframes orbFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 30px) scale(0.95); }
+  100% { transform: translate(10px, -10px) scale(1.02); }
+}
+
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.18s ease;
+  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.page-fade-enter-from,
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.99);
+  filter: blur(2px);
+}
 .page-fade-leave-to {
   opacity: 0;
+  transform: translateY(-4px) scale(0.99);
+  filter: blur(1px);
 }
-.app-mcp-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 4px;
-  &--running {
-    background: var(--app-success, #52c41a);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
-  }
-  &--stopped {
-    background: var(--app-muted, #8c8c8c);
-  }
-  &--error {
-    background: var(--app-error, #f5222d);
-  }
-}
+
 </style>

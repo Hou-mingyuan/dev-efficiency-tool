@@ -170,21 +170,22 @@ function onDrop(e: DragEvent) {
 
 .drop-zone {
   text-align: center;
-  padding: 32px 16px;
-  border: 1px dashed var(--ant-color-border, #d9d9d9);
-  border-radius: 8px;
-  background: var(--ant-color-bg-layout, #fafafa);
-  transition: border-color 0.2s, background 0.2s;
+  padding: 40px 20px;
+  border: 2px dashed var(--app-border, rgba(226, 232, 240, 0.8));
+  border-radius: var(--app-radius-lg, 16px);
+  background: var(--app-bg-spotlight, #f8fafc);
+  transition: border-color var(--app-transition, 0.2s ease), background var(--app-transition, 0.2s ease), box-shadow var(--app-transition, 0.2s ease);
 }
 
 .drop-zone--active {
-  border-color: var(--ant-color-primary, #1677ff);
-  background: var(--ant-color-primary-bg, #e6f4ff);
+  border-color: var(--app-primary, #3b82f6);
+  background: color-mix(in srgb, var(--app-primary) 5%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 10%, transparent);
 }
 
 .drop-hint {
-  margin: 12px 0 0;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  margin: 14px 0 0;
+  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
   font-size: 13px;
 }
 
@@ -196,12 +197,16 @@ function onDrop(e: DragEvent) {
   display: flex;
   flex-wrap: wrap;
   gap: 16px 24px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .meta-label {
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
   margin-right: 6px;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .parsed-text {
@@ -210,10 +215,12 @@ function onDrop(e: DragEvent) {
   word-break: break-word;
   max-height: 50vh;
   overflow: auto;
-  padding: 12px 16px;
-  background: var(--ant-color-bg-layout, #f5f5f5);
-  border-radius: 6px;
+  padding: 16px 20px;
+  background: var(--app-bg-spotlight, #f8fafc);
+  border: 1px solid var(--app-border-secondary, rgba(241, 245, 249, 0.9));
+  border-radius: var(--app-radius-md, 12px);
+  font-family: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 </style>

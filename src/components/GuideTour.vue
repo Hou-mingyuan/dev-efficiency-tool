@@ -169,75 +169,78 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.45);
-  animation: guideFadeIn 0.3s ease;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  animation: guideFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .guide-spotlight {
   position: fixed;
-  border-radius: 8px;
+  border-radius: var(--app-radius-md, 12px);
   box-shadow:
-    0 0 0 9999px rgba(0, 0, 0, 0.45),
-    0 0 0 2px rgba(22, 119, 255, 0.6);
+    0 0 0 9999px rgba(0, 0, 0, 0.5),
+    0 0 0 3px color-mix(in srgb, var(--app-primary, #3b82f6) 60%, transparent),
+    0 0 20px color-mix(in srgb, var(--app-primary, #3b82f6) 25%, transparent);
   z-index: 10001;
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .guide-popover {
   position: fixed;
   z-index: 10002;
-  width: 320px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 18px 20px 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  animation: guideSlideIn 0.3s ease;
+  width: 340px;
+  background: var(--app-glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid var(--app-glass-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--app-radius-xl, 20px);
+  padding: 22px 24px 18px;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+  animation: guideSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   &__title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--app-text, #0f172a);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
   }
 
   &__desc {
-    font-size: 13px;
-    color: #595959;
-    line-height: 1.6;
-    margin-bottom: 14px;
+    font-size: 13.5px;
+    color: var(--app-text-secondary, #475569);
+    line-height: 1.7;
+    margin-bottom: 18px;
   }
 
   &__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding-top: 4px;
   }
 
   &__progress {
     font-size: 12px;
-    color: #8c8c8c;
+    color: var(--app-text-tertiary, #94a3b8);
+    font-weight: 500;
   }
 
   &__actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
   }
 }
 
 [data-theme="dark"] .guide-popover {
-  background: #262626;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-
-  .guide-popover__title {
-    color: rgba(255, 255, 255, 0.88);
-  }
-  .guide-popover__desc {
-    color: rgba(255, 255, 255, 0.65);
-  }
-  .guide-popover__progress {
-    color: rgba(255, 255, 255, 0.45);
-  }
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(51, 65, 85, 0.5);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 @keyframes guideFadeIn {
@@ -246,7 +249,7 @@ onBeforeUnmount(() => {
 }
 
 @keyframes guideSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 </style>

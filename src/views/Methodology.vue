@@ -218,20 +218,24 @@ onMounted(() => {
 
   .file-item {
     cursor: pointer;
-    padding: 8px 16px !important;
+    padding: 10px 16px !important;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
     border: none !important;
+    border-radius: var(--app-radius-sm, 8px);
+    margin: 2px 6px;
+    transition: background var(--app-transition, 0.2s ease);
   }
 
   .file-item:hover {
-    background: var(--ant-color-bg-text-hover, rgba(0, 0, 0, 0.04));
+    background: var(--app-bg-hover, rgba(59, 130, 246, 0.06));
   }
 
   .file-item--active {
-    background: var(--ant-color-primary-bg, #e6f4ff);
+    background: color-mix(in srgb, var(--app-primary) 10%, transparent);
+    box-shadow: inset 3px 0 0 var(--app-primary);
   }
 
   .file-name {
@@ -240,12 +244,14 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 500;
   }
 
   .file-size {
     flex-shrink: 0;
-    font-size: 12px;
-    color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+    font-size: 11px;
+    color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
+    font-family: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
   }
 
   .methodology-main {
@@ -253,7 +259,7 @@ onMounted(() => {
     min-width: 0;
     min-height: 0;
     overflow: auto;
-    padding: 16px 20px;
+    padding: 20px 24px;
   }
 
   .markdown-wrap {
@@ -265,26 +271,27 @@ onMounted(() => {
   }
 
   .markdown-content {
-    line-height: 1.7;
+    line-height: 1.8;
   }
 
   .markdown-content :deep(h1),
   .markdown-content :deep(h2),
   .markdown-content :deep(h3) {
-    margin-top: 1.2em;
-    margin-bottom: 0.5em;
-    font-weight: 600;
+    margin-top: 1.4em;
+    margin-bottom: 0.6em;
+    font-weight: 700;
   }
 
   .markdown-content :deep(pre) {
-    padding: 12px 16px;
+    padding: 16px 20px;
     overflow: auto;
-    border-radius: 6px;
-    background: var(--ant-color-bg-layout, #f5f5f5);
+    border-radius: var(--app-radius-md, 12px);
+    background: var(--app-bg-spotlight, #f8fafc);
+    border: 1px solid var(--app-border-secondary);
   }
 
   .markdown-content :deep(code) {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Consolas, monospace;
   }
 
   .markdown-content :deep(ul),
@@ -295,12 +302,19 @@ onMounted(() => {
   .markdown-content :deep(table) {
     border-collapse: collapse;
     width: 100%;
+    border-radius: var(--app-radius-sm, 8px);
+    overflow: hidden;
   }
 
   .markdown-content :deep(th),
   .markdown-content :deep(td) {
-    border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
-    padding: 8px 12px;
+    border: 1px solid var(--app-border-secondary, #f0f0f0);
+    padding: 10px 14px;
+  }
+
+  .markdown-content :deep(th) {
+    background: var(--app-bg-spotlight, #f8fafc);
+    font-weight: 600;
   }
 }
 </style>
