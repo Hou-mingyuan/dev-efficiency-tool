@@ -294,6 +294,15 @@ export default {
       description: "生成技术方案与实现层设计说明。",
     },
   },
+  methodology: {
+    panelTitle: "方法论参考文档",
+    loading: "加载中…",
+    noFiles: "未找到方法论文件",
+    previewTitle: "预览",
+    useAsRef: "引用此文档",
+    alreadyRef: "已引用",
+    readError: "读取方法论文件失败",
+  },
   welcome: {
     title: "欢迎使用",
     headline: "欢迎使用开发效率提升工具",

@@ -294,6 +294,15 @@ export default {
       description: "Produce technical and implementation design notes.",
     },
   },
+  methodology: {
+    panelTitle: "Methodology Reference",
+    loading: "Loading...",
+    noFiles: "No methodology files found",
+    previewTitle: "Preview",
+    useAsRef: "Use as Reference",
+    alreadyRef: "Already Referenced",
+    readError: "Failed to read methodology file",
+  },
   welcome: {
     title: "Welcome",
     headline: "Welcome to Dev Efficiency Tool",
