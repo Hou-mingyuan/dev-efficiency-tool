@@ -372,12 +372,6 @@ const mcpStatusLabel = computed(() => {
                 <span>{{ $t("nav.genDesign") }}</span>
               </a-menu-item>
             </a-sub-menu>
-            <a-menu-item key="/methodology">
-              <template #icon>
-                <FileTextOutlined />
-              </template>
-              <span>{{ $t("nav.methodology") }}</span>
-            </a-menu-item>
             <a-menu-item key="/ide">
               <template #icon>
                 <CodeOutlined />
