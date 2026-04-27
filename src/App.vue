@@ -243,7 +243,9 @@ let removeUpdateListener: (() => void) | undefined;
 onMounted(() => {
   void loadTheme();
   void loadLocale();
-  // GuideTour disabled — users explore on their own
+  if (!localStorage.getItem("lng-guide-done")) {
+    setTimeout(() => { showGuide.value = true; }, 800);
+  }
   mcpStore.startPolling(5000);
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
