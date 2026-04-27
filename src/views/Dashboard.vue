@@ -284,7 +284,12 @@ onMounted(() => {
         <div class="dash-summary-banner__number">{{ animatedTotal }}</div>
         <div class="dash-summary-banner__text">
           <div class="dash-summary-banner__title">{{ t('dash.totalGenerated') }}</div>
-          <div class="dash-summary-banner__desc">{{ t('dash.totalDesc') }}</div>
+          <div class="dash-summary-banner__desc">
+            {{ t('dash.totalDesc') }}
+            <span v-if="recentHistory.length" class="dash-summary-banner__trend">
+              {{ t('dash.recentCount', { n: recentHistory.length }) }}
+            </span>
+          </div>
         </div>
       </div>
       <div class="dash-summary-banner__actions">
@@ -566,6 +571,15 @@ onMounted(() => {
     font-size: 13px;
     opacity: 0.8;
     margin-top: 2px;
+  }
+  &__trend {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 500;
   }
   &__actions {
     position: relative;

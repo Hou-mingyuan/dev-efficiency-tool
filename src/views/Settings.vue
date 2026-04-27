@@ -392,6 +392,15 @@ onUnmounted(() => {
                       v-model:value="p.apiKey"
                       autocomplete="off"
                     />
+                    <div v-if="p.apiKey" class="api-key-strength">
+                      <span
+                        class="api-key-strength__dot"
+                        :class="p.apiKey.length >= 20 ? 'api-key-strength__dot--strong' : 'api-key-strength__dot--weak'"
+                      />
+                      <span class="api-key-strength__label">
+                        {{ p.apiKey.length >= 20 ? t('settings.keyStrong') : t('settings.keyWeak') }}
+                      </span>
+                    </div>
                   </a-form-item>
                   <a-form-item
                     :label="t('settings.baseUrl')"
@@ -606,6 +615,29 @@ onUnmounted(() => {
 .form-item-embed {
   margin-bottom: 0;
   width: 100%;
+}
+
+.api-key-strength {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  &__dot--strong {
+    background: var(--app-success, #10b981);
+  }
+  &__dot--weak {
+    background: var(--app-warning, #f59e0b);
+  }
+  &__label {
+    color: var(--app-text-tertiary);
+  }
 }
 
 .settings-backup-hint {

@@ -400,18 +400,32 @@ onBeforeUnmount(() => {
                 <span>{{ $t("nav.genDesign") }}</span>
               </a-menu-item>
             </a-sub-menu>
-            <a-menu-item key="/health">
-              <template #icon>
-                <HeartOutlined />
-              </template>
-              <span>{{ $t("nav.health") }}</span>
-            </a-menu-item>
-            <a-menu-item key="/logs">
-              <template #icon>
-                <UnorderedListOutlined />
-              </template>
-              <span>{{ $t("nav.logs") }}</span>
-            </a-menu-item>
+            <a-menu-item-group v-if="!collapsed" :title="$t('nav.system')">
+              <a-menu-item key="/health">
+                <template #icon>
+                  <HeartOutlined />
+                </template>
+                <span>{{ $t("nav.health") }}</span>
+              </a-menu-item>
+              <a-menu-item key="/logs">
+                <template #icon>
+                  <UnorderedListOutlined />
+                </template>
+                <span>{{ $t("nav.logs") }}</span>
+              </a-menu-item>
+            </a-menu-item-group>
+            <template v-else>
+              <a-menu-item key="/health">
+                <template #icon>
+                  <HeartOutlined />
+                </template>
+              </a-menu-item>
+              <a-menu-item key="/logs">
+                <template #icon>
+                  <UnorderedListOutlined />
+                </template>
+              </a-menu-item>
+            </template>
           </a-menu>
           <div v-if="!collapsed" class="app-sider__footer">
             <span class="app-sider__version">v{{ appVersion }}</span>
