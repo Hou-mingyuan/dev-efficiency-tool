@@ -1,11 +1,7 @@
 import { ipcMain } from "electron";
 import type { AppManager } from "../app-manager";
 import type { ProjectAnalyzer } from "../project-analyzer";
-
-type WrapIPC = <T extends (...args: any[]) => any>(fn: T) => (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>> | {
-  __ipcError: true;
-  message: string;
-}>;
+import type { WrapIPC } from "./types";
 
 export interface RegisterProjectHandlersOptions {
   appManager: () => AppManager | null;
@@ -30,41 +26,41 @@ export function registerProjectHandlers(options: RegisterProjectHandlersOptions)
     return result;
   }));
 
-  ipcMain.handle("project:getCache", (_e, projectPath: string) => {
+  ipcMain.handle("project:getCache", wrapIPC(async (_e: any, projectPath: string) => {
     return projectAnalyzer.getCache(projectPath);
-  });
+  }));
 
-  ipcMain.handle("project:getCacheInfo", (_e, projectPath: string) => {
+  ipcMain.handle("project:getCacheInfo", wrapIPC(async (_e: any, projectPath: string) => {
     return projectAnalyzer.getCacheInfo(projectPath);
-  });
+  }));
 
-  ipcMain.handle("project:isCacheValid", (_e, projectPath: string) => {
+  ipcMain.handle("project:isCacheValid", wrapIPC(async (_e: any, projectPath: string) => {
     return projectAnalyzer.isCacheValid(projectPath);
-  });
+  }));
 
-  ipcMain.handle("project:clearCache", (_e, projectPath: string) => {
+  ipcMain.handle("project:clearCache", wrapIPC(async (_e: any, projectPath: string) => {
     const cleared = projectAnalyzer.clearCache(projectPath);
     if (cleared) {
       appManager()?.addLog("info", `已清除项目缓存: ${projectPath}`, "project-analyzer");
     }
     return cleared;
-  });
+  }));
 
-  ipcMain.handle("project:clearAllCaches", () => {
+  ipcMain.handle("project:clearAllCaches", wrapIPC(async () => {
     const count = projectAnalyzer.clearAllCaches();
     appManager()?.addLog("info", `已清除全部项目缓存 (${count} 个)`, "project-analyzer");
     return count;
-  });
+  }));
 
-  ipcMain.handle("project:getCacheDir", () => {
+  ipcMain.handle("project:getCacheDir", wrapIPC(async () => {
     return projectAnalyzer.cacheDir;
-  });
+  }));
 
-  ipcMain.handle("project:setCacheDir", (_e, dir: string) => {
+  ipcMain.handle("project:setCacheDir", wrapIPC(async (_e: any, dir: string) => {
     projectAnalyzer.setCacheDir(dir || null);
     appManager()?.addLog("info", `缓存目录已更新: ${projectAnalyzer.cacheDir}`, "project-analyzer");
     return projectAnalyzer.cacheDir;
-  });
+  }));
 
   ipcMain.handle("project:formatForPrompt", wrapIPC(async (_e: any, projectPath: string, docType: string) => {
     const cached = projectAnalyzer.getOrAnalyze(projectPath);

@@ -161,6 +161,15 @@ declare global {
       offConfigChanged: (cleanup?: IpcCleanup) => void;
       getLogs: () => Promise<LogEntry[] | IpcErrorResult>;
       clearLogs: () => Promise<unknown>;
+      logRendererError: (payload: {
+        level?: "error" | "warn";
+        message?: string;
+        stack?: string;
+        source?: string;
+        line?: number;
+        column?: number;
+        url?: string;
+      }) => Promise<unknown>;
       getMethodologyFiles: () => Promise<unknown>;
       readMethodologyFile: (path: string) => Promise<unknown>;
       writeMethodologyFile: (path: string, content: string) => Promise<unknown>;

@@ -329,6 +329,13 @@ export class AppManager {
 
   clearLogs(): void {
     this.logs = [];
+    try {
+      const logDir = path.dirname(this.appLogFile);
+      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+      fs.writeFileSync(this.appLogFile, "", "utf-8");
+    } catch {
+      /* ignore */
+    }
   }
 
   getConfig(): AppConfig {

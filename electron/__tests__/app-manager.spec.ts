@@ -83,6 +83,23 @@ describe("AppManager config persistence", () => {
   });
 });
 
+describe("AppManager logs", () => {
+  it("clears both memory logs and the persistent log file", async () => {
+    const { AppManager } = await import("../app-manager");
+    const appDataDir = makeTempDir("app-manager");
+    const manager = new AppManager({ appDataDir, detectMethodologyPath: false });
+
+    manager.addLog("error", "测试错误", "test");
+    expect(manager.getLogs()).toHaveLength(1);
+    expect(fs.readFileSync(path.join(appDataDir, "app.log"), "utf-8")).toContain("测试错误");
+
+    manager.clearLogs();
+
+    expect(manager.getLogs()).toHaveLength(0);
+    expect(fs.readFileSync(path.join(appDataDir, "app.log"), "utf-8")).toBe("");
+  });
+});
+
 describe("AppManager document parsing", () => {
   it("extracts PDF text and releases the parser", async () => {
     const { AppManager } = await import("../app-manager");

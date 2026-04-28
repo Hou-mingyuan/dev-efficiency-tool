@@ -2,10 +2,48 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 
 export type IpcCleanup = () => void;
 
+function serializeError(error: unknown): { message: string; stack?: string } {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+  return {
+    message: String(error),
+  };
+}
+
+function reportPreloadError(source: string, message: string, error: unknown): void {
+  const detail = serializeError(error);
+  void ipcRenderer.invoke("app:logRendererError", {
+    source,
+    level: "error",
+    message: `${message}: ${detail.message}`,
+    stack: detail.stack,
+  }).catch(() => {
+    /* avoid recursive logging failures */
+  });
+}
+
+async function invoke<T = any>(channel: string, ...args: unknown[]): Promise<T> {
+  try {
+    return await ipcRenderer.invoke(channel, ...args) as T;
+  } catch (error) {
+    reportPreloadError("preload-ipc", `IPC 调用异常 ${channel}`, error);
+    throw error;
+  }
+}
+
 /** Payload forwarded from main after the IPC event. */
 function listenPayload<T>(channel: string, callback: (payload: T) => void): IpcCleanup {
   const listener = (_event: IpcRendererEvent, payload: T) => {
-    callback(payload);
+    try {
+      callback(payload);
+    } catch (error) {
+      reportPreloadError("preload-event", `IPC 事件处理异常 ${channel}`, error);
+      throw error;
+    }
   };
   ipcRenderer.on(channel, listener);
   return () => {
@@ -16,7 +54,12 @@ function listenPayload<T>(channel: string, callback: (payload: T) => void): IpcC
 /** Two values after the IPC event (e.g. streamed completion + id). */
 function listenPair<T, U>(channel: string, callback: (a: T, b: U) => void): IpcCleanup {
   const listener = (_event: IpcRendererEvent, a: T, b: U) => {
-    callback(a, b);
+    try {
+      callback(a, b);
+    } catch (error) {
+      reportPreloadError("preload-event", `IPC 事件处理异常 ${channel}`, error);
+      throw error;
+    }
   };
   ipcRenderer.on(channel, listener);
   return () => {
@@ -73,6 +116,7 @@ export interface ElectronAPI {
     offConfigChanged: (cleanup?: IpcCleanup) => void;
     getLogs: () => Promise<unknown>;
     clearLogs: () => Promise<unknown>;
+    logRendererError: (payload: unknown) => Promise<unknown>;
     getMethodologyFiles: () => Promise<unknown>;
     readMethodologyFile: (path: string) => Promise<unknown>;
     writeMethodologyFile: (path: string, content: string) => Promise<unknown>;
@@ -101,31 +145,31 @@ export interface ElectronAPI {
 
 const electronAPI: ElectronAPI = {
   win: {
-    minimize: () => ipcRenderer.invoke("win:minimize"),
-    maximize: () => ipcRenderer.invoke("win:maximize"),
-    close: () => ipcRenderer.invoke("win:close"),
-    isMaximized: () => ipcRenderer.invoke("win:isMaximized"),
+    minimize: () => invoke("win:minimize"),
+    maximize: () => invoke("win:maximize"),
+    close: () => invoke("win:close"),
+    isMaximized: () => invoke("win:isMaximized"),
   },
   project: {
-    analyze: (projectPath) => ipcRenderer.invoke("project:analyze", projectPath),
-    getCache: (projectPath) => ipcRenderer.invoke("project:getCache", projectPath),
-    getCacheInfo: (projectPath) => ipcRenderer.invoke("project:getCacheInfo", projectPath),
-    isCacheValid: (projectPath) => ipcRenderer.invoke("project:isCacheValid", projectPath),
-    clearCache: (projectPath) => ipcRenderer.invoke("project:clearCache", projectPath),
-    clearAllCaches: () => ipcRenderer.invoke("project:clearAllCaches"),
-    getCacheDir: () => ipcRenderer.invoke("project:getCacheDir"),
-    setCacheDir: (dir) => ipcRenderer.invoke("project:setCacheDir", dir),
-    formatForPrompt: (projectPath, docType) => ipcRenderer.invoke("project:formatForPrompt", projectPath, docType),
+    analyze: (projectPath) => invoke("project:analyze", projectPath),
+    getCache: (projectPath) => invoke("project:getCache", projectPath),
+    getCacheInfo: (projectPath) => invoke("project:getCacheInfo", projectPath),
+    isCacheValid: (projectPath) => invoke("project:isCacheValid", projectPath),
+    clearCache: (projectPath) => invoke("project:clearCache", projectPath),
+    clearAllCaches: () => invoke("project:clearAllCaches"),
+    getCacheDir: () => invoke("project:getCacheDir"),
+    setCacheDir: (dir) => invoke("project:setCacheDir", dir),
+    formatForPrompt: (projectPath, docType) => invoke("project:formatForPrompt", projectPath, docType),
   },
   ai: {
-    generate: (req) => ipcRenderer.invoke("ai:generate", req),
-    stopGenerate: () => ipcRenderer.invoke("ai:stopGenerate"),
-    saveDocument: (req) => ipcRenderer.invoke("ai:saveDocument", req),
-    getHistory: () => ipcRenderer.invoke("ai:getHistory"),
-    addHistory: (record) => ipcRenderer.invoke("ai:addHistory", record),
-    readOutputFile: (path) => ipcRenderer.invoke("ai:readOutputFile", path),
-    updateHistoryOutput: (data) => ipcRenderer.invoke("ai:updateHistoryOutput", data),
-    deleteHistory: (id) => ipcRenderer.invoke("ai:deleteHistory", id),
+    generate: (req) => invoke("ai:generate", req),
+    stopGenerate: () => invoke("ai:stopGenerate"),
+    saveDocument: (req) => invoke("ai:saveDocument", req),
+    getHistory: () => invoke("ai:getHistory"),
+    addHistory: (record) => invoke("ai:addHistory", record),
+    readOutputFile: (path) => invoke("ai:readOutputFile", path),
+    updateHistoryOutput: (data) => invoke("ai:updateHistoryOutput", data),
+    deleteHistory: (id) => invoke("ai:deleteHistory", id),
     onChunk: (callback) => listenPayload("ai:chunk", callback),
     offChunk: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
@@ -136,11 +180,11 @@ const electronAPI: ElectronAPI = {
       if (cleanup) cleanup();
       else ipcRenderer.removeAllListeners("ai:done");
     },
-    testConnection: (provider) => ipcRenderer.invoke("ai:testConnection", provider),
-    listModels: (provider) => ipcRenderer.invoke("ai:listModels", provider),
-    analyzeUIPrompt: (req) => ipcRenderer.invoke("ai:analyzeUIPrompt", req),
-    renderHtmlToImage: (req) => ipcRenderer.invoke("ai:renderHtmlToImage", req),
-    generateUIImage: (req) => ipcRenderer.invoke("ai:generateUIImage", req),
+    testConnection: (provider) => invoke("ai:testConnection", provider),
+    listModels: (provider) => invoke("ai:listModels", provider),
+    analyzeUIPrompt: (req) => invoke("ai:analyzeUIPrompt", req),
+    renderHtmlToImage: (req) => invoke("ai:renderHtmlToImage", req),
+    generateUIImage: (req) => invoke("ai:generateUIImage", req),
     onImageProgress: (callback) => listenPayload("ai:imageProgress", callback),
     offImageProgress: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
@@ -151,42 +195,43 @@ const electronAPI: ElectronAPI = {
       if (cleanup) cleanup();
       else ipcRenderer.removeAllListeners("ai:pageReady");
     },
-    checkFilesExist: (paths) => ipcRenderer.invoke("ai:checkFilesExist", paths),
+    checkFilesExist: (paths) => invoke("ai:checkFilesExist", paths),
   },
   app: {
-    getConfig: () => ipcRenderer.invoke("app:getConfig"),
-    setConfig: (config) => ipcRenderer.invoke("app:setConfig", config),
+    getConfig: () => invoke("app:getConfig"),
+    setConfig: (config) => invoke("app:setConfig", config),
     onConfigChanged: (callback) => listenPayload("app:configChanged", callback),
     offConfigChanged: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
       else ipcRenderer.removeAllListeners("app:configChanged");
     },
-    getLogs: () => ipcRenderer.invoke("app:getLogs"),
-    clearLogs: () => ipcRenderer.invoke("app:clearLogs"),
-    getMethodologyFiles: () => ipcRenderer.invoke("app:getMethodologyFiles"),
-    readMethodologyFile: (path) => ipcRenderer.invoke("app:readMethodologyFile", path),
+    getLogs: () => invoke("app:getLogs"),
+    clearLogs: () => invoke("app:clearLogs"),
+    logRendererError: (payload) => invoke("app:logRendererError", payload),
+    getMethodologyFiles: () => invoke("app:getMethodologyFiles"),
+    readMethodologyFile: (path) => invoke("app:readMethodologyFile", path),
     writeMethodologyFile: (path, content) =>
-      ipcRenderer.invoke("app:writeMethodologyFile", path, content),
-    openExternal: (url) => ipcRenderer.invoke("app:openExternal", url),
-    getVersion: () => ipcRenderer.invoke("app:getVersion"),
-    setAutoLaunch: (enabled) => ipcRenderer.invoke("app:setAutoLaunch", enabled),
-    getAutoLaunch: () => ipcRenderer.invoke("app:getAutoLaunch"),
-    healthCheck: () => ipcRenderer.invoke("app:healthCheck"),
-    exportLogs: () => ipcRenderer.invoke("app:exportLogs"),
-    exportConfig: () => ipcRenderer.invoke("app:exportConfig"),
-    importConfig: () => ipcRenderer.invoke("app:importConfig"),
-    parseDocument: (filePath) => ipcRenderer.invoke("app:parseDocument", filePath),
-    selectFile: () => ipcRenderer.invoke("app:selectFile"),
-    selectImages: () => ipcRenderer.invoke("app:selectImages"),
-    readImageAsBase64: (filePath) => ipcRenderer.invoke("app:readImageAsBase64", filePath),
-    selectDirectory: (options) => ipcRenderer.invoke("app:selectDirectory", options),
-    getTheme: () => ipcRenderer.invoke("app:getTheme"),
-    setTheme: (theme) => ipcRenderer.invoke("app:setTheme", theme),
-    checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
+      invoke("app:writeMethodologyFile", path, content),
+    openExternal: (url) => invoke("app:openExternal", url),
+    getVersion: () => invoke("app:getVersion"),
+    setAutoLaunch: (enabled) => invoke("app:setAutoLaunch", enabled),
+    getAutoLaunch: () => invoke("app:getAutoLaunch"),
+    healthCheck: () => invoke("app:healthCheck"),
+    exportLogs: () => invoke("app:exportLogs"),
+    exportConfig: () => invoke("app:exportConfig"),
+    importConfig: () => invoke("app:importConfig"),
+    parseDocument: (filePath) => invoke("app:parseDocument", filePath),
+    selectFile: () => invoke("app:selectFile"),
+    selectImages: () => invoke("app:selectImages"),
+    readImageAsBase64: (filePath) => invoke("app:readImageAsBase64", filePath),
+    selectDirectory: (options) => invoke("app:selectDirectory", options),
+    getTheme: () => invoke("app:getTheme"),
+    setTheme: (theme) => invoke("app:setTheme", theme),
+    checkForUpdates: () => invoke("app:checkForUpdates"),
     onUpdateAvailable: (callback) => listenPayload("app:updateAvailable", callback),
-    openInWindow: (target) => ipcRenderer.invoke("app:openInWindow", target),
-    setLocale: (locale) => ipcRenderer.invoke("app:setLocale", locale),
-    getLocale: () => ipcRenderer.invoke("app:getLocale"),
+    openInWindow: (target) => invoke("app:openInWindow", target),
+    setLocale: (locale) => invoke("app:setLocale", locale),
+    getLocale: () => invoke("app:getLocale"),
   },
 };
 
