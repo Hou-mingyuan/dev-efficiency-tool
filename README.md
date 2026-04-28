@@ -63,6 +63,15 @@ npm run pack
 - `开发效率提升工具 Setup x.x.x.exe` — 安装版 (NSIS)
 - `开发效率提升工具-x.x.x-portable.exe` — 免安装版 (Portable)
 
+### 自动更新
+
+应用默认不启用自动更新，避免打包后访问占位更新地址导致启动期网络报错。
+如需启用自动更新，请在运行环境中配置真实更新地址：
+
+```bash
+DEV_EFFICIENCY_UPDATE_URL=https://your-release-host.example.com
+```
+
 ## 项目结构
 
 ```

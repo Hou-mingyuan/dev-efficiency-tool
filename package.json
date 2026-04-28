@@ -86,12 +86,6 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "开发效率提升工具"
-    },
-    "publish": [
-      {
-        "provider": "generic",
-        "url": "https://releases.example.com"
-      }
-    ]
+    }
   }
 }

@@ -115,6 +115,7 @@ const trustedDirectoryPaths = new Set<string>();
 const RECENT_ERROR_LOG_TTL_MS = 3000;
 const RECENT_ERROR_LOG_LIMIT = 200;
 const recentErrorLogs = new Map<string, number>();
+const UPDATE_FEED_URL = (process.env.DEV_EFFICIENCY_UPDATE_URL || "").trim();
 
 let currentLocale = "zh";
 
@@ -654,6 +655,7 @@ const wrapIPC: WrapIPC = <T extends (...args: any[]) => any>(fn: T) => {
 
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
+  if (!configureAutoUpdater()) return;
 
   autoUpdater.autoDownload = false;
   autoUpdater.on("update-available", (info: { version?: string }) => {
@@ -673,6 +675,36 @@ function setupAutoUpdater() {
   });
 }
 
+function isValidUpdateFeedUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    return !parsed.hostname.endsWith("example.com");
+  } catch {
+    return false;
+  }
+}
+
+function configureAutoUpdater(): boolean {
+  if (!isValidUpdateFeedUrl(UPDATE_FEED_URL)) {
+    appManager?.addLog(
+      "info",
+      "自动更新未启用：未配置有效的 DEV_EFFICIENCY_UPDATE_URL",
+      "auto-updater",
+    );
+    return false;
+  }
+  autoUpdater.setFeedURL({ provider: "generic", url: UPDATE_FEED_URL });
+  return true;
+}
+
+async function checkForUpdatesSafely(): Promise<unknown> {
+  if (!app.isPackaged) return { skipped: true, reason: "not_packaged" };
+  if (!configureAutoUpdater()) return { skipped: true, reason: "not_configured" };
+  return autoUpdater.checkForUpdates();
+}
+
 /* ------------------------------------------------------------------ */
 /*  CSP                                                                */
 /* ------------------------------------------------------------------ */
@@ -686,8 +718,7 @@ function setupCSP() {
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data:; " +
       "font-src 'self' data:; " +
-      "connect-src 'self' https://releases.example.com " +
-      "https://*.openai.com https://*.anthropic.com https://*.deepseek.com " +
+      "connect-src 'self' https://*.openai.com https://*.anthropic.com https://*.deepseek.com " +
       "https://*.aliyuncs.com https://*.bigmodel.cn https://*.moonshot.cn https://*.volces.com",
     ];
     callback({ responseHeaders: headers });
@@ -709,7 +740,7 @@ function registerIpcHandlers() {
     buildAppMenu,
     buildTrayMenu,
     createChildWindow,
-    checkForUpdates: () => autoUpdater.checkForUpdates(),
+    checkForUpdates: checkForUpdatesSafely,
     setAutoLaunch,
     projectAnalyzer,
     wrapIPC,
