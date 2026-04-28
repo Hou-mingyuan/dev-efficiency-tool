@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { AppManager, AiProvider } from "../app-manager";
 import {
   AiService,
+  buildDirectUIImagePrompt,
   buildPrompt,
   buildUIAnalyzePrompt,
   buildUIImagePrompt,
@@ -62,6 +63,12 @@ function parseJsonObject(input: string): Record<string, unknown> | null {
 
 function sanitizeFileNamePart(value: string): string {
   return value.replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80) || "UI设计";
+}
+
+function imageExtensionFromMime(mimeType: string, fallback: "png" | "jpeg"): "png" | "jpeg" {
+  return mimeType.toLowerCase().includes("jpeg") || mimeType.toLowerCase().includes("jpg")
+    ? "jpeg"
+    : fallback;
 }
 
 function resolveFigmaFileName(template: unknown, projectName: unknown): string {
@@ -312,6 +319,76 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     if (!analyzedPrompt) {
       throw new Error(currentLocale() === "zh" ? "未提供 UI 出图提示词" : "No UI image prompt provided");
     }
+    if (aiService.isImageGenerationModel(provider)) {
+      const outputDir = assertTrustedOutputDirectory(req.outputDir || appManager()?.getConfig().outputPath || "");
+      fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
+      const requestedFormat = req.imageFormat === "jpeg" ? "jpeg" : "png";
+      const prompt = buildDirectUIImagePrompt({
+        projectName: req.projectName,
+        analyzedPrompt,
+        referenceContent: imageMode === "quality" ? req.referenceContent : undefined,
+        projectContext,
+        imageCount: images?.length ?? 0,
+        imageMode,
+      });
+
+      const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow();
+      const sendProgress = (stage: string, current: number, total: number, msg: string) => {
+        try { win?.webContents.send("ai:imageProgress", { stage, current, total, message: msg }); } catch { /* ignore */ }
+      };
+
+      const abortController = new AbortController();
+      currentAbortController = abortController;
+      let generated;
+      try {
+        sendProgress(
+          "generating",
+          0,
+          0,
+          currentLocale() === "zh" ? "图像模型正在直接生成 UI 图片..." : "Image model is generating the UI image directly...",
+        );
+        generated = await aiService.generateImage(provider, prompt, {
+          imageFormat: requestedFormat,
+          imageMode,
+          signal: abortController.signal,
+        });
+      } catch (err: unknown) {
+        if (abortController.signal.aborted) throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");
+        throw err;
+      } finally {
+        if (currentAbortController === abortController) currentAbortController = null;
+      }
+
+      const actualFormat = imageExtensionFromMime(generated.mimeType, requestedFormat);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const safeName = sanitizeFileNamePart(String(req.projectName || "UI_Design")).slice(0, 40);
+      const imgFileName = `ui-${safeName}-${timestamp}.${actualFormat}`;
+      const imgFilePath = assertTrustedOutputPath(outputDir, imgFileName);
+      fs.writeFileSync(imgFilePath, generated.bytes);
+
+      const page = { name: String(req.projectName || "UI Design"), imagePath: imgFilePath };
+      try { win?.webContents.send("ai:pageReady", { ...page, htmlPath: "", index: 0, total: 1 }); } catch { /* ignore */ }
+      sendProgress("done", 1, 1, currentLocale() === "zh" ? "图片模型直出完成，共 1 张图片" : "Direct image generation completed, 1 image saved");
+
+      const recordId = randomUUID();
+      appManager()?.addGenerationRecord({
+        id: recordId,
+        docType: "ui",
+        projectName: req.projectName?.trim() || "",
+        createdAt: new Date().toISOString(),
+        preview: `[UI 图片模型直出] ${req.projectName || "UI Design"}`,
+        outputPath: imgFilePath,
+      });
+      appManager()?.addLog("info", `UI 图片模型直出完成: provider=${provider.name ?? provider.id}, model=${provider.model}, file=${imgFilePath}`, "ai-gen-ui");
+      return {
+        htmlResult: generated.revisedPrompt ? `图片模型优化提示词：\n${generated.revisedPrompt}` : "",
+        savedFiles: [imgFilePath],
+        recordId,
+        pages: [page],
+        mode: "direct-image",
+      };
+    }
+
     const { system: systemPrompt, user: userPrompt } = buildUIImagePrompt({
       projectName: req.projectName,
       analyzedPrompt,

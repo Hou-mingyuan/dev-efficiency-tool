@@ -12,7 +12,7 @@ interface ImageProgress {
 interface GeneratedPage {
   name: string;
   imagePath: string;
-  htmlPath: string;
+  htmlPath?: string;
 }
 
 const props = defineProps<{

@@ -266,6 +266,194 @@ export interface BuildUIImagePromptOptions {
   imageMode?: "fast" | "quality";
 }
 
+export interface GenerateImageOptions {
+  imageFormat?: "png" | "jpeg";
+  imageMode?: "fast" | "quality";
+  signal?: AbortSignal;
+}
+
+export interface GeneratedImage {
+  bytes: Buffer;
+  mimeType: string;
+  revisedPrompt?: string;
+}
+
+const IMAGE_OUTPUT_MODEL_IDS = new Set([
+  // OpenAI Image API / compatible gateways.
+  "gpt-image-2",
+  "gpt-image-2-2026-04-21",
+  "gpt-image-1.5",
+  "gpt-image-1.5-2025-12-16",
+  "gpt-image-1",
+  "gpt-image-1-mini",
+  "chatgpt-image-latest",
+  "dall-e-3",
+  "dall-e-2",
+
+  // Alibaba Model Studio image generation / editing models.
+  "wan2.7-image-pro",
+  "wan2.7-image",
+  "wan2.6-t2i",
+  "wan2.6-image",
+  "wan2.5-t2i-preview",
+  "wan2.5-i2i-preview",
+  "wan2.2-t2i-plus",
+  "wan2.2-t2i-flash",
+  "wan2.1-t2i-plus",
+  "wan2.1-t2i-turbo",
+  "wanx2.1-t2i-plus",
+  "wanx2.1-t2i-turbo",
+  "wanx2.0-t2i-turbo",
+  "wanx-v1",
+  "qwen-image-2.0-pro",
+  "qwen-image-2.0-pro-2026-03-03",
+  "qwen-image-2.0",
+  "qwen-image-2.0-2026-03-03",
+  "qwen-image-max",
+  "qwen-image-max-2025-12-30",
+  "qwen-image-plus",
+  "qwen-image-plus-2026-01-09",
+  "qwen-image",
+  "qwen-image-edit-max",
+  "qwen-image-edit-max-2026-01-16",
+  "qwen-image-edit-plus",
+  "qwen-image-edit-plus-2025-12-15",
+  "qwen-image-edit-plus-2025-10-30",
+  "qwen-image-edit",
+  "z-image-turbo",
+
+  // Zhipu / BigModel image generation models.
+  "glm-image",
+  "cogview-4",
+
+  // Doubao / Seedream image generation models used by Volcengine and compatible gateways.
+  "doubao-seedream-5.0",
+  "doubao-seedream-5-0",
+  "doubao-seedream-5-0-260128",
+  "doubao-seedream-4.5",
+  "doubao-seedream-4-5-251128",
+  "doubao-seedream-4.0",
+  "doubao-seedream-4-0-250828",
+]);
+
+const TEXT_OUTPUT_MODEL_IDS = new Set([
+  // OpenAI text / reasoning / multimodal-understanding models.
+  "gpt-5.5",
+  "gpt-5.5-pro",
+  "gpt-5.4",
+  "gpt-5.4-pro",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-5.2",
+  "gpt-5.2-pro",
+  "gpt-5.2-chat-latest",
+  "gpt-5.2-codex",
+  "gpt-5",
+  "gpt-5-mini",
+  "gpt-5-nano",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "o3",
+  "o3-mini",
+  "o3-pro",
+  "o4-mini",
+  "gpt-oss-120b",
+  "gpt-oss-20b",
+
+  // Anthropic Claude models output text, even when they accept image input.
+  "claude-sonnet-4-5-20250929",
+  "claude-sonnet-4-5",
+  "claude-haiku-4-5-20251001",
+  "claude-haiku-4-5",
+  "claude-opus-4-1-20250805",
+  "claude-opus-4-1",
+  "claude-opus-4-20250514",
+  "claude-opus-4-0",
+  "claude-sonnet-4-20250514",
+  "claude-sonnet-4-0",
+  "claude-3-7-sonnet-20250219",
+  "claude-3-7-sonnet-latest",
+  "claude-3-5-sonnet-20241022",
+  "claude-3-5-sonnet-latest",
+  "claude-3-5-haiku-20241022",
+  "claude-3-5-haiku-latest",
+  "claude-3-haiku-20240307",
+
+  // DeepSeek chat/reasoning models.
+  "deepseek-v4-pro",
+  "deepseek-v4-flash",
+  "deepseek-chat",
+  "deepseek-reasoner",
+  "deepseek-v3.2",
+
+  // Qwen text / vision-understanding models output text.
+  "qwen3.6-max-preview",
+  "qwen3.6-plus",
+  "qwen3.6-plus-2026-04-02",
+  "qwen3.6-flash",
+  "qwen3.6-flash-2026-04-16",
+  "qwen3.6-35b-a3b",
+  "qwen3.5-plus",
+  "qwen3.5-plus-2026-02-15",
+  "qwen3.5-flash",
+  "qwen3.5-flash-2026-02-23",
+  "qwen3.5-397b-a17b",
+  "qwen3.5-122b-a10b",
+  "qwen3.5-27b",
+  "qwen3.5-35b-a3b",
+  "qwen-plus",
+  "qwen-turbo",
+  "qwen-long",
+  "qwen-plus-us",
+  "qwen-flash-us",
+  "qwen3-vl-plus",
+  "qwen3-vl-flash",
+  "qwen-vl-max",
+  "qwen-vl-plus",
+
+  // Zhipu text / vision-understanding models output text.
+  "glm-5.1",
+  "glm-5",
+  "glm-5-turbo",
+  "glm-5v-turbo",
+  "glm-4.7",
+  "glm-4.7-flash",
+  "glm-4.6",
+  "glm-4.6v",
+
+  // Kimi / Moonshot models output text.
+  "kimi-k2.6",
+  "kimi-k2.5",
+  "kimi-k2-0905-preview",
+  "kimi-k2-0711-preview",
+  "kimi-k2-turbo-preview",
+  "kimi-k2-thinking",
+  "kimi-k2-thinking-turbo",
+  "moonshot-v1-8k",
+  "moonshot-v1-32k",
+  "moonshot-v1-128k",
+  "moonshot-v1-8k-vision-preview",
+  "moonshot-v1-32k-vision-preview",
+  "moonshot-v1-128k-vision-preview",
+
+  // Doubao text / vision-understanding models output text.
+  "doubao-seed-2.0-pro",
+  "doubao-seed-2.0-code",
+  "doubao-seed-2.0-lite",
+  "doubao-seed-2.0-mini",
+  "doubao-pro-v1",
+  "doubao-pro-128k",
+  "doubao-lite-128k",
+]);
+
+function normalizeModelId(model: string): string {
+  const normalized = model.trim().toLowerCase();
+  const slashIndex = normalized.lastIndexOf("/");
+  return slashIndex >= 0 ? normalized.slice(slashIndex + 1) : normalized;
+}
+
 export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { system: string; user: string } {
   let user = UI_ANALYZE_PROMPT.userPrefix;
 
@@ -335,6 +523,31 @@ export function buildUIImagePrompt(options: BuildUIImagePromptOptions): { system
     system: UI_IMAGE_PROMPT.system,
     user,
   };
+}
+
+export function buildDirectUIImagePrompt(options: BuildUIImagePromptOptions): string {
+  const parts = [
+    "请直接生成一张高保真的桌面端 Web 产品界面图片，不要输出 HTML、CSS、Markdown 或解释文字。",
+    "图片应像真实产品截图：布局完整、层级清晰、文字可读、组件状态自然，避免抽象海报风格。",
+    options.imageMode === "quality"
+      ? "请优先保证视觉质量、细节完整度和可交付效果。"
+      : "请优先生成清晰可用的首版预览，聚焦核心页面和首屏内容。",
+  ];
+
+  if (options.projectName?.trim()) {
+    parts.push(`项目/模块名称：${options.projectName.trim()}`);
+  }
+  if (options.projectContext?.trim()) {
+    parts.push(`项目技术与样式分析：\n${options.projectContext.trim()}`);
+  }
+  if (options.referenceContent?.trim()) {
+    parts.push(`参考文档内容：\n${options.referenceContent.trim()}`);
+  }
+  if ((options.imageCount ?? 0) > 0) {
+    parts.push(`已提供 ${options.imageCount} 张参考图片。请尽量复用参考图中的配色、布局、字号、间距和组件风格。`);
+  }
+  parts.push(`UI 设计提示词：\n${options.analyzedPrompt.trim()}`);
+  return parts.filter(Boolean).join("\n\n");
 }
 
 export function buildPrompt(
@@ -525,6 +738,87 @@ export class AiService {
     return provider.id === "anthropic"
       ? this.callAnthropicStream(provider, system, user, onChunk, images, signal, maxTokens)
       : this.callOpenAIStream(provider, system, user, onChunk, images, signal, maxTokens);
+  }
+
+  getModelOutputKind(provider: AiProvider): "image" | "text" | "unknown" {
+    const model = normalizeModelId(provider.model);
+    if (IMAGE_OUTPUT_MODEL_IDS.has(model)) return "image";
+    if (TEXT_OUTPUT_MODEL_IDS.has(model)) return "text";
+    return "unknown";
+  }
+
+  isImageGenerationModel(provider: AiProvider): boolean {
+    return this.getModelOutputKind(provider) === "image";
+  }
+
+  async generateImage(provider: AiProvider, prompt: string, options: GenerateImageOptions = {}): Promise<GeneratedImage> {
+    if (!provider.apiKey) {
+      throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
+    }
+    const base = provider.baseUrl.replace(/\/+$/, "");
+    const url = base.endsWith("/images/generations")
+      ? base
+      : `${base}/images/generations`;
+    const model = provider.model.trim();
+    const imageFormat = options.imageFormat === "jpeg" ? "jpeg" : "png";
+    const body: Record<string, unknown> = {
+      model,
+      prompt,
+      n: 1,
+    };
+
+    if (/^gpt[-_]?image/i.test(model)) {
+      body.size = "auto";
+      body.quality = options.imageMode === "quality" ? "high" : "medium";
+      body.output_format = imageFormat;
+    } else if (/^dall[-_]?e/i.test(model)) {
+      body.response_format = "b64_json";
+    } else {
+      body.output_format = imageFormat;
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: options.signal,
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "未知错误");
+      throw new Error(`${provider.name} 图片生成 API 调用失败 (${res.status}): ${t}`);
+    }
+
+    const data = (await res.json()) as {
+      data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }>;
+    };
+    const item = data.data?.[0];
+    if (!item) {
+      throw new Error(`${provider.name} 图片生成 API 未返回图片数据`);
+    }
+    if (item.b64_json) {
+      return {
+        bytes: Buffer.from(item.b64_json, "base64"),
+        mimeType: imageFormat === "jpeg" ? "image/jpeg" : "image/png",
+        revisedPrompt: item.revised_prompt,
+      };
+    }
+    if (item.url) {
+      const imgRes = await fetch(item.url, { signal: options.signal });
+      if (!imgRes.ok) {
+        throw new Error(`${provider.name} 图片下载失败 (${imgRes.status})`);
+      }
+      const contentType = imgRes.headers.get("content-type") || "";
+      const bytes = Buffer.from(await imgRes.arrayBuffer());
+      return {
+        bytes,
+        mimeType: contentType.startsWith("image/") ? contentType : imageFormat === "jpeg" ? "image/jpeg" : "image/png",
+        revisedPrompt: item.revised_prompt,
+      };
+    }
+    throw new Error(`${provider.name} 图片生成 API 返回格式不受支持`);
   }
 
   private buildOpenAIUserContent(
