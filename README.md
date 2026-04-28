@@ -56,7 +56,7 @@ npm run dev
 
 ### 构建打包
 ```bash
-npx electron-builder --win --config
+npm run pack
 ```
 
 构建产物在 `release/` 目录下：
@@ -67,7 +67,8 @@ npx electron-builder --win --config
 
 ```
 ├── electron/                # Electron 主进程
-│   ├── main.ts              # 主进程入口、IPC 处理
+│   ├── main.ts              # 主进程入口、窗口生命周期与 IPC 注册
+│   ├── ipc/                 # 拆分后的 IPC 处理器
 │   ├── ai-service.ts        # AI 服务封装（多模型支持）
 │   ├── app-manager.ts       # 应用配置、方法论路径与文档解析
 │   ├── preload.ts           # 预加载脚本

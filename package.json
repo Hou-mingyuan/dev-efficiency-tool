@@ -2,6 +2,7 @@
   "name": "dev-efficiency-tool",
   "version": "0.1.0",
   "private": true,
+  "author": "Dev Efficiency Tool Team",
   "description": "开发效率提升工具 - AI 驱动的软件开发全流程工具",
   "main": "dist-electron/main.js",
   "type": "module",
@@ -58,15 +59,6 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "methodology-core",
-        "to": "methodology-core",
-        "filter": [
-          "**/*"
-        ]
-      }
     ],
     "forceCodeSigning": false,
     "win": {
