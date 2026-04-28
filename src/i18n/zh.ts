@@ -315,6 +315,7 @@ export default {
       imageGenSuccess: "已生成 {count} 张图片到输出目录",
       savedTo: "已保存到",
       pagesCount: "个页面",
+      openImagePreview: "点击放大预览",
       refreshPreview: "刷新预览",
       preparing: "准备中…",
       waitingTitle: "正在生成 UI 图片",

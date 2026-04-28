@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AiProvider } from "./app-manager";
+import { getModelOutputKind, isImageGenerationModel } from "./model-capabilities";
 
 /** ESM replacement for `__dirname` (this module’s directory) */
 export const ESM_DIRNAME = path.dirname(fileURLToPath(import.meta.url));
@@ -278,180 +279,12 @@ export interface GeneratedImage {
   revisedPrompt?: string;
 }
 
-const IMAGE_OUTPUT_MODEL_IDS = new Set([
-  // OpenAI Image API / compatible gateways.
-  "gpt-image-2",
-  "gpt-image-2-2026-04-21",
-  "gpt-image-1.5",
-  "gpt-image-1.5-2025-12-16",
-  "gpt-image-1",
-  "gpt-image-1-mini",
-  "chatgpt-image-latest",
-  "dall-e-3",
-  "dall-e-2",
+function uniqueValues(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
 
-  // Alibaba Model Studio image generation / editing models.
-  "wan2.7-image-pro",
-  "wan2.7-image",
-  "wan2.6-t2i",
-  "wan2.6-image",
-  "wan2.5-t2i-preview",
-  "wan2.5-i2i-preview",
-  "wan2.2-t2i-plus",
-  "wan2.2-t2i-flash",
-  "wan2.1-t2i-plus",
-  "wan2.1-t2i-turbo",
-  "wanx2.1-t2i-plus",
-  "wanx2.1-t2i-turbo",
-  "wanx2.0-t2i-turbo",
-  "wanx-v1",
-  "qwen-image-2.0-pro",
-  "qwen-image-2.0-pro-2026-03-03",
-  "qwen-image-2.0",
-  "qwen-image-2.0-2026-03-03",
-  "qwen-image-max",
-  "qwen-image-max-2025-12-30",
-  "qwen-image-plus",
-  "qwen-image-plus-2026-01-09",
-  "qwen-image",
-  "qwen-image-edit-max",
-  "qwen-image-edit-max-2026-01-16",
-  "qwen-image-edit-plus",
-  "qwen-image-edit-plus-2025-12-15",
-  "qwen-image-edit-plus-2025-10-30",
-  "qwen-image-edit",
-  "z-image-turbo",
-
-  // Zhipu / BigModel image generation models.
-  "glm-image",
-  "cogview-4",
-
-  // Doubao / Seedream image generation models used by Volcengine and compatible gateways.
-  "doubao-seedream-5.0",
-  "doubao-seedream-5-0",
-  "doubao-seedream-5-0-260128",
-  "doubao-seedream-4.5",
-  "doubao-seedream-4-5-251128",
-  "doubao-seedream-4.0",
-  "doubao-seedream-4-0-250828",
-]);
-
-const TEXT_OUTPUT_MODEL_IDS = new Set([
-  // OpenAI text / reasoning / multimodal-understanding models.
-  "gpt-5.5",
-  "gpt-5.5-pro",
-  "gpt-5.4",
-  "gpt-5.4-pro",
-  "gpt-5.4-mini",
-  "gpt-5.4-nano",
-  "gpt-5.2",
-  "gpt-5.2-pro",
-  "gpt-5.2-chat-latest",
-  "gpt-5.2-codex",
-  "gpt-5",
-  "gpt-5-mini",
-  "gpt-5-nano",
-  "gpt-4.1",
-  "gpt-4.1-mini",
-  "gpt-4o",
-  "gpt-4o-mini",
-  "o3",
-  "o3-mini",
-  "o3-pro",
-  "o4-mini",
-  "gpt-oss-120b",
-  "gpt-oss-20b",
-
-  // Anthropic Claude models output text, even when they accept image input.
-  "claude-sonnet-4-5-20250929",
-  "claude-sonnet-4-5",
-  "claude-haiku-4-5-20251001",
-  "claude-haiku-4-5",
-  "claude-opus-4-1-20250805",
-  "claude-opus-4-1",
-  "claude-opus-4-20250514",
-  "claude-opus-4-0",
-  "claude-sonnet-4-20250514",
-  "claude-sonnet-4-0",
-  "claude-3-7-sonnet-20250219",
-  "claude-3-7-sonnet-latest",
-  "claude-3-5-sonnet-20241022",
-  "claude-3-5-sonnet-latest",
-  "claude-3-5-haiku-20241022",
-  "claude-3-5-haiku-latest",
-  "claude-3-haiku-20240307",
-
-  // DeepSeek chat/reasoning models.
-  "deepseek-v4-pro",
-  "deepseek-v4-flash",
-  "deepseek-chat",
-  "deepseek-reasoner",
-  "deepseek-v3.2",
-
-  // Qwen text / vision-understanding models output text.
-  "qwen3.6-max-preview",
-  "qwen3.6-plus",
-  "qwen3.6-plus-2026-04-02",
-  "qwen3.6-flash",
-  "qwen3.6-flash-2026-04-16",
-  "qwen3.6-35b-a3b",
-  "qwen3.5-plus",
-  "qwen3.5-plus-2026-02-15",
-  "qwen3.5-flash",
-  "qwen3.5-flash-2026-02-23",
-  "qwen3.5-397b-a17b",
-  "qwen3.5-122b-a10b",
-  "qwen3.5-27b",
-  "qwen3.5-35b-a3b",
-  "qwen-plus",
-  "qwen-turbo",
-  "qwen-long",
-  "qwen-plus-us",
-  "qwen-flash-us",
-  "qwen3-vl-plus",
-  "qwen3-vl-flash",
-  "qwen-vl-max",
-  "qwen-vl-plus",
-
-  // Zhipu text / vision-understanding models output text.
-  "glm-5.1",
-  "glm-5",
-  "glm-5-turbo",
-  "glm-5v-turbo",
-  "glm-4.7",
-  "glm-4.7-flash",
-  "glm-4.6",
-  "glm-4.6v",
-
-  // Kimi / Moonshot models output text.
-  "kimi-k2.6",
-  "kimi-k2.5",
-  "kimi-k2-0905-preview",
-  "kimi-k2-0711-preview",
-  "kimi-k2-turbo-preview",
-  "kimi-k2-thinking",
-  "kimi-k2-thinking-turbo",
-  "moonshot-v1-8k",
-  "moonshot-v1-32k",
-  "moonshot-v1-128k",
-  "moonshot-v1-8k-vision-preview",
-  "moonshot-v1-32k-vision-preview",
-  "moonshot-v1-128k-vision-preview",
-
-  // Doubao text / vision-understanding models output text.
-  "doubao-seed-2.0-pro",
-  "doubao-seed-2.0-code",
-  "doubao-seed-2.0-lite",
-  "doubao-seed-2.0-mini",
-  "doubao-pro-v1",
-  "doubao-pro-128k",
-  "doubao-lite-128k",
-]);
-
-function normalizeModelId(model: string): string {
-  const normalized = model.trim().toLowerCase();
-  const slashIndex = normalized.lastIndexOf("/");
-  return slashIndex >= 0 ? normalized.slice(slashIndex + 1) : normalized;
+function compactResponsePreview(text: string): string {
+  return text.replace(/\s+/g, " ").trim().slice(0, 240) || "空响应";
 }
 
 export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { system: string; user: string } {
@@ -741,14 +574,11 @@ export class AiService {
   }
 
   getModelOutputKind(provider: AiProvider): "image" | "text" | "unknown" {
-    const model = normalizeModelId(provider.model);
-    if (IMAGE_OUTPUT_MODEL_IDS.has(model)) return "image";
-    if (TEXT_OUTPUT_MODEL_IDS.has(model)) return "text";
-    return "unknown";
+    return getModelOutputKind(provider);
   }
 
   isImageGenerationModel(provider: AiProvider): boolean {
-    return this.getModelOutputKind(provider) === "image";
+    return isImageGenerationModel(provider);
   }
 
   async generateImage(provider: AiProvider, prompt: string, options: GenerateImageOptions = {}): Promise<GeneratedImage> {
@@ -756,9 +586,7 @@ export class AiService {
       throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
     }
     const base = provider.baseUrl.replace(/\/+$/, "");
-    const url = base.endsWith("/images/generations")
-      ? base
-      : `${base}/images/generations`;
+    const urls = this.buildImageGenerationUrls(base);
     const model = provider.model.trim();
     const imageFormat = options.imageFormat === "jpeg" ? "jpeg" : "png";
     const body: Record<string, unknown> = {
@@ -777,23 +605,7 @@ export class AiService {
       body.output_format = imageFormat;
     }
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${provider.apiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal: options.signal,
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "未知错误");
-      throw new Error(`${provider.name} 图片生成 API 调用失败 (${res.status}): ${t}`);
-    }
-
-    const data = (await res.json()) as {
-      data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }>;
-    };
+    const data = await this.postImageGeneration(provider, urls, body, options.signal);
     const item = data.data?.[0];
     if (!item) {
       throw new Error(`${provider.name} 图片生成 API 未返回图片数据`);
@@ -819,6 +631,62 @@ export class AiService {
       };
     }
     throw new Error(`${provider.name} 图片生成 API 返回格式不受支持`);
+  }
+
+  private buildImageGenerationUrls(base: string): string[] {
+    if (base.endsWith("/images/generations")) return [base];
+    if (base.endsWith("/v1")) return [`${base}/images/generations`];
+    return uniqueValues([
+      `${base}/images/generations`,
+      `${base}/v1/images/generations`,
+    ]);
+  }
+
+  private async postImageGeneration(
+    provider: AiProvider,
+    urls: string[],
+    body: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<{ data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }> }> {
+    let lastNonJson = "";
+    let lastUrl = urls[0] ?? provider.baseUrl;
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      lastUrl = url;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${provider.apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal,
+      });
+      const contentType = res.headers.get("content-type") || "";
+      const text = await res.text().catch(() => "");
+      const looksLikeHtml = /^\s*</.test(text) || contentType.toLowerCase().includes("text/html");
+      if (!res.ok) {
+        if ((res.status === 404 || res.status === 405 || looksLikeHtml) && i < urls.length - 1) {
+          lastNonJson = text;
+          continue;
+        }
+        throw new Error(`${provider.name} 图片生成 API 调用失败 (${res.status}): ${compactResponsePreview(text || res.statusText)}`);
+      }
+      try {
+        return JSON.parse(text) as { data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }> };
+      } catch {
+        if (looksLikeHtml && i < urls.length - 1) {
+          lastNonJson = text;
+          continue;
+        }
+        throw new Error(
+          `${provider.name} 图片生成 API 返回的不是 JSON。请确认 Base URL 是否需要包含 /v1，或该服务是否支持 /images/generations。最后请求地址：${lastUrl}；响应开头：${compactResponsePreview(text)}`,
+        );
+      }
+    }
+    throw new Error(
+      `${provider.name} 图片生成 API 返回的不是 JSON。已尝试 ${urls.join("、")}。请确认 Base URL 是否需要包含 /v1，或该服务是否支持 /images/generations。响应开头：${compactResponsePreview(lastNonJson)}`,
+    );
   }
 
   private buildOpenAIUserContent(

@@ -161,11 +161,12 @@ function fileUrl(filePath: string): string {
               </a-tag>
             </div>
             <div class="ui-page-image">
-              <img
+              <a-image
+                class="ui-page-preview-image"
                 :src="fileUrl(page.imagePath)"
                 :alt="page.name"
-                style="max-width: 100%; border-radius: 6px"
-              >
+                :preview="{ mask: t('gen.ui.openImagePreview') }"
+              />
             </div>
             <div class="ui-page-files">
               <a-typography-text
@@ -226,6 +227,19 @@ function fileUrl(filePath: string): string {
   border-radius: var(--app-radius-md);
   overflow: hidden;
   margin-bottom: 8px;
+}
+
+.ui-page-preview-image {
+  width: 100%;
+  max-width: 100%;
+  cursor: zoom-in;
+
+  :deep(img) {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 6px;
+  }
 }
 
 .ui-page-files {

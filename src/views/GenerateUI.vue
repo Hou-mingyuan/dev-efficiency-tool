@@ -401,7 +401,7 @@ watch([genMode, imageFormat, uiImageMode, imageProviderId], () => {
 const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mimeType: string }>>([]);
 const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
-const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath: string }>>([]);
+const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath?: string }>>([]);
 const REF_IMAGE_MAX_EDGE = 1600;
 const REF_IMAGE_COMPRESS_MIN_BYTES = 900 * 1024;
 const REF_IMAGE_JPEG_QUALITY = 0.82;
@@ -618,9 +618,9 @@ async function generateUIImage() {
     imageProgress.value = p as { stage: string; current: number; total: number; message: string };
   });
   const cleanupPageReady = window.electronAPI.ai.onPageReady((page) => {
-    const p = page as { name: string; imagePath: string; htmlPath: string; index: number; total: number };
+    const p = page as { name: string; imagePath: string; htmlPath?: string; index: number; total: number };
     generatedPages.value = [...generatedPages.value, { name: p.name, imagePath: p.imagePath, htmlPath: p.htmlPath }];
-    generatedImagePaths.value = [...generatedImagePaths.value, p.imagePath, p.htmlPath];
+    generatedImagePaths.value = [...generatedImagePaths.value, ...[p.imagePath, p.htmlPath].filter((f): f is string => Boolean(f))];
     result.value = t("gen.ui.renderedPages", { current: p.index + 1, total: p.total });
   });
 
@@ -661,7 +661,7 @@ async function generateUIImage() {
       handleOutputPathError(res.message);
       message.error((res as IpcErrorResult).message);
     } else {
-      const data = res as { htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> };
+      const data = res as { htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath?: string }> };
       result.value = data.htmlResult;
       renderedHtml.value = data.htmlResult;
       if (data.pages?.length) generatedPages.value = data.pages;
@@ -762,7 +762,7 @@ async function generateFigmaFile() {
 
 async function refreshPreview() {
   if (!generatedPages.value.length) return;
-  const allPaths = generatedPages.value.flatMap((p) => [p.imagePath, p.htmlPath]);
+  const allPaths = generatedPages.value.flatMap((p) => [p.imagePath, p.htmlPath].filter((f): f is string => Boolean(f)));
   try {
     const exists = await window.electronAPI.ai.checkFilesExist(allPaths);
     const remaining = generatedPages.value.filter((p) => exists[p.imagePath]);

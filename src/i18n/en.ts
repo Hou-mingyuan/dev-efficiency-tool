@@ -315,6 +315,7 @@ export default {
       imageGenSuccess: "{count} image(s) generated to output directory",
       savedTo: "Saved to",
       pagesCount: "page(s)",
+      openImagePreview: "Click to enlarge",
       refreshPreview: "Refresh Preview",
       preparing: "Preparing…",
       waitingTitle: "Generating UI images",
