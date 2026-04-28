@@ -500,13 +500,14 @@ export class AiService {
     user: string,
     images?: Array<{ base64: string; mimeType: string }>,
     signal?: AbortSignal,
+    maxTokens = 16384,
   ): Promise<string> {
     if (!provider.apiKey) {
       throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
     }
     return provider.id === "anthropic"
-      ? this.callAnthropic(provider, system, user, images, signal)
-      : this.callOpenAI(provider, system, user, images, signal);
+      ? this.callAnthropic(provider, system, user, images, signal, maxTokens)
+      : this.callOpenAI(provider, system, user, images, signal, maxTokens);
   }
 
   async generateStream(
@@ -516,13 +517,14 @@ export class AiService {
     onChunk: (chunk: string) => void,
     images?: Array<{ base64: string; mimeType: string }>,
     signal?: AbortSignal,
+    maxTokens = 16384,
   ): Promise<string> {
     if (!provider.apiKey) {
       throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
     }
     return provider.id === "anthropic"
-      ? this.callAnthropicStream(provider, system, user, onChunk, images, signal)
-      : this.callOpenAIStream(provider, system, user, onChunk, images, signal);
+      ? this.callAnthropicStream(provider, system, user, onChunk, images, signal, maxTokens)
+      : this.callOpenAIStream(provider, system, user, onChunk, images, signal, maxTokens);
   }
 
   private buildOpenAIUserContent(
@@ -544,6 +546,7 @@ export class AiService {
     user: string,
     images?: Array<{ base64: string; mimeType: string }>,
     signal?: AbortSignal,
+    maxTokens = 16384,
   ): Promise<string> {
     const base = provider.baseUrl.replace(/\/+$/, "");
     const url = base.endsWith("/chat/completions")
@@ -562,7 +565,7 @@ export class AiService {
           { role: "user", content: this.buildOpenAIUserContent(user, images) },
         ],
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: maxTokens,
       }),
       signal,
     });
@@ -583,6 +586,7 @@ export class AiService {
     onChunk: (chunk: string) => void,
     images?: Array<{ base64: string; mimeType: string }>,
     signal?: AbortSignal,
+    maxTokens = 16384,
   ): Promise<string> {
     const base = provider.baseUrl.replace(/\/+$/, "");
     const url = base.endsWith("/chat/completions")
@@ -601,7 +605,7 @@ export class AiService {
           { role: "user", content: this.buildOpenAIUserContent(user, images) },
         ],
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: maxTokens,
         stream: true,
       }),
       signal,
@@ -682,6 +686,7 @@ export class AiService {
     user: string,
     images?: Array<{ base64: string; mimeType: string }>,
     signal?: AbortSignal,
+    maxTokens = 16384,
   ): Promise<string> {
     const url = `${provider.baseUrl.replace(/\/+$/, "")}/v1/messages`;
     const res = await fetch(url, {
@@ -695,7 +700,7 @@ export class AiService {
         model: provider.model,
         system,
         messages: [{ role: "user", content: this.buildAnthropicUserContent(user, images) }],
-        max_tokens: 16384,
+        max_tokens: maxTokens,
       }),
       signal,
     });
@@ -714,6 +719,7 @@ export class AiService {
     onChunk: (chunk: string) => void,
     images?: Array<{ base64: string; mimeType: string }>,
     signal?: AbortSignal,
+    maxTokens = 16384,
   ): Promise<string> {
     const url = `${provider.baseUrl.replace(/\/+$/, "")}/v1/messages`;
     const res = await fetch(url, {
@@ -727,7 +733,7 @@ export class AiService {
         model: provider.model,
         system,
         messages: [{ role: "user", content: this.buildAnthropicUserContent(user, images) }],
-        max_tokens: 16384,
+        max_tokens: maxTokens,
         stream: true,
       }),
       signal,

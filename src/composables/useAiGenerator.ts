@@ -472,6 +472,10 @@ export function useAiGenerator(docType: DocType) {
         format: ext,
       });
       if (savedPath && typeof savedPath === "object" && isIpcError(savedPath)) {
+        if (/trusted paths|可信路径/.test(savedPath.message)) {
+          customOutputPath.value = "";
+          message.warning(t("gen.common.outputPathUntrusted"));
+        }
         message.error(savedPath.message);
       } else {
         message.success(t("gen.common.saveSuccess"));

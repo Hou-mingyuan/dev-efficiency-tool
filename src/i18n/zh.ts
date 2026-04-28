@@ -209,6 +209,7 @@ export default {
       save: "保存到文件",
       saveSuccess: "已保存",
       saveFail: "保存失败",
+      outputPathUntrusted: "当前输出路径未授权，已清空页面里的自定义输出路径。请点击「选择文件夹」重新选择，或到配置管理设置默认输出目录。",
       copy: "复制",
       importPrev: "导入上一步结果",
       noResult: "暂无生成结果",

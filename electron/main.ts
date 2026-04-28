@@ -287,7 +287,11 @@ function assertTrustedOutputDirectory(outputDir: string): string {
   }
   const resolvedDir = normalizeFsPath(outputDir);
   if (!configuredTrustedRoots().some((root) => isPathWithinBase(root, resolvedDir) || normalizeFsPath(root) === resolvedDir)) {
-    throw new Error(currentLocale === "zh" ? "输出目录不在可信路径范围内" : "Output directory is outside trusted paths");
+    throw new Error(
+      currentLocale === "zh"
+        ? "输出目录不在可信路径范围内。请点击「选择文件夹」重新选择输出目录，或先在「配置管理」里把它设置为默认输出路径。"
+        : "Output directory is outside trusted paths. Please choose it with the folder picker, or set it as the default output folder in Settings first.",
+    );
   }
   return resolvedDir;
 }

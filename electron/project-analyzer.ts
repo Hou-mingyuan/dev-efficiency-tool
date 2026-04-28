@@ -467,8 +467,9 @@ export class ProjectAnalyzer {
   }
 
   getOrAnalyze(projectPath: string): ProjectAnalysisResult {
-    if (this.isCacheValid(projectPath)) {
-      return this.getCache(projectPath)!;
+    const cached = this.getCache(projectPath);
+    if (cached && cached.fileFingerprint === computeFingerprint(projectPath)) {
+      return cached;
     }
     return this.analyze(projectPath);
   }

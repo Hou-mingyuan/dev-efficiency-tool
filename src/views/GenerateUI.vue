@@ -381,6 +381,9 @@ const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mim
 const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
 const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath: string }>>([]);
+const REF_IMAGE_MAX_EDGE = 1600;
+const REF_IMAGE_COMPRESS_MIN_BYTES = 900 * 1024;
+const REF_IMAGE_JPEG_QUALITY = 0.82;
 watch(uiAnalyzedPrompt, (value) => {
   if (genMode.value === "doc" || generatedPages.value.length) return;
   result.value = value;
@@ -416,6 +419,56 @@ function readFileAsBase64(file: File): Promise<{ base64: string; dataUrl: string
   });
 }
 
+function estimateBase64Bytes(base64: string): number {
+  return Math.floor((base64.length * 3) / 4);
+}
+
+function compressImageDataUrl(payload: {
+  base64: string;
+  dataUrl: string;
+  mimeType: string;
+}): Promise<{ base64: string; dataUrl: string; mimeType: string }> {
+  if (!/^image\/(png|jpe?g|webp)$/i.test(payload.mimeType)) {
+    return Promise.resolve(payload);
+  }
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxEdge = Math.max(image.naturalWidth, image.naturalHeight);
+      const sourceBytes = estimateBase64Bytes(payload.base64);
+      if (maxEdge <= REF_IMAGE_MAX_EDGE && sourceBytes <= REF_IMAGE_COMPRESS_MIN_BYTES) {
+        resolve(payload);
+        return;
+      }
+
+      const scale = Math.min(1, REF_IMAGE_MAX_EDGE / Math.max(1, maxEdge));
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(payload);
+        return;
+      }
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(image, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", REF_IMAGE_JPEG_QUALITY);
+      const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+      if (!match) {
+        resolve(payload);
+        return;
+      }
+      resolve({ dataUrl, mimeType: match[1], base64: match[2] });
+    };
+    image.onerror = () => resolve(payload);
+    image.src = payload.dataUrl;
+  });
+}
+
 async function pickRefImages() {
   const paths = await window.electronAPI.app.selectImages();
   if (isIpcErr(paths) || !Array.isArray(paths) || !paths.length) return;
@@ -426,11 +479,12 @@ async function pickRefImages() {
       continue;
     }
     const data = imgData as { base64: string; mimeType: string; name: string; dataUrl: string };
+    const compressed = await compressImageDataUrl(data);
     refImages.value = [...refImages.value, {
       name: data.name,
-      dataUrl: data.dataUrl,
-      base64: data.base64,
-      mimeType: data.mimeType,
+      dataUrl: compressed.dataUrl,
+      base64: compressed.base64,
+      mimeType: compressed.mimeType,
     }];
   }
 }
@@ -443,7 +497,7 @@ async function onImageDrop(e: DragEvent) {
     const f = files[i];
     if (!f.type.startsWith("image/")) continue;
     try {
-      const { base64, dataUrl, mimeType } = await readFileAsBase64(f);
+      const { base64, dataUrl, mimeType } = await compressImageDataUrl(await readFileAsBase64(f));
       refImages.value = [...refImages.value, { name: f.name, dataUrl, base64, mimeType }];
     } catch {
       /* ignore */
@@ -582,6 +636,7 @@ async function generateUIImage() {
     });
 
     if (isIpcErr(res)) {
+      handleOutputPathError(res.message);
       message.error((res as IpcErrorResult).message);
     } else {
       const data = res as { htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> };
@@ -655,6 +710,7 @@ async function generateFigmaFile() {
       projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
     });
     if (isIpcErr(res)) {
+      handleOutputPathError(res.message);
       message.error(res.message);
       return;
     }
@@ -745,6 +801,13 @@ const canOpenInWindow = computed(() => Boolean(window.electronAPI?.app?.openInWi
 
 function isIpcErr(v: unknown): v is IpcErrorResult {
   return typeof v === "object" && v !== null && (v as IpcErrorResult).__ipcError === true;
+}
+
+function handleOutputPathError(errorMessage: string): void {
+  if (/trusted paths|可信路径/.test(errorMessage)) {
+    customOutputPath.value = "";
+    message.warning(t("gen.common.outputPathUntrusted"));
+  }
 }
 
 function fileBaseName(p: string): string {

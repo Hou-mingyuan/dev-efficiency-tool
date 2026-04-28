@@ -209,6 +209,7 @@ export default {
       save: "Save to file",
       saveSuccess: "Saved",
       saveFail: "Save failed",
+      outputPathUntrusted: "The current output path is not trusted. The custom output path was cleared. Please choose a folder again, or set the default output folder in Settings.",
       copy: "Copy",
       importPrev: "Import from previous step",
       noResult: "No result yet",

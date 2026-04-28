@@ -27,6 +27,10 @@ export interface RegisterAiHandlersOptions {
 
 type ImageInput = Array<{ base64: string; mimeType: string }> | undefined;
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function stripJsonFence(input: string): string {
   return input
     .replace(/^```(?:json)?\s*/i, "")
@@ -106,6 +110,41 @@ function fallbackFigmaJson(projectName: unknown, analyzedPrompt: string): Record
       },
     ],
   };
+}
+
+async function waitForRenderStable(win: BrowserWindow, maxWaitMs = 2200): Promise<number> {
+  const startedAt = Date.now();
+  let lastHeight = 0;
+  let stableCount = 0;
+
+  await win.webContents.executeJavaScript(`
+    Promise.resolve(document.fonts?.ready).catch(() => undefined)
+  `).catch(() => undefined);
+
+  while (Date.now() - startedAt < maxWaitMs) {
+    const state = await win.webContents.executeJavaScript(`({
+      readyState: document.readyState,
+      height: Math.max(
+        document.body?.scrollHeight || 0,
+        document.documentElement?.scrollHeight || 0
+      )
+    })`) as { readyState: string; height: number };
+
+    if (state.readyState === "complete" && state.height === lastHeight && state.height > 0) {
+      stableCount++;
+      if (stableCount >= 2) return state.height;
+    } else {
+      stableCount = 0;
+      lastHeight = state.height;
+    }
+
+    await delay(120);
+  }
+
+  const finalHeight = await win.webContents.executeJavaScript(`
+    Math.max(document.body?.scrollHeight || 0, document.documentElement?.scrollHeight || 0)
+  `) as number;
+  return lastHeight || finalHeight;
 }
 
 export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
@@ -239,7 +278,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     const abortController = new AbortController();
     currentAbortController = abortController;
     try {
-      const analyzedPrompt = await aiService.generate(provider, system, user, images, abortController.signal);
+      const analyzedPrompt = await aiService.generate(provider, system, user, images, abortController.signal, 4096);
       appManager()?.addLog("info", `UI 提示词分析完成: ${provider.name}`, "ai-ui-analyze");
       return { analyzedPrompt };
     } finally {
@@ -296,6 +335,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
     let chunkCount = 0;
     let htmlResult: string;
+    const uiMaxTokens = imageMode === "fast" ? 8192 : 16384;
     try {
       htmlResult = await aiService.generateStream(provider, systemPrompt, userPrompt, () => {
         chunkCount++;
@@ -309,7 +349,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
               : `AI is generating UI code, received ${chunkCount} chunks...`,
           );
         }
-      }, images, abortController.signal);
+      }, images, abortController.signal, uiMaxTokens);
     } catch (streamErr: unknown) {
       if (abortController.signal.aborted) throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");
       appManager()?.addLog(
@@ -317,7 +357,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
         `UI 出图流式生成失败，已降级为普通生成: ${(streamErr instanceof Error ? streamErr : new Error(String(streamErr))).message}`,
         "ai-gen-ui",
       );
-      htmlResult = await aiService.generate(provider, systemPrompt, userPrompt, images, abortController.signal);
+      htmlResult = await aiService.generate(provider, systemPrompt, userPrompt, images, abortController.signal, uiMaxTokens);
     } finally {
       if (currentAbortController === abortController) currentAbortController = null;
     }
@@ -356,47 +396,46 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif; background: #fff; }</style>
 </head><body>${body}</body></html>`;
 
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      sendProgress("rendering", i + 1, pages.length, `正在渲染: ${page.name} (${i + 1}/${pages.length})`);
-      const suffix = pages.length > 1 ? `-${i + 1}` : "";
-      const safeName = page.name.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40);
-      const imgFileName = `ui-${safeName}${suffix}-${timestamp}.${imgFormat}`;
-      const imgFilePath = assertTrustedOutputPath(outputDir, imgFileName);
-      const fullHtml = wrapHtml(page.html);
+    const renderWin = new BrowserWindow({ show: false, width: 1280, height: 800 });
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        sendProgress("rendering", i + 1, pages.length, `正在渲染: ${page.name} (${i + 1}/${pages.length})`);
+        const suffix = pages.length > 1 ? `-${i + 1}` : "";
+        const safeName = page.name.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40);
+        const imgFileName = `ui-${safeName}${suffix}-${timestamp}.${imgFormat}`;
+        const imgFilePath = assertTrustedOutputPath(outputDir, imgFileName);
+        const fullHtml = wrapHtml(page.html);
 
-      const renderWin = new BrowserWindow({ show: false, width: 1280, height: 800 });
-      try {
         await renderWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
-        await new Promise((r) => setTimeout(r, 800));
-        const contentH = await renderWin.webContents.executeJavaScript("document.body.scrollHeight") as number;
+        const contentH = await waitForRenderStable(renderWin);
         renderWin.setSize(1280, Math.min(contentH + 40, 16000));
-        await new Promise((r) => setTimeout(r, 400));
+        await waitForRenderStable(renderWin, 1000);
         const captured = await renderWin.webContents.capturePage();
         if (imgFormat === "jpeg") {
           fs.writeFileSync(imgFilePath, captured.toJPEG(92));
         } else {
           fs.writeFileSync(imgFilePath, captured.toPNG());
         }
-      } catch (renderErr: unknown) {
-        appManager()?.addLog(
-          "error",
-          `UI 页面渲染失败: page=${page.name}, file=${imgFileName}, error=${(renderErr instanceof Error ? renderErr : new Error(String(renderErr))).message}`,
-          "ai-gen-ui",
-        );
-        throw renderErr;
-      } finally {
-        if (!renderWin.isDestroyed()) renderWin.close();
+        savedFiles.push(imgFilePath);
+
+        const htmlFileName = `ui-${safeName}${suffix}-${timestamp}.html`;
+        const htmlFilePath = assertTrustedOutputPath(outputDir, htmlFileName);
+        fs.writeFileSync(htmlFilePath, fullHtml, "utf-8");
+        savedFiles.push(htmlFilePath);
+
+        pageResults.push({ name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath });
+        try { win?.webContents.send("ai:pageReady", { name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath, index: i, total: pages.length }); } catch { /* ignore */ }
       }
-      savedFiles.push(imgFilePath);
-
-      const htmlFileName = `ui-${safeName}${suffix}-${timestamp}.html`;
-      const htmlFilePath = assertTrustedOutputPath(outputDir, htmlFileName);
-      fs.writeFileSync(htmlFilePath, fullHtml, "utf-8");
-      savedFiles.push(htmlFilePath);
-
-      pageResults.push({ name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath });
-      try { win?.webContents.send("ai:pageReady", { name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath, index: i, total: pages.length }); } catch { /* ignore */ }
+    } catch (renderErr: unknown) {
+      appManager()?.addLog(
+        "error",
+        `UI 页面渲染失败: error=${(renderErr instanceof Error ? renderErr : new Error(String(renderErr))).message}`,
+        "ai-gen-ui",
+      );
+      throw renderErr;
+    } finally {
+      if (!renderWin.isDestroyed()) renderWin.close();
     }
 
     sendProgress("done", pages.length, pages.length, `全部完成，共 ${pages.length} 个页面`);
@@ -452,7 +491,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     currentAbortController = abortController;
     let figmaJson: Record<string, unknown>;
     try {
-      const raw = await aiService.generate(provider, system, user, undefined, abortController.signal);
+      const raw = await aiService.generate(provider, system, user, undefined, abortController.signal, 8192);
       figmaJson = parseJsonObject(raw) ?? fallbackFigmaJson(req.projectName, analyzedPrompt);
     } finally {
       if (currentAbortController === abortController) currentAbortController = null;
@@ -513,17 +552,15 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     const renderWin = new BrowserWindow({ show: false, width: 1280, height: 800 });
     try {
       await renderWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlDoc)}`);
-      await new Promise((r) => setTimeout(r, 800));
-      const ch = await renderWin.webContents.executeJavaScript("document.body.scrollHeight") as number;
+      const ch = await waitForRenderStable(renderWin);
       renderWin.setSize(1280, Math.min(ch + 40, 16000));
-      await new Promise((r) => setTimeout(r, 400));
+      await waitForRenderStable(renderWin, 1000);
 
       if (format === "gif") {
         const { GifWriter } = await import("omggif");
         const viewH = 720;
         renderWin.setSize(1280, viewH);
-        await new Promise((r) => setTimeout(r, 200));
-        const totalH = await renderWin.webContents.executeJavaScript("document.body.scrollHeight") as number;
+        const totalH = await waitForRenderStable(renderWin, 1000);
         const step = Math.floor(viewH * 0.7);
         const positions = [0];
         let sy = step;
@@ -532,7 +569,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
         const bitmaps: Buffer[] = [];
         for (const pos of positions) {
           await renderWin.webContents.executeJavaScript(`window.scrollTo(0, ${pos})`);
-          await new Promise((r) => setTimeout(r, 200));
+          await delay(120);
           const img = await renderWin.webContents.capturePage();
           bitmaps.push(img.toBitmap());
         }
