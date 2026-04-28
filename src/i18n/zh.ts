@@ -239,6 +239,7 @@ export default {
       apiKeyPlaceholder: "输入 API Key",
       modelPlaceholder: "选择或输入模型名称",
       apiKeySaved: "API Key 已保存",
+      baseUrlSaved: "Base URL 已保存",
       modelSaved: "模型已保存",
       notConfigured: "未配置",
       customOutputPath: "输出路径",

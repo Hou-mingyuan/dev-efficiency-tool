@@ -239,6 +239,7 @@ export default {
       apiKeyPlaceholder: "Enter API Key",
       modelPlaceholder: "Select or enter model name",
       apiKeySaved: "API Key saved",
+      baseUrlSaved: "Base URL saved",
       modelSaved: "Model saved",
       notConfigured: "Not configured",
       customOutputPath: "Output path",

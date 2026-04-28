@@ -45,6 +45,18 @@
           </a-button>
         </a-input-group>
       </a-form-item>
+      <a-form-item
+        v-if="selectedProvider.id === 'custom'"
+        :label="t('settings.baseUrl')"
+      >
+        <a-input
+          :value="selectedProvider.baseUrl"
+          placeholder="https://api.example.com/v1"
+          allow-clear
+          @change="onBaseUrlChange"
+          @blur="onBaseUrlBlur"
+        />
+      </a-form-item>
       <a-form-item :label="t('settings.model')">
         <a-auto-complete
           :value="selectedProvider.model"
@@ -74,7 +86,7 @@ const props = defineProps<{
   modelValue: string;
   allProviders: AiProvider[];
   selectedProvider: AiProvider | null;
-  saveProviderField: (providerId: string, field: "apiKey" | "model", value: string) => Promise<void>;
+  saveProviderField: (providerId: string, field: "apiKey" | "baseUrl" | "model", value: string) => Promise<void>;
   label?: string;
   placeholder?: string;
   hint?: string;
@@ -86,6 +98,8 @@ const emit = defineEmits<{
 
 const pendingApiKey = ref("");
 const apiKeyDirty = ref(false);
+const pendingBaseUrl = ref("");
+const baseUrlDirty = ref(false);
 const modelOptions = ref<string[]>([]);
 const modelLoading = ref(false);
 const testing = ref(false);
@@ -202,6 +216,23 @@ async function onApiKeyBlur() {
   message.success(t("gen.common.apiKeySaved"));
   if (pendingApiKey.value) {
     void fetchModels({ ...props.selectedProvider, apiKey: pendingApiKey.value });
+  }
+}
+
+function onBaseUrlChange(e: Event) {
+  const val = (e.target as HTMLInputElement).value;
+  pendingBaseUrl.value = val;
+  baseUrlDirty.value = true;
+}
+
+async function onBaseUrlBlur() {
+  if (!baseUrlDirty.value || !props.selectedProvider) return;
+  baseUrlDirty.value = false;
+  await props.saveProviderField(props.selectedProvider.id, "baseUrl", pendingBaseUrl.value.trim());
+  message.success(t("gen.common.baseUrlSaved"));
+  modelOptions.value = [];
+  if (props.selectedProvider.apiKey && pendingBaseUrl.value.trim()) {
+    void fetchModels({ ...props.selectedProvider, baseUrl: pendingBaseUrl.value.trim() });
   }
 }
 

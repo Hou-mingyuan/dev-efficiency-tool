@@ -151,7 +151,7 @@ export function useAiGenerator(docType: DocType) {
   );
 
   const allProviders = computed(() =>
-    (appStore.config.aiProviders ?? []).filter((p) => p.id !== "custom"),
+    appStore.config.aiProviders ?? [],
   );
 
   const availableProviders = computed(() =>
@@ -169,7 +169,7 @@ export function useAiGenerator(docType: DocType) {
     return found ? found.name : t("gen.common.useDefaultAi");
   });
 
-  async function saveProviderField(providerId: string, field: "apiKey" | "model", value: string) {
+  async function saveProviderField(providerId: string, field: "apiKey" | "baseUrl" | "model", value: string) {
     const providers = (appStore.config.aiProviders ?? []).map((p) => {
       const plain = { ...p };
       if (p.id === providerId) {
