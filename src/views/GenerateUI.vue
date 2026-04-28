@@ -73,6 +73,17 @@
             </a-radio-group>
           </a-form-item>
 
+          <a-form-item
+            v-if="genMode === 'image'"
+            :label="t('gen.ui.imageMode')"
+            :extra="t('gen.ui.imageModeHint')"
+          >
+            <a-radio-group v-model:value="uiImageMode">
+              <a-radio-button value="fast">{{ t('gen.ui.imageModeFast') }}</a-radio-button>
+              <a-radio-button value="quality">{{ t('gen.ui.imageModeQuality') }}</a-radio-button>
+            </a-radio-group>
+          </a-form-item>
+
           <a-form-item :label="t('gen.common.reference')">
             <div
               class="ref-drop-zone"
@@ -325,23 +336,25 @@ const UI_PREFS_KEY = "devtool-ui-prefs";
 const savedPrefs = (() => {
   try {
     const raw = localStorage.getItem(UI_PREFS_KEY);
-    return raw ? JSON.parse(raw) as { genMode?: string; imageFormat?: string } : {};
+    return raw ? JSON.parse(raw) as { genMode?: string; imageFormat?: string; uiImageMode?: string } : {};
   } catch { return {}; }
 })();
 
 const genMode = ref<"doc" | "image">(savedPrefs.genMode === "image" ? "image" : "doc");
 const imageFormat = ref<"png" | "jpeg">(savedPrefs.imageFormat === "jpeg" ? "jpeg" : "png");
+const uiImageMode = ref<"fast" | "quality">(savedPrefs.uiImageMode === "quality" ? "quality" : "fast");
 const uiPromptAnalyzing = ref(false);
 const uiAnalyzeStatus = ref("");
 const uiAnalyzedPrompt = ref("");
 const imageGenerating = ref(false);
 const imageProgress = ref<{ stage: string; current: number; total: number; message: string } | null>(null);
 
-watch([genMode, imageFormat], () => {
+watch([genMode, imageFormat, uiImageMode], () => {
   try {
     localStorage.setItem(UI_PREFS_KEY, JSON.stringify({
       genMode: genMode.value,
       imageFormat: imageFormat.value,
+      uiImageMode: uiImageMode.value,
     }));
   } catch { /* ignore */ }
 });
@@ -541,6 +554,7 @@ async function generateUIImage() {
       images: images.length ? images : undefined,
       outputDir: customOutputPath.value || appStore.config.outputPath,
       imageFormat: imageFormat.value,
+      imageMode: uiImageMode.value,
       referenceContent: refContent || undefined,
       projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
     });

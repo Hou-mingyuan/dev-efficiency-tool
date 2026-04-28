@@ -955,11 +955,12 @@ function registerIpcHandlers() {
     if (!provider) throw new Error(currentLocale === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
 
     const images = req.images as Array<{ base64: string; mimeType: string }> | undefined;
+    const imageMode = req.imageMode === "quality" ? "quality" : "fast";
 
     let projectContext = "";
 
     const analyzeProjectPath = req.projectPath || appManager?.getConfig().projectPath;
-    if (analyzeProjectPath && fs.existsSync(analyzeProjectPath)) {
+    if (imageMode === "quality" && analyzeProjectPath && fs.existsSync(analyzeProjectPath)) {
       try {
         const analysis = projectAnalyzer.getOrAnalyze(analyzeProjectPath);
         projectContext = projectAnalyzer.formatForPrompt(analysis, "ui");
@@ -975,9 +976,10 @@ function registerIpcHandlers() {
     const { system: systemPrompt, user: userPrompt } = buildUIImagePrompt({
       projectName: req.projectName,
       analyzedPrompt,
-      referenceContent: req.referenceContent,
+      referenceContent: imageMode === "quality" ? req.referenceContent : undefined,
       projectContext,
       imageCount: images?.length ?? 0,
+      imageMode,
     });
 
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
@@ -988,14 +990,23 @@ function registerIpcHandlers() {
     const abortController = new AbortController();
     currentAbortController = abortController;
 
-    sendProgress("generating", 0, 0, "AI 正在生成 UI 代码...");
+    sendProgress("generating", 0, 0, currentLocale === "zh" ? "AI 正在生成 UI 代码..." : "AI is generating UI code...");
 
     let chunkCount = 0;
     let htmlResult: string;
     try {
       htmlResult = await aiService.generateStream(provider, systemPrompt, userPrompt, () => {
         chunkCount++;
-        if (chunkCount % 10 === 0) sendProgress("generating", chunkCount, 0, `AI 生成中... (${chunkCount} 片段)`);
+        if (chunkCount % 10 === 0) {
+          sendProgress(
+            "generating",
+            chunkCount,
+            0,
+            currentLocale === "zh"
+              ? `AI 正在生成 UI 代码，已接收 ${chunkCount} 段内容...`
+              : `AI is generating UI code, received ${chunkCount} chunks...`,
+          );
+        }
       }, images, abortController.signal);
     } catch (streamErr: unknown) {
       if (abortController.signal.aborted) throw new Error(currentLocale === "zh" ? "已停止生成" : "Generation stopped");

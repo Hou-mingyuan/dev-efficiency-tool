@@ -52,6 +52,7 @@ describe("UI two-step prompt builders", () => {
       referenceContent: "参考交互：行操作包含查看详情",
       projectContext: "主题色：#1677ff",
       imageCount: 1,
+      imageMode: "quality",
     });
 
     expect(prompt.system).toContain("前端 UI 设计与开发专家");
@@ -60,6 +61,20 @@ describe("UI two-step prompt builders", () => {
     expect(prompt.user).toContain("参考交互：行操作包含查看详情");
     expect(prompt.user).toContain("主题色：#1677ff");
     expect(prompt.user).toContain("已附带 1 张参考图片");
+    expect(prompt.user).toContain("高保真模式");
+    expect(prompt.user).toContain("不得超过 5 个");
     expect(prompt.user).toContain("PAGE_START");
+  });
+
+  it("builds a fast image prompt with a strict small page limit", () => {
+    const prompt = buildUIImagePrompt({
+      projectName: "订单系统",
+      analyzedPrompt: "页面清单：订单列表页、订单详情页、订单新增弹窗",
+      imageMode: "fast",
+    });
+
+    expect(prompt.user).toContain("快速预览模式");
+    expect(prompt.user).toContain("只生成 1-2 个最核心页面");
+    expect(prompt.user).toContain("总页面数不得超过 2 个");
   });
 });

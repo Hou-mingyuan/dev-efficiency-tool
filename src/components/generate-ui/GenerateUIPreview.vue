@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 interface ImageProgress {
@@ -34,6 +35,14 @@ defineEmits<{
 
 const { t } = useI18n();
 
+const progressPercent = computed(() => {
+  const progress = props.imageProgress;
+  if (!progress || progress.stage === "generating" || progress.total <= 0) return 0;
+  return Math.min(100, Math.round((progress.current / progress.total) * 100));
+});
+
+const showProgressInfo = computed(() => props.imageProgress?.stage !== "generating");
+
 function fileUrl(filePath: string): string {
   return `file:///${filePath.replace(/\\\\/g, "/")}`;
 }
@@ -67,7 +76,8 @@ function fileUrl(filePath: string): string {
       class="image-progress-bar"
     >
       <a-progress
-        :percent="imageProgress.stage === 'generating' ? undefined : (imageProgress.total > 0 ? Math.round((imageProgress.current / imageProgress.total) * 100) : 0)"
+        :percent="progressPercent"
+        :show-info="showProgressInfo"
         :status="imageProgress.stage === 'done' ? 'success' : 'active'"
         :stroke-color="{ from: '#108ee9', to: '#87d068' }"
       />

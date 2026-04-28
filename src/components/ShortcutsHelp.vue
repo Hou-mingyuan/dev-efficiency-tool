@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import type { CSSProperties } from "vue";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -45,7 +46,7 @@ const open = computed({
   set: (v: boolean) => emit("update:visible", v),
 });
 
-const modalBodyStyle = {
+const modalBodyStyle: CSSProperties = {
   maxHeight: "calc(100vh - 180px)",
   overflowY: "auto",
   paddingRight: "12px",

@@ -143,6 +143,7 @@ declare global {
         images?: Array<{ base64: string; mimeType: string }>;
         outputDir?: string;
         imageFormat?: "png" | "jpeg";
+        imageMode?: "fast" | "quality";
         analyzedPrompt?: string;
         referenceContent?: string;
         projectPath?: string;

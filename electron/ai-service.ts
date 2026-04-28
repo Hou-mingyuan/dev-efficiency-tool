@@ -263,6 +263,7 @@ export interface BuildUIImagePromptOptions {
   referenceContent?: string;
   projectContext?: string;
   imageCount?: number;
+  imageMode?: "fast" | "quality";
 }
 
 export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { system: string; user: string } {
@@ -301,9 +302,16 @@ export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { sy
 
 export function buildUIImagePrompt(options: BuildUIImagePromptOptions): { system: string; user: string } {
   let user = UI_IMAGE_PROMPT.userPrefix;
+  const imageMode = options.imageMode === "quality" ? "quality" : "fast";
 
   if (options.projectName?.trim()) {
     user += `**项目/模块名称：** ${options.projectName.trim()}\n\n`;
+  }
+
+  if (imageMode === "quality") {
+    user += "**生成策略：高保真模式。** 在保证输出可控的前提下尽量还原完整页面细节，最多生成 5 个最关键页面/状态。不要无限展开所有弹窗、边缘状态和重复页面。\n\n";
+  } else {
+    user += "**生成策略：快速预览模式。** 请优先保证速度和首版可见结果，只生成 1-2 个最核心页面/状态；每页保留首屏关键布局、主导航、核心表单/表格/卡片和 2-3 行示例数据；暂不展开所有弹窗、边缘状态和重复页面。\n\n";
   }
 
   if (options.projectContext?.trim()) {
@@ -319,7 +327,9 @@ export function buildUIImagePrompt(options: BuildUIImagePromptOptions): { system
   }
 
   user += `**已分析生成的 UI 出图提示词：**\n${options.analyzedPrompt.trim()}\n\n`;
-  user += "请严格根据上述提示词生成页面，不要重新解释需求。输出必须使用 <!-- PAGE_START: 页面名称 --> 和 <!-- PAGE_END --> 包裹每个页面。";
+  user += imageMode === "quality"
+    ? "请严格根据上述提示词生成页面，不要重新解释需求。输出必须使用 <!-- PAGE_START: 页面名称 --> 和 <!-- PAGE_END --> 包裹每个页面，并且总页面数不得超过 5 个。"
+    : "请严格根据上述提示词生成页面，不要重新解释需求。输出必须使用 <!-- PAGE_START: 页面名称 --> 和 <!-- PAGE_END --> 包裹每个页面，并且总页面数不得超过 2 个。";
 
   return {
     system: UI_IMAGE_PROMPT.system,
