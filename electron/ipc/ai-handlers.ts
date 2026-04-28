@@ -11,6 +11,7 @@ import {
   type DocType,
 } from "../ai-service";
 import type { ProjectAnalyzer } from "../project-analyzer";
+import { resolveDirectImageTargets } from "../ui-image-targets";
 import type { WrapIPC } from "./types";
 import { resolveGenerationProvider } from "./provider-selection";
 
@@ -69,65 +70,6 @@ function imageExtensionFromMime(mimeType: string, fallback: "png" | "jpeg"): "pn
   return mimeType.toLowerCase().includes("jpeg") || mimeType.toLowerCase().includes("jpg")
     ? "jpeg"
     : fallback;
-}
-
-function cleanUITargetName(raw: string): string {
-  return raw
-    .replace(/^[#*\-\s\d.、)）]+/, "")
-    .replace(/\*\*/g, "")
-    .replace(/[：:].*$/, "")
-    .replace(/[（(].*?[）)]/g, "")
-    .trim();
-}
-
-function isGenericUITargetName(name: string): boolean {
-  if (name.length < 2 || name.length > 48) return true;
-  return /^(页面清单|页面列表|设计原则|视觉风格|配色方案|交互说明|组件规范|导航设计|响应式适配|边界与异常|输出要求|示例|说明)$/i.test(name);
-}
-
-function extractQualityImageTargets(analyzedPrompt: string, projectName: unknown): Array<{ name: string; prompt: string }> {
-  const candidates: string[] = [];
-  const lines = analyzedPrompt.split(/\r?\n/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const heading = trimmed.match(/^#{2,5}\s*(?:\d+[.、)）]\s*)?(.+)$/);
-    if (heading) candidates.push(heading[1]);
-
-    const numbered = trimmed.match(/^(?:[-*]\s*)?(?:\d+[.、)）]\s*)([^：:]{2,60}(?:页|页面|弹窗|抽屉|列表|详情|表单|看板|首页|中心|管理|配置|设置|流程|工作台|仪表盘|面板|模块|功能)[^：:]*)[：:]?/);
-    if (numbered) candidates.push(numbered[1]);
-
-    const bullet = trimmed.match(/^[-*]\s*([^：:]{2,60}(?:页|页面|弹窗|抽屉|列表|详情|表单|看板|首页|中心|管理|配置|设置|流程|工作台|仪表盘|面板|模块|功能)[^：:]*)[：:]/);
-    if (bullet) candidates.push(bullet[1]);
-  }
-
-  const names = Array.from(new Set(candidates.map(cleanUITargetName).filter((name) => !isGenericUITargetName(name))));
-  const fallbackName = String(projectName || "UI Design");
-  const targetNames = names.length ? names : [fallbackName];
-  return targetNames.map((name) => ({
-    name,
-    prompt: [
-      `本次只生成「${name}」这一项对应的完整 UI 图片。`,
-      "请聚焦该页面/功能本身，不要把其它页面拼成长图，也不要输出解释文字。",
-      "如果该项是弹窗、抽屉或状态页，请以打开状态展示完整上下文。",
-      `完整 UI 生成提示词如下：\n${analyzedPrompt}`,
-    ].join("\n\n"),
-  }));
-}
-
-function resolveDirectImageTargets(
-  analyzedPrompt: string,
-  projectName: unknown,
-  imageMode: "fast" | "quality",
-): Array<{ name: string; prompt: string }> {
-  if (imageMode === "quality") return extractQualityImageTargets(analyzedPrompt, projectName);
-  return [{
-    name: String(projectName || "核心预览"),
-    prompt: [
-      "本次只生成一张快速预览图，请选择需求中最核心的主页面或主流程首屏。",
-      "不要生成多张拼接图，不要输出解释文字。",
-      `完整 UI 生成提示词如下：\n${analyzedPrompt}`,
-    ].join("\n\n"),
-  }];
 }
 
 function resolveFigmaFileName(template: unknown, projectName: unknown): string {
@@ -230,6 +172,13 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
   let currentAbortController: AbortController | null = null;
 
+  const resolveConfiguredProviderById = (providerId?: string): AiProvider | null => {
+    if (!providerId) return null;
+    const config = appManager()?.getConfig();
+    const provider = (config?.aiProviders ?? []).find((p) => p.id === providerId);
+    return provider?.apiKey ? provider : null;
+  };
+
   const resolveProvider = (providerId?: string, fallbackProviderId?: string): AiProvider | null => {
     const config = appManager()?.getConfig();
     return resolveGenerationProvider({
@@ -277,6 +226,9 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
       projectContext,
     );
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow();
+    const requestId = typeof req.requestId === "string" && req.requestId.trim()
+      ? req.requestId.trim()
+      : randomUUID();
 
     const images = req.images as ImageInput;
 
@@ -286,7 +238,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     let result: string;
     try {
       result = await aiService.generateStream(provider, system, user, (chunk: string) => {
-        if (win && !win.isDestroyed()) win.webContents.send("ai:chunk", chunk);
+        if (win && !win.isDestroyed()) win.webContents.send("ai:chunk", { requestId, chunk });
       }, images, abortController.signal);
     } catch (streamErr: unknown) {
       if (abortController.signal.aborted) throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");
@@ -309,7 +261,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
       `AI 生成完成: ${req.docType} (${provider.name})`,
       "ai-gen",
     );
-    if (win && !win.isDestroyed()) win.webContents.send("ai:done", result, recordId);
+    if (win && !win.isDestroyed()) win.webContents.send("ai:done", { requestId, content: result, recordId });
     return result;
   }));
 
@@ -351,11 +303,14 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
   }));
 
   ipcMain.handle("ai:generateUIImage", wrapIPC(async (event: any, req: any) => {
-    const provider = resolveProvider(req.providerId, req.fallbackProviderId);
+    let provider = resolveProvider(req.providerId, req.fallbackProviderId);
     if (!provider) throw new Error(currentLocale() === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
 
     const images = req.images as ImageInput;
     const imageMode = req.imageMode === "quality" ? "quality" : "fast";
+    const requestId = typeof req.requestId === "string" && req.requestId.trim()
+      ? req.requestId.trim()
+      : randomUUID();
     appManager()?.addLog(
       "info",
       `UI 出图开始: provider=${provider.name ?? provider.id}, model=${provider.model || "default"}, mode=${imageMode}, images=${images?.length ?? 0}`,
@@ -394,7 +349,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
       const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow();
       const sendProgress = (stage: string, current: number, total: number, msg: string) => {
-        try { win?.webContents.send("ai:imageProgress", { stage, current, total, message: msg }); } catch { /* ignore */ }
+        try { win?.webContents.send("ai:imageProgress", { requestId, stage, current, total, message: msg }); } catch { /* ignore */ }
       };
 
       const abortController = new AbortController();
@@ -403,6 +358,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
       const pageResults: Array<{ name: string; imagePath: string }> = [];
       const revisedPrompts: string[] = [];
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      let shouldFallbackToTextRender = false;
       try {
         sendProgress(
           "generating",
@@ -436,41 +392,63 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
           savedFiles.push(imgFilePath);
           pageResults.push({ name: target.name, imagePath: imgFilePath });
           if (generated.revisedPrompt) revisedPrompts.push(`## ${target.name}\n${generated.revisedPrompt}`);
-          try { win?.webContents.send("ai:pageReady", { name: target.name, imagePath: imgFilePath, htmlPath: "", index: i, total: targets.length }); } catch { /* ignore */ }
+          try { win?.webContents.send("ai:pageReady", { requestId, name: target.name, imagePath: imgFilePath, htmlPath: "", index: i, total: targets.length }); } catch { /* ignore */ }
         }
       } catch (err: unknown) {
         if (abortController.signal.aborted) throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");
-        throw err;
+        const fallbackProvider = resolveConfiguredProviderById(req.fallbackProviderId);
+        if (fallbackProvider && fallbackProvider.id !== provider.id && !aiService.isImageGenerationModel(fallbackProvider)) {
+          const msg = err instanceof Error ? err.message : String(err);
+          appManager()?.addLog(
+            "warn",
+            `图片模型直出失败，已回退到文本模型渲染: imageProvider=${provider.name}, fallbackProvider=${fallbackProvider.name}, reason=${msg}`,
+            "ai-gen-ui",
+          );
+          provider = fallbackProvider;
+          shouldFallbackToTextRender = true;
+        } else {
+          throw err;
+        }
       } finally {
         if (currentAbortController === abortController) currentAbortController = null;
       }
 
-      sendProgress(
-        "done",
-        pageResults.length,
-        pageResults.length,
-        currentLocale() === "zh"
-          ? `图片模型直出完成，共 ${pageResults.length} 张图片`
-          : `Direct image generation completed, ${pageResults.length} image(s) saved`,
-      );
+      if (shouldFallbackToTextRender) {
+        sendProgress(
+          "generating",
+          0,
+          0,
+          currentLocale() === "zh" ? "图片接口不可用，已回退到文本模型生成可渲染页面..." : "Image API unavailable, falling back to text-rendered UI...",
+        );
+      } else {
 
-      const recordId = randomUUID();
-      appManager()?.addGenerationRecord({
-        id: recordId,
-        docType: "ui",
-        projectName: req.projectName?.trim() || "",
-        createdAt: new Date().toISOString(),
-        preview: `[UI 图片模型直出 x${pageResults.length}] ${pageResults.map((p) => p.name).join(", ")}`,
-        outputPath: savedFiles[0],
-      });
-      appManager()?.addLog("info", `UI 图片模型直出完成: provider=${provider.name ?? provider.id}, model=${provider.model}, files=${savedFiles.join(", ")}`, "ai-gen-ui");
-      return {
-        htmlResult: revisedPrompts.length ? `图片模型优化提示词：\n\n${revisedPrompts.join("\n\n")}` : "",
-        savedFiles,
-        recordId,
-        pages: pageResults,
-        mode: "direct-image",
-      };
+        sendProgress(
+          "done",
+          pageResults.length,
+          pageResults.length,
+          currentLocale() === "zh"
+            ? `图片模型直出完成，共 ${pageResults.length} 张图片`
+            : `Direct image generation completed, ${pageResults.length} image(s) saved`,
+        );
+
+        const recordId = randomUUID();
+        appManager()?.addGenerationRecord({
+          id: recordId,
+          docType: "ui",
+          projectName: req.projectName?.trim() || "",
+          createdAt: new Date().toISOString(),
+          preview: `[UI 图片模型直出 x${pageResults.length}] ${pageResults.map((p) => p.name).join(", ")}`,
+          outputPath: savedFiles[0],
+        });
+        appManager()?.addLog("info", `UI 图片模型直出完成: provider=${provider.name ?? provider.id}, model=${provider.model}, files=${savedFiles.join(", ")}`, "ai-gen-ui");
+        return {
+          htmlResult: revisedPrompts.length ? `图片模型优化提示词：\n\n${revisedPrompts.join("\n\n")}` : "",
+          savedFiles,
+          recordId,
+          pages: pageResults,
+          mode: "direct-image",
+        };
+      }
     }
 
     const { system: systemPrompt, user: userPrompt } = buildUIImagePrompt({
@@ -484,7 +462,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow();
     const sendProgress = (stage: string, current: number, total: number, msg: string) => {
-      try { win?.webContents.send("ai:imageProgress", { stage, current, total, message: msg }); } catch { /* ignore */ }
+      try { win?.webContents.send("ai:imageProgress", { requestId, stage, current, total, message: msg }); } catch { /* ignore */ }
     };
 
     const abortController = new AbortController();
@@ -584,7 +562,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
         savedFiles.push(htmlFilePath);
 
         pageResults.push({ name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath });
-        try { win?.webContents.send("ai:pageReady", { name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath, index: i, total: pages.length }); } catch { /* ignore */ }
+        try { win?.webContents.send("ai:pageReady", { requestId, name: page.name, imagePath: imgFilePath, htmlPath: htmlFilePath, index: i, total: pages.length }); } catch { /* ignore */ }
       }
     } catch (renderErr: unknown) {
       appManager()?.addLog(

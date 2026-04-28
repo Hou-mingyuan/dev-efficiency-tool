@@ -188,6 +188,14 @@
             :placeholder="t('gen.ui.imageAiPlaceholder')"
             :hint="t('gen.ui.imageAiHint')"
           />
+          <div v-if="genMode === 'image'" class="image-route-hint">
+            <a-tag :color="imageRouteHintTone">
+              {{ imageRouteHint }}
+            </a-tag>
+            <a-typography-text v-if="selectedImageProvider && selectedProvider && imageProviderCapability?.outputKind === 'image'" type="secondary">
+              {{ t('gen.ui.routeFallbackHint', { model: selectedProvider.model }) }}
+            </a-typography-text>
+          </div>
           <a-form-item :label="t('gen.common.customOutputPath')">
             <a-input-group compact>
               <a-input
@@ -308,8 +316,18 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useAiGenerator } from "@/composables/useAiGenerator";
 import { useAppStore } from "@/store/app";
+import { getModelCapabilityInfo } from "../../electron/model-capabilities";
 import GenerateUIHistoryDrawer from "@/components/generate-ui/GenerateUIHistoryDrawer.vue";
 import GenerateUIPreview from "@/components/generate-ui/GenerateUIPreview.vue";
+import {
+  collectGeneratedPageFiles,
+  collectGeneratedPagesFiles,
+  type GenerateUIImageResponse,
+  type GeneratedUIPage,
+  type PageReadyPayload,
+  type UIGenMode,
+  type UIImageProgress,
+} from "@/components/generate-ui/types";
 
 import "@/styles/generator.less";
 
@@ -369,7 +387,6 @@ const savedPrefs = (() => {
   } catch { return {}; }
 })();
 
-type UIGenMode = "doc" | "image" | "figma";
 const genMode = ref<UIGenMode>(
   savedPrefs.genMode === "image" || savedPrefs.genMode === "figma" ? savedPrefs.genMode : "doc",
 );
@@ -381,11 +398,37 @@ const uiAnalyzeStatus = ref("");
 const uiAnalyzedPrompt = ref("");
 const imageGenerating = ref(false);
 const figmaGenerating = ref(false);
-const imageProgress = ref<{ stage: string; current: number; total: number; message: string } | null>(null);
+const imageProgress = ref<UIImageProgress | null>(null);
 const figmaEnabled = computed(() => Boolean(appStore.config.figmaConnector?.enabled));
 const selectedImageProvider = computed(() => {
   if (!imageProviderId.value) return null;
   return (appStore.config.aiProviders ?? []).find((p) => p.id === imageProviderId.value) ?? null;
+});
+const activeProvider = computed(() => {
+  const id = appStore.config.activeProviderId;
+  return (appStore.config.aiProviders ?? []).find((p) => p.id === id) ?? null;
+});
+const effectiveImageProvider = computed(() => selectedImageProvider.value ?? selectedProvider.value ?? activeProvider.value);
+const imageProviderCapability = computed(() => {
+  const provider = effectiveImageProvider.value;
+  return provider ? getModelCapabilityInfo(provider.model) : null;
+});
+const imageRouteHint = computed(() => {
+  const info = imageProviderCapability.value;
+  if (!info) return t("gen.ui.routeUnknown");
+  if (info.outputKind === "image") {
+    return t("gen.ui.routeDirectImage", { model: info.model });
+  }
+  if (info.outputKind === "text") {
+    return t("gen.ui.routeHtmlRender", { model: info.model });
+  }
+  return t("gen.ui.routeUnknownModel", { model: info.model });
+});
+const imageRouteHintTone = computed<"success" | "processing" | "warning">(() => {
+  const kind = imageProviderCapability.value?.outputKind;
+  if (kind === "image") return "success";
+  if (kind === "text") return "processing";
+  return "warning";
 });
 
 watch([genMode, imageFormat, uiImageMode, imageProviderId], () => {
@@ -401,10 +444,16 @@ watch([genMode, imageFormat, uiImageMode, imageProviderId], () => {
 const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mimeType: string }>>([]);
 const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
-const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath?: string }>>([]);
+const generatedPages = ref<GeneratedUIPage[]>([]);
+const activeImageRequestId = ref<string | null>(null);
 const REF_IMAGE_MAX_EDGE = 1600;
 const REF_IMAGE_COMPRESS_MIN_BYTES = 900 * 1024;
 const REF_IMAGE_JPEG_QUALITY = 0.82;
+
+function createUIRequestId(prefix: string): string {
+  const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${randomId}`;
+}
 watch(uiAnalyzedPrompt, (value) => {
   if (genMode.value === "doc" || generatedPages.value.length) return;
   result.value = value;
@@ -534,6 +583,7 @@ async function stopImageGenerate() {
   uiAnalyzeStatus.value = "";
   imageGenerating.value = false;
   figmaGenerating.value = false;
+  activeImageRequestId.value = null;
 }
 
 async function analyzeUIPrompt() {
@@ -607,6 +657,8 @@ async function generateUIImage() {
     return;
   }
   teardownListeners();
+  const requestId = createUIRequestId("ui-image");
+  activeImageRequestId.value = requestId;
   imageGenerating.value = true;
   imageProgress.value = { stage: "generating", current: 0, total: 0, message: t("gen.ui.preparing") };
   result.value = "";
@@ -615,12 +667,15 @@ async function generateUIImage() {
   generatedPages.value = [];
 
   const cleanupProgress = window.electronAPI.ai.onImageProgress((p) => {
-    imageProgress.value = p as { stage: string; current: number; total: number; message: string };
+    const progress = p as UIImageProgress;
+    if (progress.requestId !== requestId) return;
+    imageProgress.value = progress;
   });
   const cleanupPageReady = window.electronAPI.ai.onPageReady((page) => {
-    const p = page as { name: string; imagePath: string; htmlPath?: string; index: number; total: number };
+    const p = page as PageReadyPayload;
+    if (p.requestId !== requestId) return;
     generatedPages.value = [...generatedPages.value, { name: p.name, imagePath: p.imagePath, htmlPath: p.htmlPath }];
-    generatedImagePaths.value = [...generatedImagePaths.value, ...[p.imagePath, p.htmlPath].filter((f): f is string => Boolean(f))];
+    generatedImagePaths.value = [...generatedImagePaths.value, ...collectGeneratedPageFiles(p)];
     result.value = t("gen.ui.renderedPages", { current: p.index + 1, total: p.total });
   });
 
@@ -644,6 +699,7 @@ async function generateUIImage() {
     const refContent = referenceItems.value.map((r) => r.content).join("\n\n---\n\n");
 
     const res = await window.electronAPI.ai.generateUIImage({
+      requestId,
       projectName: projectName.value,
       userContent: uiAnalyzedPrompt.value,
       analyzedPrompt: uiAnalyzedPrompt.value,
@@ -661,7 +717,7 @@ async function generateUIImage() {
       handleOutputPathError(res.message);
       message.error((res as IpcErrorResult).message);
     } else {
-      const data = res as { htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath?: string }> };
+      const data = res as GenerateUIImageResponse;
       result.value = data.htmlResult;
       renderedHtml.value = data.htmlResult;
       if (data.pages?.length) generatedPages.value = data.pages;
@@ -677,9 +733,8 @@ async function generateUIImage() {
   } finally {
     cleanupProgress();
     cleanupPageReady();
-    window.electronAPI.ai.offImageProgress();
-    window.electronAPI.ai.offPageReady();
     imageGenerating.value = false;
+    if (activeImageRequestId.value === requestId) activeImageRequestId.value = null;
     imageProgress.value = null;
     setupListeners();
   }
@@ -762,7 +817,7 @@ async function generateFigmaFile() {
 
 async function refreshPreview() {
   if (!generatedPages.value.length) return;
-  const allPaths = generatedPages.value.flatMap((p) => [p.imagePath, p.htmlPath].filter((f): f is string => Boolean(f)));
+  const allPaths = collectGeneratedPagesFiles(generatedPages.value);
   try {
     const exists = await window.electronAPI.ai.checkFilesExist(allPaths);
     const remaining = generatedPages.value.filter((p) => exists[p.imagePath]);
@@ -951,6 +1006,14 @@ async function loadHistoryRecord(item: GenerationRecord) {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-top: 4px;
+}
+
+.image-route-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 16px;
 }
 
 </style>

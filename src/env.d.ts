@@ -16,6 +16,7 @@ declare global {
     baseUrl: string;
     model: string;
     enabled: boolean;
+    capabilities?: Array<"text" | "image-output" | "vision-input" | "embedding">;
   }
 
   interface ProjectProfile {
@@ -48,6 +49,7 @@ declare global {
   type DocType = "prd" | "requirements" | "ui" | "design" | (string & {});
 
   interface GenerateRequest {
+    requestId?: string;
     docType: DocType;
     projectName: string;
     userContent: string;
@@ -122,9 +124,9 @@ declare global {
       readOutputFile: (path: string) => Promise<string | null | IpcErrorResult>;
       updateHistoryOutput: (data: { id: string; outputPath: string }) => Promise<unknown>;
       deleteHistory: (id: string) => Promise<unknown>;
-      onChunk: (callback: (chunk: string) => void) => IpcCleanup;
+      onChunk: (callback: (event: { requestId?: string; chunk: string } | string) => void) => IpcCleanup;
       offChunk: (cleanup?: IpcCleanup) => void;
-      onDone: (callback: (content: string, recordId: string) => void) => IpcCleanup;
+      onDone: (callback: (event: { requestId?: string; content: string; recordId: string } | string, recordId?: string) => void) => IpcCleanup;
       offDone: (cleanup?: IpcCleanup) => void;
       testConnection: (provider: AiProvider) => Promise<unknown>;
       listModels: (provider: AiProvider) => Promise<string[] | IpcErrorResult>;
@@ -144,6 +146,7 @@ declare global {
         format: "png" | "jpeg" | "gif";
       }) => Promise<string | IpcErrorResult>;
       generateUIImage: (req: {
+        requestId?: string;
         projectName?: string;
         userContent: string;
         providerId?: string;
@@ -165,9 +168,9 @@ declare global {
         referenceContent?: string;
         projectPath?: string;
       }) => Promise<{ filePath: string; fileName: string; recordId: string; figmaJson: unknown } | IpcErrorResult>;
-      onImageProgress: (callback: (progress: { stage: string; current: number; total: number; message: string }) => void) => () => void;
+      onImageProgress: (callback: (progress: { requestId?: string; stage: string; current: number; total: number; message: string }) => void) => () => void;
       offImageProgress: (cleanup?: IpcCleanup) => void;
-      onPageReady: (callback: (page: { name: string; imagePath: string; htmlPath: string; index: number; total: number }) => void) => () => void;
+      onPageReady: (callback: (page: { requestId?: string; name: string; imagePath: string; htmlPath: string; index: number; total: number }) => void) => () => void;
       offPageReady: (cleanup?: IpcCleanup) => void;
       checkFilesExist: (paths: string[]) => Promise<Record<string, boolean>>;
     };

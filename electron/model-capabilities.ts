@@ -1,12 +1,13 @@
 import type { AiProvider } from "./app-manager";
 
 export type ModelOutputKind = "image" | "text" | "unknown";
-export type ModelCapability = "text-output" | "image-output" | "vision-input";
+export type ModelCapability = "text" | "image-output" | "vision-input" | "embedding";
 
 export interface ModelCapabilityInfo {
   model: string;
   outputKind: ModelOutputKind;
   capabilities: ModelCapability[];
+  source: "explicit" | "model-registry" | "unknown";
 }
 
 const IMAGE_OUTPUT_MODEL_IDS = new Set([
@@ -224,18 +225,23 @@ export function getModelCapabilityInfo(model: string): ModelCapabilityInfo {
     capabilities.push("image-output");
   } else if (TEXT_OUTPUT_MODEL_IDS.has(normalized)) {
     outputKind = "text";
-    capabilities.push("text-output");
+    capabilities.push("text");
   }
 
   if (VISION_INPUT_MODEL_IDS.has(normalized)) {
     capabilities.push("vision-input");
   }
 
-  return { model: normalized, outputKind, capabilities };
+  return {
+    model: normalized,
+    outputKind,
+    capabilities,
+    source: capabilities.length ? "model-registry" : "unknown",
+  };
 }
 
 export function getProviderModelCapabilityInfo(provider: AiProvider): ModelCapabilityInfo {
-  return getModelCapabilityInfo(provider.model);
+  return ProviderCapabilityRegistry.resolve(provider);
 }
 
 export function getModelOutputKind(provider: AiProvider): ModelOutputKind {
@@ -244,4 +250,55 @@ export function getModelOutputKind(provider: AiProvider): ModelOutputKind {
 
 export function isImageGenerationModel(provider: AiProvider): boolean {
   return getModelOutputKind(provider) === "image";
+}
+
+function normalizeCapabilities(capabilities: ModelCapability[] | undefined): ModelCapability[] {
+  if (!Array.isArray(capabilities)) return [];
+  return Array.from(new Set(capabilities.filter((capability): capability is ModelCapability =>
+    capability === "text" ||
+    capability === "image-output" ||
+    capability === "vision-input" ||
+    capability === "embedding",
+  )));
+}
+
+function outputKindFromCapabilities(capabilities: ModelCapability[]): ModelOutputKind {
+  if (capabilities.includes("image-output")) return "image";
+  if (capabilities.includes("text")) return "text";
+  return "unknown";
+}
+
+export class ProviderCapabilityRegistry {
+  static inferModel(model: string): ModelCapabilityInfo {
+    return getModelCapabilityInfo(model);
+  }
+
+  static resolve(provider: AiProvider): ModelCapabilityInfo {
+    const explicitCapabilities = normalizeCapabilities(provider.capabilities);
+    if (explicitCapabilities.length) {
+      return {
+        model: normalizeModelId(provider.model),
+        outputKind: outputKindFromCapabilities(explicitCapabilities),
+        capabilities: explicitCapabilities,
+        source: "explicit",
+      };
+    }
+    return this.inferModel(provider.model);
+  }
+
+  static hasCapability(provider: AiProvider, capability: ModelCapability): boolean {
+    return this.resolve(provider).capabilities.includes(capability);
+  }
+
+  static canOutputText(provider: AiProvider): boolean {
+    return this.resolve(provider).outputKind === "text";
+  }
+
+  static canOutputImage(provider: AiProvider): boolean {
+    return this.resolve(provider).outputKind === "image";
+  }
+
+  static canUseVisionInput(provider: AiProvider): boolean {
+    return this.hasCapability(provider, "vision-input");
+  }
 }

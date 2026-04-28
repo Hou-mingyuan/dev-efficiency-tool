@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import type { ModelCapability } from "./model-capabilities";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +29,7 @@ export interface AiProvider {
   baseUrl: string;
   model: string;
   enabled: boolean;
+  capabilities?: ModelCapability[];
 }
 
 export interface ProjectProfile {

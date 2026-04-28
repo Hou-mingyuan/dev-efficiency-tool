@@ -19,3 +19,11 @@
 - 验证：`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck`、`npx vitest run electron/__tests__/model-capabilities.spec.ts` 均已通过。
 - 修正图像模型高保真直出策略：快速预览仍生成 1 张核心总览图；高保真会从已分析的 UI 提示词中提取页面/功能项，并逐项调用图像模型生成多张图片。
 - 兼容图像模型直出结果没有 HTML 文件的情况，刷新预览和文件路径列表会过滤空路径。
+- 优化图片接口失败体验：当 OpenAI 兼容中转返回 HTML 错误页时，不再把 `<!DOCTYPE html>` 暴露到界面，而是提示图片接口不可用；若配置了备用文本模型，会自动回退到文本模型 HTML 渲染出图。
+- 前端 UI 出图结果类型第一轮抽取：新增 `src/components/generate-ui/types.ts`，统一 `GeneratedUIPage`、进度、图片响应和生成文件收集逻辑。
+- 抽离高保真多图拆分规则：新增 `electron/ui-image-targets.ts`，将页面/功能目标提取从 IPC handler 中移出，并补充 `electron/__tests__/ui-image-targets.spec.ts` 覆盖快速模式、高保真多目标、去重和回退。
+- 将模型能力反馈到 UI 出图页：前端复用模型能力识别，显示当前会走“图片模型直出”“文本模型 HTML 截图”或“未知模型按文本尝试”，并在有备用文本模型时提示图片接口失败会自动回退。
+- 继续推进第一优先级 AI 能力层：`AiProvider` 支持显式 `capabilities` 字段；`ProviderCapabilityRegistry` 会优先使用显式能力，缺省时再按模型名清单推断。模型能力测试已覆盖显式图片能力、显式文本能力覆盖模型名推断。
+- 修复生成预览串台问题：通用生成器的 `ai:chunk` / `ai:done` 监听器现在只在页面激活时绑定，页面失活时解绑，避免生成需求文档时其它生成页面也收到流式内容。
+- 严格补强生成结果预览隔离：普通文档流式事件、完成事件、UI 图片进度事件和页面就绪事件都增加 `requestId`，前端只接收当前任务的事件；解绑监听器时只解绑当前页面注册的回调，不再清空其它页面监听器，避免不同生成功能之间结果预览串台。
+- 验证：`npx vitest run electron/__tests__/model-capabilities.spec.ts electron/__tests__/ui-image-targets.spec.ts src/utils/provider-readiness.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。

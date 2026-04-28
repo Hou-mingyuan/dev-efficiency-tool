@@ -96,7 +96,7 @@ export interface ElectronAPI {
     deleteHistory: (id: string) => Promise<unknown>;
     onChunk: (callback: (chunk: unknown) => void) => IpcCleanup;
     offChunk: (cleanup?: IpcCleanup) => void;
-    onDone: (callback: (content: unknown, recordId: unknown) => void) => IpcCleanup;
+    onDone: (callback: (payload: unknown) => void) => IpcCleanup;
     offDone: (cleanup?: IpcCleanup) => void;
     testConnection: (provider: unknown) => Promise<unknown>;
     listModels: (provider: unknown) => Promise<unknown>;
@@ -174,12 +174,10 @@ const electronAPI: ElectronAPI = {
     onChunk: (callback) => listenPayload("ai:chunk", callback),
     offChunk: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
-      else ipcRenderer.removeAllListeners("ai:chunk");
     },
-    onDone: (callback) => listenPair("ai:done", callback),
+    onDone: (callback) => listenPayload("ai:done", callback),
     offDone: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
-      else ipcRenderer.removeAllListeners("ai:done");
     },
     testConnection: (provider) => invoke("ai:testConnection", provider),
     listModels: (provider) => invoke("ai:listModels", provider),
@@ -190,12 +188,10 @@ const electronAPI: ElectronAPI = {
     onImageProgress: (callback) => listenPayload("ai:imageProgress", callback),
     offImageProgress: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
-      else ipcRenderer.removeAllListeners("ai:imageProgress");
     },
     onPageReady: (callback) => listenPayload("ai:pageReady", callback),
     offPageReady: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
-      else ipcRenderer.removeAllListeners("ai:pageReady");
     },
     checkFilesExist: (paths) => invoke("ai:checkFilesExist", paths),
   },

@@ -4,10 +4,11 @@ import {
   getModelOutputKind,
   isImageGenerationModel,
   normalizeModelId,
+  ProviderCapabilityRegistry,
 } from "../model-capabilities";
 import type { AiProvider } from "../app-manager";
 
-function provider(model: string): AiProvider {
+function provider(model: string, overrides: Partial<AiProvider> = {}): AiProvider {
   return {
     id: "custom",
     name: "Custom",
@@ -15,6 +16,7 @@ function provider(model: string): AiProvider {
     baseUrl: "https://api.example.com/v1",
     model,
     enabled: true,
+    ...overrides,
   };
 }
 
@@ -43,17 +45,43 @@ describe("model capabilities", () => {
     expect(getModelCapabilityInfo("gpt-4o")).toEqual({
       model: "gpt-4o",
       outputKind: "text",
-      capabilities: ["text-output", "vision-input"],
+      capabilities: ["text", "vision-input"],
+      source: "model-registry",
     });
     expect(getModelCapabilityInfo("qwen3-vl-plus")).toEqual({
       model: "qwen3-vl-plus",
       outputKind: "text",
-      capabilities: ["text-output", "vision-input"],
+      capabilities: ["text", "vision-input"],
+      source: "model-registry",
     });
   });
 
   it("keeps unknown models on the existing text-compatible fallback path", () => {
     expect(getModelOutputKind(provider("vendor-new-chat-model"))).toBe("unknown");
     expect(isImageGenerationModel(provider("vendor-new-chat-model"))).toBe(false);
+  });
+
+  it("prefers explicit provider capabilities over model-name inference", () => {
+    const custom = provider("vendor-private-image-model", {
+      capabilities: ["image-output", "vision-input"],
+    });
+
+    expect(ProviderCapabilityRegistry.resolve(custom)).toEqual({
+      model: "vendor-private-image-model",
+      outputKind: "image",
+      capabilities: ["image-output", "vision-input"],
+      source: "explicit",
+    });
+    expect(isImageGenerationModel(custom)).toBe(true);
+  });
+
+  it("keeps text output explicit providers on the HTML render path", () => {
+    const custom = provider("gpt-image-2", {
+      capabilities: ["text"],
+    });
+
+    expect(ProviderCapabilityRegistry.canOutputText(custom)).toBe(true);
+    expect(ProviderCapabilityRegistry.canOutputImage(custom)).toBe(false);
+    expect(isImageGenerationModel(custom)).toBe(false);
   });
 });

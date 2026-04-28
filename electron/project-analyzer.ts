@@ -41,6 +41,7 @@ export interface ProjectAnalysisResult {
     languages: string[];
     frameworks: string[];
     buildTools: string[];
+    databases: string[];
     dependencies: Record<string, string>;
     devDependencies: Record<string, string>;
   };
@@ -162,6 +163,7 @@ function detectTechStack(projectPath: string): ProjectAnalysisResult["techStack"
   const languages: Set<string> = new Set();
   const frameworks: Set<string> = new Set();
   const buildTools: Set<string> = new Set();
+  const databases: Set<string> = new Set();
   let deps: Record<string, string> = {};
   let devDeps: Record<string, string> = {};
 
@@ -199,6 +201,12 @@ function detectTechStack(projectPath: string): ProjectAnalysisResult["techStack"
       if (allDeps.typescript) buildTools.add("TypeScript");
       if (allDeps.vitest) buildTools.add("Vitest");
       if (allDeps.jest) buildTools.add("Jest");
+
+      if (allDeps.oracledb || allDeps["typeorm-aurora-data-api-driver"]) databases.add("Oracle");
+      if (allDeps.mysql || allDeps.mysql2) databases.add("MySQL");
+      if (allDeps.pg || allDeps["pg-native"]) databases.add("PostgreSQL");
+      if (allDeps.sqlite3 || allDeps["better-sqlite3"]) databases.add("SQLite");
+      if (allDeps.mongoose || allDeps.mongodb) databases.add("MongoDB");
     } catch { /* skip */ }
   }
 
@@ -210,10 +218,35 @@ function detectTechStack(projectPath: string): ProjectAnalysisResult["techStack"
     languages.add("Python");
   }
 
+  const pomPath = path.join(projectPath, "pom.xml");
+  if (fs.existsSync(pomPath)) {
+    try {
+      const pom = fs.readFileSync(pomPath, "utf-8").toLowerCase();
+      if (pom.includes("ojdbc") || pom.includes("oracle.jdbc")) databases.add("Oracle");
+      if (pom.includes("mysql-connector")) databases.add("MySQL");
+      if (pom.includes("postgresql")) databases.add("PostgreSQL");
+      if (pom.includes("sqlite-jdbc")) databases.add("SQLite");
+    } catch { /* skip */ }
+  }
+
+  const gradleFiles = ["build.gradle", "build.gradle.kts"]
+    .map((name) => path.join(projectPath, name))
+    .filter((fp) => fs.existsSync(fp));
+  for (const fp of gradleFiles) {
+    try {
+      const gradle = fs.readFileSync(fp, "utf-8").toLowerCase();
+      if (gradle.includes("ojdbc") || gradle.includes("oracle.jdbc")) databases.add("Oracle");
+      if (gradle.includes("mysql-connector")) databases.add("MySQL");
+      if (gradle.includes("postgresql")) databases.add("PostgreSQL");
+      if (gradle.includes("sqlite-jdbc")) databases.add("SQLite");
+    } catch { /* skip */ }
+  }
+
   return {
     languages: [...languages],
     frameworks: [...frameworks],
     buildTools: [...buildTools],
+    databases: [...databases],
     dependencies: deps,
     devDependencies: devDeps,
   };
@@ -540,6 +573,11 @@ export class ProjectAnalyzer {
     }
     if (analysis.techStack.buildTools.length) {
       parts.push(`**构建工具：** ${analysis.techStack.buildTools.join(", ")}`);
+    }
+    if (analysis.techStack.databases.length) {
+      parts.push(`**数据库/数据源证据：** ${analysis.techStack.databases.join(", ")}`);
+    } else if (docType === "requirements" || docType === "design") {
+      parts.push("**数据库/数据源证据：** 未在参考项目依赖或配置中识别到明确数据库类型；生成时不得臆测 MySQL、PostgreSQL、Oracle 等具体数据库。");
     }
 
     parts.push("\n**项目结构：**");

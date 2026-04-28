@@ -50,6 +50,9 @@ marked.use({ renderer });
 
 export type DocType = "prd" | "requirements" | "ui" | "design";
 
+type AiChunkEvent = { requestId?: string; chunk: string } | string;
+type AiDoneEvent = { requestId?: string; content: string; recordId: string } | string;
+
 function isIpcError(value: unknown): value is IpcErrorResult {
   return (
     typeof value === "object" &&
@@ -57,6 +60,11 @@ function isIpcError(value: unknown): value is IpcErrorResult {
     "__ipcError" in value &&
     (value as IpcErrorResult).__ipcError === true
   );
+}
+
+function createGenerationRequestId(prefix: string): string {
+  const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${randomId}`;
 }
 
 export function useAiGenerator(docType: DocType) {
@@ -186,6 +194,7 @@ export function useAiGenerator(docType: DocType) {
 
   let cleanupChunk: (() => void) | null = null;
   let cleanupDone: (() => void) | null = null;
+  let activeRequestId: string | null = null;
   let renderRafId: number | null = null;
   let pendingRender = false;
 
@@ -212,11 +221,19 @@ export function useAiGenerator(docType: DocType) {
   function setupListeners() {
     const api = window.electronAPI;
     if (!api) return;
-    cleanupChunk = api.ai.onChunk((chunk: string) => {
+    if (cleanupChunk || cleanupDone) return;
+    cleanupChunk = api.ai.onChunk((event: AiChunkEvent) => {
+      const requestId = typeof event === "string" ? undefined : event.requestId;
+      if (!activeRequestId || requestId !== activeRequestId) return;
+      const chunk = typeof event === "string" ? event : event.chunk;
       result.value += chunk;
       throttledRender();
     });
-    cleanupDone = api.ai.onDone((fullContent: string, recordId: string) => {
+    cleanupDone = api.ai.onDone((event: AiDoneEvent, legacyRecordId?: string) => {
+      const requestId = typeof event === "string" ? undefined : event.requestId;
+      if (!activeRequestId || requestId !== activeRequestId) return;
+      const fullContent = typeof event === "string" ? event : event.content;
+      const recordId = typeof event === "string" ? String(legacyRecordId || "") : event.recordId;
       result.value = fullContent;
       if (renderRafId !== null) {
         cancelAnimationFrame(renderRafId);
@@ -225,15 +242,16 @@ export function useAiGenerator(docType: DocType) {
       renderMarkdown(fullContent);
       lastRecordId.value = recordId;
       generating.value = false;
+      activeRequestId = null;
       clearDraft();
     });
   }
 
   function teardownListeners() {
-    cleanupChunk?.();
-    cleanupDone?.();
-    window.electronAPI?.ai.offChunk();
-    window.electronAPI?.ai.offDone();
+    if (cleanupChunk) window.electronAPI?.ai.offChunk(cleanupChunk);
+    if (cleanupDone) window.electronAPI?.ai.offDone(cleanupDone);
+    cleanupChunk = null;
+    cleanupDone = null;
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -317,15 +335,16 @@ export function useAiGenerator(docType: DocType) {
 
   onMounted(() => {
     void appStore.fetchConfig();
-    setupListeners();
     restoreDraft();
     void checkProjectCache();
   });
   onActivated(() => {
+    setupListeners();
     window.addEventListener("keydown", onKeydown);
   });
   onDeactivated(() => {
     window.removeEventListener("keydown", onKeydown);
+    teardownListeners();
     saveDraft();
   });
   onUnmounted(() => {
@@ -401,6 +420,7 @@ export function useAiGenerator(docType: DocType) {
       /* ignore */
     }
     generating.value = false;
+    activeRequestId = null;
   }
 
   async function generate() {
@@ -419,6 +439,7 @@ export function useAiGenerator(docType: DocType) {
       }
     }
     generating.value = true;
+    activeRequestId = createGenerationRequestId(docType);
     result.value = "";
     renderedHtml.value = "";
     teardownListeners();
@@ -435,6 +456,7 @@ export function useAiGenerator(docType: DocType) {
         finalContent += "\n\n[Please respond in English.]";
       }
       const res = await window.electronAPI.ai.generate({
+        requestId: activeRequestId,
         docType,
         projectName: projectName.value,
         userContent: finalContent,
@@ -444,10 +466,12 @@ export function useAiGenerator(docType: DocType) {
       });
       if (isIpcError(res)) {
         generating.value = false;
+        activeRequestId = null;
         message.error((res as IpcErrorResult).message);
       }
     } catch (err: unknown) {
       generating.value = false;
+      activeRequestId = null;
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: string }).message)

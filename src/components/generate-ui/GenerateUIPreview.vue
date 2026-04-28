@@ -1,19 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-
-interface ImageProgress {
-  stage: string;
-  current: number;
-  total: number;
-  message: string;
-}
-
-interface GeneratedPage {
-  name: string;
-  imagePath: string;
-  htmlPath?: string;
-}
+import type { GeneratedUIPage, UIGenMode, UIImageProgress } from "./types";
 
 const props = defineProps<{
   generating: boolean;
@@ -21,12 +9,12 @@ const props = defineProps<{
   figmaGenerating: boolean;
   uiPromptAnalyzing: boolean;
   uiAnalyzeStatus: string;
-  imageProgress: ImageProgress | null;
-  generatedPages: GeneratedPage[];
+  imageProgress: UIImageProgress | null;
+  generatedPages: GeneratedUIPage[];
   generatedImagePaths: string[];
   result: string;
   uiAnalyzedPrompt: string;
-  genMode: "doc" | "image" | "figma";
+  genMode: UIGenMode;
   renderedHtml: string;
 }>();
 
@@ -165,7 +153,7 @@ function fileUrl(filePath: string): string {
                 class="ui-page-preview-image"
                 :src="fileUrl(page.imagePath)"
                 :alt="page.name"
-                :preview="{ mask: t('gen.ui.openImagePreview') }"
+                :preview="true"
               />
             </div>
             <div class="ui-page-files">

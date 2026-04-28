@@ -1,6 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AiProvider } from "./app-manager";
+import { OpenAICompatibleImageProvider } from "./ai-providers/openai-compatible-image-provider";
+import type { GeneratedImage, ImageGenerationOptions } from "./ai-providers/types";
 import { getModelOutputKind, isImageGenerationModel } from "./model-capabilities";
 
 /** ESM replacement for `__dirname` (this module’s directory) */
@@ -267,26 +269,6 @@ export interface BuildUIImagePromptOptions {
   imageMode?: "fast" | "quality";
 }
 
-export interface GenerateImageOptions {
-  imageFormat?: "png" | "jpeg";
-  imageMode?: "fast" | "quality";
-  signal?: AbortSignal;
-}
-
-export interface GeneratedImage {
-  bytes: Buffer;
-  mimeType: string;
-  revisedPrompt?: string;
-}
-
-function uniqueValues(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
-
-function compactResponsePreview(text: string): string {
-  return text.replace(/\s+/g, " ").trim().slice(0, 240) || "空响应";
-}
-
 export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { system: string; user: string } {
   let user = UI_ANALYZE_PROMPT.userPrefix;
 
@@ -396,6 +378,9 @@ export function buildPrompt(
 
   if (projectContext) {
     system += `\n\n请结合以下项目分析上下文来生成更贴合项目实际情况的文档。如果项目分析中包含了技术栈、框架、模块结构等信息，请在文档中充分利用这些信息。`;
+    system += `\n\n重要约束：项目分析上下文是最高优先级事实来源。不得臆测上下文中没有证据支持的技术栈、数据库、中间件或框架。`;
+    system += `如果上下文显示数据库/数据源为 Oracle 或 OB Oracle，请按 Oracle/OB Oracle 语义描述数据字段、SQL、事务和约束；不得写成 MySQL 或 PostgreSQL。`;
+    system += `如果上下文没有明确数据库证据，请写“数据库类型待确认”，不要自行补充 MySQL、PostgreSQL 或其他数据库实现细节。`;
   }
 
   let user = tmpl.userPrefix;
@@ -413,6 +398,8 @@ export function buildPrompt(
 }
 
 export class AiService {
+  private readonly imageProvider = new OpenAICompatibleImageProvider();
+
   private static readonly KNOWN_MODELS: Record<string, string[]> = {
     openai: [
       "gpt-5.5", "gpt-5.5-pro",
@@ -581,112 +568,11 @@ export class AiService {
     return isImageGenerationModel(provider);
   }
 
-  async generateImage(provider: AiProvider, prompt: string, options: GenerateImageOptions = {}): Promise<GeneratedImage> {
+  async generateImage(provider: AiProvider, prompt: string, options: ImageGenerationOptions = {}): Promise<GeneratedImage> {
     if (!provider.apiKey) {
       throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
     }
-    const base = provider.baseUrl.replace(/\/+$/, "");
-    const urls = this.buildImageGenerationUrls(base);
-    const model = provider.model.trim();
-    const imageFormat = options.imageFormat === "jpeg" ? "jpeg" : "png";
-    const body: Record<string, unknown> = {
-      model,
-      prompt,
-      n: 1,
-    };
-
-    if (/^gpt[-_]?image/i.test(model)) {
-      body.size = "auto";
-      body.quality = options.imageMode === "quality" ? "high" : "medium";
-      body.output_format = imageFormat;
-    } else if (/^dall[-_]?e/i.test(model)) {
-      body.response_format = "b64_json";
-    } else {
-      body.output_format = imageFormat;
-    }
-
-    const data = await this.postImageGeneration(provider, urls, body, options.signal);
-    const item = data.data?.[0];
-    if (!item) {
-      throw new Error(`${provider.name} 图片生成 API 未返回图片数据`);
-    }
-    if (item.b64_json) {
-      return {
-        bytes: Buffer.from(item.b64_json, "base64"),
-        mimeType: imageFormat === "jpeg" ? "image/jpeg" : "image/png",
-        revisedPrompt: item.revised_prompt,
-      };
-    }
-    if (item.url) {
-      const imgRes = await fetch(item.url, { signal: options.signal });
-      if (!imgRes.ok) {
-        throw new Error(`${provider.name} 图片下载失败 (${imgRes.status})`);
-      }
-      const contentType = imgRes.headers.get("content-type") || "";
-      const bytes = Buffer.from(await imgRes.arrayBuffer());
-      return {
-        bytes,
-        mimeType: contentType.startsWith("image/") ? contentType : imageFormat === "jpeg" ? "image/jpeg" : "image/png",
-        revisedPrompt: item.revised_prompt,
-      };
-    }
-    throw new Error(`${provider.name} 图片生成 API 返回格式不受支持`);
-  }
-
-  private buildImageGenerationUrls(base: string): string[] {
-    if (base.endsWith("/images/generations")) return [base];
-    if (base.endsWith("/v1")) return [`${base}/images/generations`];
-    return uniqueValues([
-      `${base}/images/generations`,
-      `${base}/v1/images/generations`,
-    ]);
-  }
-
-  private async postImageGeneration(
-    provider: AiProvider,
-    urls: string[],
-    body: Record<string, unknown>,
-    signal?: AbortSignal,
-  ): Promise<{ data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }> }> {
-    let lastNonJson = "";
-    let lastUrl = urls[0] ?? provider.baseUrl;
-    for (let i = 0; i < urls.length; i++) {
-      const url = urls[i];
-      lastUrl = url;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${provider.apiKey}`,
-        },
-        body: JSON.stringify(body),
-        signal,
-      });
-      const contentType = res.headers.get("content-type") || "";
-      const text = await res.text().catch(() => "");
-      const looksLikeHtml = /^\s*</.test(text) || contentType.toLowerCase().includes("text/html");
-      if (!res.ok) {
-        if ((res.status === 404 || res.status === 405 || looksLikeHtml) && i < urls.length - 1) {
-          lastNonJson = text;
-          continue;
-        }
-        throw new Error(`${provider.name} 图片生成 API 调用失败 (${res.status}): ${compactResponsePreview(text || res.statusText)}`);
-      }
-      try {
-        return JSON.parse(text) as { data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }> };
-      } catch {
-        if (looksLikeHtml && i < urls.length - 1) {
-          lastNonJson = text;
-          continue;
-        }
-        throw new Error(
-          `${provider.name} 图片生成 API 返回的不是 JSON。请确认 Base URL 是否需要包含 /v1，或该服务是否支持 /images/generations。最后请求地址：${lastUrl}；响应开头：${compactResponsePreview(text)}`,
-        );
-      }
-    }
-    throw new Error(
-      `${provider.name} 图片生成 API 返回的不是 JSON。已尝试 ${urls.join("、")}。请确认 Base URL 是否需要包含 /v1，或该服务是否支持 /images/generations。响应开头：${compactResponsePreview(lastNonJson)}`,
-    );
+    return this.imageProvider.generateImage(provider, prompt, options);
   }
 
   private buildOpenAIUserContent(
