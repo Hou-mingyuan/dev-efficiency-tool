@@ -81,6 +81,51 @@ describe("AppManager config persistence", () => {
     expect(reloaded.getConfig().aiProviders[0].apiKey).toBe("sk-test-secret");
     expect(reloaded.getConfig().outputPath).toBe(path.join(appDataDir, "output"));
   });
+
+  it("does not expose mutable internal config references", async () => {
+    const { AppManager, DEFAULT_AI_PROVIDERS } = await import("../app-manager");
+    const appDataDir = makeTempDir("app-manager");
+    const provider = {
+      ...DEFAULT_AI_PROVIDERS[0],
+      apiKey: "sk-original",
+      enabled: true,
+    };
+    const projects = [{
+      id: "p1",
+      name: "项目一",
+      projectPath: path.join(appDataDir, "project"),
+      outputPath: path.join(appDataDir, "output"),
+      methodologyPath: path.join(appDataDir, "methodology"),
+    }];
+
+    const manager = new AppManager({ appDataDir, detectMethodologyPath: false });
+    const saved = manager.setConfig({
+      aiProviders: [provider],
+      customPrompts: { prd: "original prompt" },
+      projects,
+    });
+
+    saved.aiProviders[0].apiKey = "mutated-return";
+    saved.customPrompts.prd = "mutated prompt";
+    saved.projects[0].name = "被外部修改";
+
+    const fromGetter = manager.getConfig();
+    fromGetter.aiProviders[0].apiKey = "mutated-getter";
+    fromGetter.customPrompts.prd = "mutated getter prompt";
+    fromGetter.projects[0].name = "再次修改";
+
+    const current = manager.getConfig();
+    expect(current.aiProviders[0].apiKey).toBe("sk-original");
+    expect(current.customPrompts.prd).toBe("original prompt");
+    expect(current.projects[0].name).toBe("项目一");
+
+    provider.apiKey = "mutated-input";
+    projects[0].name = "输入对象被修改";
+
+    const afterInputMutation = manager.getConfig();
+    expect(afterInputMutation.aiProviders[0].apiKey).toBe("sk-original");
+    expect(afterInputMutation.projects[0].name).toBe("项目一");
+  });
 });
 
 describe("AppManager logs", () => {

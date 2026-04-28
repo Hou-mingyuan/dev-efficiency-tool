@@ -27,6 +27,87 @@ export interface RegisterAiHandlersOptions {
 
 type ImageInput = Array<{ base64: string; mimeType: string }> | undefined;
 
+function stripJsonFence(input: string): string {
+  return input
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+}
+
+function parseJsonObject(input: string): Record<string, unknown> | null {
+  const cleaned = stripJsonFence(input);
+  try {
+    const parsed = JSON.parse(cleaned);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      const parsed = JSON.parse(match[0]);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : null;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function sanitizeFileNamePart(value: string): string {
+  return value.replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80) || "UI设计";
+}
+
+function resolveFigmaFileName(template: unknown, projectName: unknown): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const project = sanitizeFileNamePart(String(projectName || "未命名项目"));
+  const rawTemplate = String(template || "{projectName}-UI设计-{timestamp}");
+  const base = rawTemplate
+    .replace(/\{projectName\}/g, project)
+    .replace(/\{timestamp\}/g, timestamp);
+  const safe = sanitizeFileNamePart(base);
+  return safe.toLowerCase().endsWith(".figma.json") ? safe : `${safe}.figma.json`;
+}
+
+function fallbackFigmaJson(projectName: unknown, analyzedPrompt: string): Record<string, unknown> {
+  const title = String(projectName || "UI Design");
+  const lines = analyzedPrompt
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-#*\s]+/, "").trim())
+    .filter(Boolean)
+    .slice(0, 12);
+  return {
+    schemaVersion: "dev-efficiency-tool.figma-json.v1",
+    file: {
+      name: title,
+      description: "由开发效率提升工具生成，可由后续 Figma 插件导入创建画布。",
+    },
+    pages: [
+      {
+        name: title,
+        frames: [
+          {
+            name: title,
+            width: 1440,
+            height: 1024,
+            layoutMode: "VERTICAL",
+            padding: 32,
+            gap: 16,
+            children: lines.length
+              ? lines.map((text, index) => ({
+                type: index === 0 ? "heading" : "text",
+                name: index === 0 ? "页面标题" : `文本 ${index}`,
+                text,
+              }))
+              : [{ type: "text", name: "设计说明", text: analyzedPrompt }],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
   const {
     appManager,
@@ -331,6 +412,73 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     });
     appManager()?.addLog("info", `UI 图片已生成 ${pages.length} 张: ${savedFiles.filter((f) => f.endsWith(`.${imgFormat}`)).join(", ")}`, "ai-gen-ui");
     return { htmlResult, savedFiles, recordId, pages: pageResults };
+  }));
+
+  ipcMain.handle("ai:generateFigmaFile", wrapIPC(async (_event: any, req: any) => {
+    const provider = resolveProvider(req.providerId);
+    if (!provider) throw new Error(currentLocale() === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
+
+    const analyzedPrompt = String(req.analyzedPrompt || "").trim();
+    if (!analyzedPrompt) {
+      throw new Error(currentLocale() === "zh" ? "未提供 Figma 生成提示词" : "No Figma generation prompt provided");
+    }
+    const outputDir = assertTrustedOutputDirectory(req.outputDir || appManager()?.getConfig().outputPath || "");
+    fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
+    const fileName = resolveFigmaFileName(req.fileNameTemplate, req.projectName);
+    const filePath = assertTrustedOutputPath(outputDir, fileName);
+
+    appManager()?.addLog(
+      "info",
+      `Figma 连接器文件生成开始: provider=${provider.name ?? provider.id}, file=${fileName}`,
+      "ai-figma",
+    );
+
+    const system = [
+      "你是 Figma 插件数据生成器。",
+      "请只输出严格 JSON，不要输出 Markdown 代码块。",
+      "该 JSON 会被桌面应用保存为 .figma.json，后续由 Figma 插件导入创建设计画布。",
+      "JSON 顶层必须包含 schemaVersion、file、pages。",
+      "pages[].frames[].children 支持 type: heading, text, button, input, card, list, table, imagePlaceholder。",
+      "尽量保留页面层级、自动布局、间距、颜色、字号、圆角等设计信息。",
+    ].join("\n");
+    const user = [
+      `项目名称：${req.projectName || "未命名项目"}`,
+      req.projectPath ? `参考项目路径：${req.projectPath}` : "",
+      req.referenceContent ? `参考内容：\n${req.referenceContent}` : "",
+      `UI 生成提示词：\n${analyzedPrompt}`,
+    ].filter(Boolean).join("\n\n");
+
+    const abortController = new AbortController();
+    currentAbortController = abortController;
+    let figmaJson: Record<string, unknown>;
+    try {
+      const raw = await aiService.generate(provider, system, user, undefined, abortController.signal);
+      figmaJson = parseJsonObject(raw) ?? fallbackFigmaJson(req.projectName, analyzedPrompt);
+    } finally {
+      if (currentAbortController === abortController) currentAbortController = null;
+    }
+
+    figmaJson = {
+      ...figmaJson,
+      schemaVersion: String(figmaJson.schemaVersion || "dev-efficiency-tool.figma-json.v1"),
+      generatedBy: "dev-efficiency-tool",
+      generatedAt: new Date().toISOString(),
+      importHint: "请使用配套 Figma 插件导入此 JSON。未配置插件时，可先将该文件作为连接器中间产物保存。",
+    };
+
+    fs.writeFileSync(filePath, JSON.stringify(figmaJson, null, 2), "utf-8");
+
+    const recordId = randomUUID();
+    appManager()?.addGenerationRecord({
+      id: recordId,
+      docType: "ui",
+      projectName: req.projectName?.trim() || "",
+      createdAt: new Date().toISOString(),
+      preview: `[Figma JSON] ${fileName}`,
+      outputPath: filePath,
+    });
+    appManager()?.addLog("info", `Figma 连接器文件已生成: ${filePath}`, "ai-figma");
+    return { filePath, fileName, recordId, figmaJson };
   }));
 
   ipcMain.handle("ai:checkFilesExist", wrapIPC(async (_e: any, paths: string[]) => {

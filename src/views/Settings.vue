@@ -23,6 +23,17 @@ function ensurePromptKeys(c: AppConfig): void {
   });
 }
 
+function ensureFigmaConnector(c: AppConfig): void {
+  c.figmaConnector = {
+    ...{
+      enabled: false,
+      defaultFileName: "{projectName}-UI设计-{timestamp}",
+      mode: "plugin-json" as const,
+    },
+    ...c.figmaConnector,
+  };
+}
+
 const { t } = useI18n();
 const appStore = useAppStore();
 const notificationStore = useNotificationStore();
@@ -36,6 +47,13 @@ const draft = ref<AppConfig>({
   aiProviders: DEFAULT_AI_PROVIDERS.map((p) => ({ ...p })),
   activeProviderId: "",
   customPrompts: {},
+  projects: [],
+  activeProjectId: "",
+  figmaConnector: {
+    enabled: false,
+    defaultFileName: "{projectName}-UI设计-{timestamp}",
+    mode: "plugin-json",
+  },
 });
 
 const clearingCaches = ref(false);
@@ -74,6 +92,7 @@ function applyDraftFromStore() {
   const raw = appStore.config;
   const next = JSON.parse(JSON.stringify(raw)) as AppConfig;
   ensurePromptKeys(next);
+  ensureFigmaConnector(next);
   draft.value = next;
 }
 

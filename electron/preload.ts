@@ -103,6 +103,7 @@ export interface ElectronAPI {
     analyzeUIPrompt: (req: unknown) => Promise<unknown>;
     renderHtmlToImage: (req: unknown) => Promise<unknown>;
     generateUIImage: (req: unknown) => Promise<unknown>;
+    generateFigmaFile: (req: unknown) => Promise<unknown>;
     onImageProgress: (callback: (progress: unknown) => void) => IpcCleanup;
     offImageProgress: (cleanup?: IpcCleanup) => void;
     onPageReady: (callback: (page: unknown) => void) => IpcCleanup;
@@ -185,6 +186,7 @@ const electronAPI: ElectronAPI = {
     analyzeUIPrompt: (req) => invoke("ai:analyzeUIPrompt", req),
     renderHtmlToImage: (req) => invoke("ai:renderHtmlToImage", req),
     generateUIImage: (req) => invoke("ai:generateUIImage", req),
+    generateFigmaFile: (req) => invoke("ai:generateFigmaFile", req),
     onImageProgress: (callback) => listenPayload("ai:imageProgress", callback),
     offImageProgress: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();

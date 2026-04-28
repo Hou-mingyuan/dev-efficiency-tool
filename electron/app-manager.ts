@@ -48,6 +48,13 @@ export interface AppConfig {
   customPrompts: Record<string, string>;
   projects: ProjectProfile[];
   activeProjectId: string;
+  figmaConnector: FigmaConnectorConfig;
+}
+
+export interface FigmaConnectorConfig {
+  enabled: boolean;
+  defaultFileName: string;
+  mode: "plugin-json";
 }
 
 export const DEFAULT_AI_PROVIDERS: AiProvider[] = [
@@ -127,7 +134,25 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   customPrompts: {},
   projects: [],
   activeProjectId: "",
+  figmaConnector: {
+    enabled: false,
+    defaultFileName: "{projectName}-UI设计-{timestamp}",
+    mode: "plugin-json",
+  },
 };
+
+function cloneAppConfig(config: AppConfig): AppConfig {
+  return {
+    ...config,
+    aiProviders: (config.aiProviders ?? DEFAULT_AI_PROVIDERS).map((provider) => ({ ...provider })),
+    customPrompts: { ...(config.customPrompts ?? {}) },
+    projects: (config.projects ?? []).map((project) => ({ ...project })),
+    figmaConnector: {
+      ...DEFAULT_APP_CONFIG.figmaConnector,
+      ...(config.figmaConnector ?? {}),
+    },
+  };
+}
 
 export type LogLevel = "info" | "warn" | "error";
 
@@ -219,6 +244,10 @@ export class AppManager {
       if (fs.existsSync(this.configPath)) {
         const raw = fs.readFileSync(this.configPath, "utf-8");
         const parsed = { ...DEFAULT_APP_CONFIG, ...JSON.parse(raw) } as AppConfig;
+        parsed.figmaConnector = {
+          ...DEFAULT_APP_CONFIG.figmaConnector,
+          ...(parsed.figmaConnector ?? {}),
+        };
         if (Array.isArray(parsed.aiProviders)) {
           parsed.aiProviders = parsed.aiProviders.map((p) => ({
             ...p,
@@ -339,14 +368,14 @@ export class AppManager {
   }
 
   getConfig(): AppConfig {
-    return { ...this.config };
+    return cloneAppConfig(this.config);
   }
 
   setConfig(partial: Partial<AppConfig>): AppConfig {
-    this.config = { ...this.config, ...partial };
+    this.config = cloneAppConfig({ ...this.config, ...partial });
     this.saveConfig();
     this.addLog("info", "配置已更新", "config");
-    return { ...this.config };
+    return cloneAppConfig(this.config);
   }
 
   getMethodologyFiles(): MethodologyFileInfo[] {

@@ -36,6 +36,13 @@ declare global {
     customPrompts: Record<string, string>;
     projects?: ProjectProfile[];
     activeProjectId?: string;
+    figmaConnector: FigmaConnectorConfig;
+  }
+
+  interface FigmaConnectorConfig {
+    enabled: boolean;
+    defaultFileName: string;
+    mode: "plugin-json";
   }
 
   type DocType = "prd" | "requirements" | "ui" | "design" | (string & {});
@@ -148,6 +155,15 @@ declare global {
         referenceContent?: string;
         projectPath?: string;
       }) => Promise<{ htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> } | IpcErrorResult>;
+      generateFigmaFile: (req: {
+        projectName?: string;
+        analyzedPrompt: string;
+        providerId?: string;
+        outputDir?: string;
+        fileNameTemplate?: string;
+        referenceContent?: string;
+        projectPath?: string;
+      }) => Promise<{ filePath: string; fileName: string; recordId: string; figmaJson: unknown } | IpcErrorResult>;
       onImageProgress: (callback: (progress: { stage: string; current: number; total: number; message: string }) => void) => () => void;
       offImageProgress: (cleanup?: IpcCleanup) => void;
       onPageReady: (callback: (page: { name: string; imagePath: string; htmlPath: string; index: number; total: number }) => void) => () => void;

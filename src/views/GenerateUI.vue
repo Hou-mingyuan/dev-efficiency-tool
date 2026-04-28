@@ -7,7 +7,7 @@
 
     <div class="generator-page__grid">
       <a-card class="generator-page__panel" :title="t('gen.common.input')" size="small">
-        <a-form layout="vertical" :disabled="generating || imageGenerating || uiPromptAnalyzing">
+        <a-form layout="vertical" :disabled="generating || imageGenerating || figmaGenerating || uiPromptAnalyzing">
           <a-form-item :label="t('gen.common.scopeLevel')">
             <a-radio-group v-model:value="scopeLevel">
               <a-radio-button value="project">{{ t('gen.common.scopeProject') }}</a-radio-button>
@@ -18,6 +18,7 @@
             <a-radio-group v-model:value="genMode">
               <a-radio-button value="doc">{{ t('gen.ui.modeDoc') }}</a-radio-button>
               <a-radio-button value="image">{{ t('gen.ui.modeImage') }}</a-radio-button>
+              <a-radio-button value="figma" :disabled="!figmaEnabled">{{ t('gen.ui.modeFigma') }}</a-radio-button>
             </a-radio-group>
           </a-form-item>
           <a-form-item :label="t('gen.common.projectName')">
@@ -36,7 +37,7 @@
             />
           </a-form-item>
 
-          <a-form-item v-if="genMode === 'image'" :label="t('gen.ui.refImages')">
+          <a-form-item v-if="genMode !== 'doc'" :label="t('gen.ui.refImages')">
             <div
               class="ref-drop-zone"
               :class="{ 'ref-drop-zone--active': imgDragOver }"
@@ -115,7 +116,7 @@
           </a-form-item>
 
           <a-form-item
-            v-if="genMode === 'image'"
+            v-if="genMode !== 'doc'"
             :label="t('gen.ui.analyzedPrompt')"
             :extra="t('gen.ui.analyzedPromptHint')"
           >
@@ -208,9 +209,9 @@
           <a-button
             type="primary"
             :loading="generating || uiPromptAnalyzing"
-            @click="genMode === 'image' ? analyzeUIPrompt() : generate()"
+            @click="genMode === 'doc' ? generate() : analyzeUIPrompt()"
           >
-            {{ genMode === 'image' ? t('gen.ui.analyzePrompt') : t('gen.common.generate') }}
+            {{ genMode === 'doc' ? t('gen.common.generate') : t('gen.ui.analyzePrompt') }}
           </a-button>
           <a-button
             v-if="genMode === 'image'"
@@ -222,8 +223,18 @@
           >
             {{ t('gen.ui.generateFromPrompt') }}
           </a-button>
+          <a-button
+            v-if="genMode === 'figma'"
+            type="primary"
+            ghost
+            :loading="figmaGenerating"
+            :disabled="uiPromptAnalyzing || figmaGenerating || !uiAnalyzedPrompt.trim() || !figmaEnabled"
+            @click="generateFigmaFile"
+          >
+            {{ t('gen.ui.generateFigmaFromPrompt') }}
+          </a-button>
           <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
-          <a-button v-if="generating || imageGenerating || uiPromptAnalyzing" danger @click="genMode === 'image' ? stopImageGenerate() : stopGenerate()">
+          <a-button v-if="generating || imageGenerating || figmaGenerating || uiPromptAnalyzing" danger @click="genMode === 'doc' ? stopGenerate() : stopImageGenerate()">
             {{ t("gen.common.stopGenerate") }}
           </a-button>
           <a-button v-if="genMode === 'doc'" :disabled="generating || !userContent.trim()" @click="onRegenerate">
@@ -253,6 +264,7 @@
       <GenerateUIPreview
         :generating="generating"
         :image-generating="imageGenerating"
+        :figma-generating="figmaGenerating"
         :ui-prompt-analyzing="uiPromptAnalyzing"
         :ui-analyze-status="uiAnalyzeStatus"
         :image-progress="imageProgress"
@@ -285,6 +297,7 @@ import { Modal, message } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useAiGenerator } from "@/composables/useAiGenerator";
+import { useAppStore } from "@/store/app";
 import GenerateUIHistoryDrawer from "@/components/generate-ui/GenerateUIHistoryDrawer.vue";
 import GenerateUIPreview from "@/components/generate-ui/GenerateUIPreview.vue";
 
@@ -294,6 +307,7 @@ defineOptions({ name: "GenerateUI" });
 
 const { t } = useI18n();
 const route = useRoute();
+const appStore = useAppStore();
 
 const {
   projectName,
@@ -340,14 +354,19 @@ const savedPrefs = (() => {
   } catch { return {}; }
 })();
 
-const genMode = ref<"doc" | "image">(savedPrefs.genMode === "image" ? "image" : "doc");
+type UIGenMode = "doc" | "image" | "figma";
+const genMode = ref<UIGenMode>(
+  savedPrefs.genMode === "image" || savedPrefs.genMode === "figma" ? savedPrefs.genMode : "doc",
+);
 const imageFormat = ref<"png" | "jpeg">(savedPrefs.imageFormat === "jpeg" ? "jpeg" : "png");
 const uiImageMode = ref<"fast" | "quality">(savedPrefs.uiImageMode === "quality" ? "quality" : "fast");
 const uiPromptAnalyzing = ref(false);
 const uiAnalyzeStatus = ref("");
 const uiAnalyzedPrompt = ref("");
 const imageGenerating = ref(false);
+const figmaGenerating = ref(false);
 const imageProgress = ref<{ stage: string; current: number; total: number; message: string } | null>(null);
+const figmaEnabled = computed(() => Boolean(appStore.config.figmaConnector?.enabled));
 
 watch([genMode, imageFormat, uiImageMode], () => {
   try {
@@ -363,15 +382,17 @@ const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
 const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath: string }>>([]);
 watch(uiAnalyzedPrompt, (value) => {
-  if (genMode.value !== "image" || generatedPages.value.length) return;
+  if (genMode.value === "doc" || generatedPages.value.length) return;
   result.value = value;
   const raw = marked.parse(value || "") as string;
   renderedHtml.value = DOMPurify.sanitize(raw);
 });
-const useAppStoreLazy = () => {
-  const store = import("@/store/app").then((m) => m.useAppStore());
-  return store;
-};
+
+watch(figmaEnabled, (enabled) => {
+  if (!enabled && genMode.value === "figma") {
+    genMode.value = "doc";
+  }
+});
 
 async function pickOutputDir() {
   const dir = await selectOutputDir();
@@ -437,6 +458,7 @@ async function stopImageGenerate() {
   uiPromptAnalyzing.value = false;
   uiAnalyzeStatus.value = "";
   imageGenerating.value = false;
+  figmaGenerating.value = false;
 }
 
 async function analyzeUIPrompt() {
@@ -581,6 +603,80 @@ async function generateUIImage() {
     window.electronAPI.ai.offImageProgress();
     window.electronAPI.ai.offPageReady();
     imageGenerating.value = false;
+    imageProgress.value = null;
+    setupListeners();
+  }
+}
+
+async function generateFigmaFile() {
+  if (!figmaEnabled.value) {
+    message.warning(t("gen.ui.figmaDisabled"));
+    return;
+  }
+  if (!uiAnalyzedPrompt.value.trim()) {
+    message.warning(t("gen.ui.needAnalyzePrompt"));
+    return;
+  }
+  if (!userContent.value.trim() && !refImages.value.length && !referenceItems.value.length && !referenceProjectPath.value) {
+    message.warning(t("gen.ui.needContentOrImage"));
+    return;
+  }
+  if (scopeLevel.value === "module" && !referenceItems.value.length && !referenceProjectPath.value && !refImages.value.length) {
+    message.warning(t("gen.common.needRefOrProject"));
+    return;
+  }
+
+  teardownListeners();
+  figmaGenerating.value = true;
+  imageProgress.value = { stage: "figma", current: 0, total: 0, message: t("gen.ui.generateFigmaFromPrompt") };
+  result.value = "";
+  renderedHtml.value = "";
+  generatedImagePaths.value = [];
+  generatedPages.value = [];
+
+  try {
+    const outputDir = customOutputPath.value || appStore.config.outputPath;
+    if (!outputDir) {
+      const picked = await selectOutputDir();
+      if (!picked) {
+        figmaGenerating.value = false;
+        return;
+      }
+      customOutputPath.value = picked;
+    }
+    const refContent = referenceItems.value.map((r) => r.content).join("\n\n---\n\n");
+    const res = await window.electronAPI.ai.generateFigmaFile({
+      projectName: projectName.value,
+      analyzedPrompt: uiAnalyzedPrompt.value,
+      providerId: customProviderId.value || undefined,
+      outputDir: customOutputPath.value || appStore.config.outputPath,
+      fileNameTemplate: appStore.config.figmaConnector?.defaultFileName,
+      referenceContent: refContent || undefined,
+      projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
+    });
+    if (isIpcErr(res)) {
+      message.error(res.message);
+      return;
+    }
+    const data = res as { filePath: string; fileName: string; recordId: string };
+    lastRecordId.value = data.recordId;
+    generatedImagePaths.value = [data.filePath];
+    result.value = [
+      `# ${t("gen.ui.figmaGenSuccess")}`,
+      "",
+      t("gen.ui.figmaSavedTo", { path: data.filePath }),
+      "",
+      t("gen.ui.figmaImportHint"),
+    ].join("\n");
+    const raw = marked.parse(result.value) as string;
+    renderedHtml.value = DOMPurify.sanitize(raw);
+    message.success(t("gen.ui.figmaGenSuccess"));
+  } catch (err: unknown) {
+    const msg = err && typeof err === "object" && "message" in err
+      ? String((err as { message: string }).message) : String(err);
+    message.error(msg);
+  } finally {
+    figmaGenerating.value = false;
     imageProgress.value = null;
     setupListeners();
   }

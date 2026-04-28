@@ -18,6 +18,7 @@ interface GeneratedPage {
 const props = defineProps<{
   generating: boolean;
   imageGenerating: boolean;
+  figmaGenerating: boolean;
   uiPromptAnalyzing: boolean;
   uiAnalyzeStatus: string;
   imageProgress: ImageProgress | null;
@@ -25,7 +26,7 @@ const props = defineProps<{
   generatedImagePaths: string[];
   result: string;
   uiAnalyzedPrompt: string;
-  genMode: "doc" | "image";
+  genMode: "doc" | "image" | "figma";
   renderedHtml: string;
 }>();
 
@@ -44,7 +45,7 @@ const progressPercent = computed(() => {
 const showProgressInfo = computed(() => props.imageProgress?.stage !== "generating");
 
 function fileUrl(filePath: string): string {
-  return `file:///${filePath.replace(/\\\\/g, "/")}`;
+  return `file:///${filePath.replace(/\\/g, "/")}`;
 }
 </script>
 
@@ -57,7 +58,7 @@ function fileUrl(filePath: string): string {
     <template #extra>
       <a-space>
         <span
-          v-if="generating || imageGenerating || uiPromptAnalyzing"
+          v-if="generating || imageGenerating || figmaGenerating || uiPromptAnalyzing"
           class="gen-status"
         >
           {{ uiAnalyzeStatus || imageProgress?.message || t("gen.common.generating") }}
@@ -86,12 +87,12 @@ function fileUrl(filePath: string): string {
       </div>
     </div>
     <a-spin
-      :spinning="generating || imageGenerating || uiPromptAnalyzing"
+      :spinning="generating || imageGenerating || figmaGenerating || uiPromptAnalyzing"
       class="preview-spin"
     >
       <div class="generator-page__preview-body">
         <a-empty
-          v-if="!result && !uiAnalyzedPrompt && !generating && !imageGenerating && !uiPromptAnalyzing"
+          v-if="!result && !uiAnalyzedPrompt && !generating && !imageGenerating && !figmaGenerating && !uiPromptAnalyzing"
           :description="t('gen.common.noResult')"
         />
         <template v-else-if="genMode === 'image' && generatedPages.length">

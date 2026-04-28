@@ -85,9 +85,26 @@ const { t } = useI18n();
             danger
             :loading="clearingCaches"
           >
-            {{ t("settings.clearAllCaches") }}
-          </a-button>
-        </a-popconfirm>
+          {{ t("settings.clearAllCaches") }}
+        </a-button>
+      </a-popconfirm>
+      </a-form-item>
+      <a-divider orientation="left">
+        {{ t("settings.figmaConnector") }}
+      </a-divider>
+      <a-form-item :label="t('settings.figmaEnabled')" :extra="t('settings.figmaHint')">
+        <a-switch
+          v-model:checked="draft.figmaConnector.enabled"
+          :checked-children="t('common.confirm')"
+          :un-checked-children="t('common.cancel')"
+        />
+      </a-form-item>
+      <a-form-item :label="t('settings.figmaFileName')">
+        <a-input
+          v-model:value="draft.figmaConnector.defaultFileName"
+          :placeholder="t('settings.figmaFileNamePlaceholder')"
+          allow-clear
+        />
       </a-form-item>
     </a-form>
   </a-space>

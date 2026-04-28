@@ -87,6 +87,11 @@ const defaultConfig = (): AppConfig => ({
   customPrompts: {},
   projects: [],
   activeProjectId: "",
+  figmaConnector: {
+    enabled: false,
+    defaultFileName: "{projectName}-UI设计-{timestamp}",
+    mode: "plugin-json",
+  },
 });
 
 let configListenerStop: (() => void) | null = null;
