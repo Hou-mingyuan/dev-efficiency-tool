@@ -20,3 +20,6 @@
 - 拖拽文件直接解析会更严格：如果文件没有经过系统选择器或不在可信目录下，会被主进程拒绝。这是安全边界变化，需要后续如要保留拖拽体验，再设计“拖拽文件授权”专用入口。
 - `AppManager` 现在支持测试用数据目录和禁用方法论路径自动探测，默认生产行为不变；这让配置保存和 API Key 加密可以在临时目录中验证。
 - `GenerateUI.vue` 和 `Settings.vue` 仍可继续细拆业务逻辑，但第一轮已把最独立的展示/表单块移出，降低了主页面模板体积。
+- P3 盘点显示当前最大文件包括 `src/views/GenerateUI.vue`、`src/App.vue`、`electron/ai-service.ts`、`electron/main.ts` 和 `electron/ipc/ai-handlers.ts`。其中 `electron/ai-service.ts` 同时承载提示词构造、模型清单、多模态消息构造和模型调用，适合优先做纯逻辑拆分。
+- `electron/ai-service.ts` 的模型清单和多模态消息构造不依赖 Electron 窗口、IPC 或网络，可拆为独立模块并用单元测试覆盖，作为低风险深度优化切口。
+- `AiService.listModels` 只需要委托模型列表模块，已知服务商模型清单和远程 `/models` 查询都不需要留在服务类内部；这能让后续 AI 服务层继续向“只负责调用生成接口”收敛。

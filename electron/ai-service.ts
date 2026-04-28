@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import type { AiProvider } from "./app-manager";
 import { OpenAICompatibleImageProvider } from "./ai-providers/openai-compatible-image-provider";
 import type { GeneratedImage, ImageGenerationOptions } from "./ai-providers/types";
+import { buildAnthropicUserContent, buildOpenAIUserContent } from "./ai-message-content";
+import { listAvailableModels } from "./ai-model-list";
 import { getModelOutputKind, isImageGenerationModel } from "./model-capabilities";
 
 /** ESM replacement for `__dirname` (this module’s directory) */
@@ -426,74 +428,8 @@ export function buildPrompt(
 export class AiService {
   private readonly imageProvider = new OpenAICompatibleImageProvider();
 
-  private static readonly KNOWN_MODELS: Record<string, string[]> = {
-    openai: [
-      "gpt-5.5", "gpt-5.5-pro",
-      "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
-      "gpt-5.2", "gpt-5.1", "gpt-5", "gpt-5-mini",
-      "gpt-4.1", "gpt-4.1-mini",
-      "gpt-4o", "gpt-4o-mini",
-      "o3", "o3-mini", "o3-pro",
-    ],
-    anthropic: [
-      "claude-opus-4-7",
-      "claude-sonnet-4-6", "claude-haiku-4-5",
-      "claude-opus-4-6", "claude-sonnet-4-5", "claude-opus-4-5",
-      "claude-opus-4-1",
-    ],
-    deepseek: [
-      "deepseek-v4-pro", "deepseek-v4-flash",
-      "deepseek-chat", "deepseek-reasoner",
-    ],
-    qwen: [
-      "qwen3.6-max-preview", "qwen3.6-plus", "qwen3.6-flash",
-      "qwen3-max", "qwen3.5-plus", "qwen3.5-flash",
-      "qwen-plus", "qwen-turbo", "qwen-long",
-    ],
-    zhipu: [
-      "glm-5.1", "glm-5", "glm-5-turbo", "glm-5v-turbo",
-      "glm-4.7", "glm-4.7-flash",
-      "glm-4.6",
-    ],
-    moonshot: [
-      "kimi-k2.6", "kimi-k2.5",
-      "kimi-k2-0905",
-      "moonshot-v1-128k", "moonshot-v1-32k", "moonshot-v1-8k",
-    ],
-    doubao: [
-      "doubao-seed-2.0-pro", "doubao-seed-2.0-code",
-      "doubao-seed-2.0-lite", "doubao-seed-2.0-mini",
-      "doubao-pro-v1", "doubao-pro-128k", "doubao-lite-128k",
-    ],
-  };
-
   async listModels(provider: AiProvider): Promise<string[]> {
-    if (!provider.apiKey?.trim()) return [];
-
-    const knownList = AiService.KNOWN_MODELS[provider.id];
-    if (knownList) return knownList;
-
-    try {
-      return await this.listOpenAICompatibleModels(provider);
-    } catch {
-      return [];
-    }
-  }
-
-  private async listOpenAICompatibleModels(provider: AiProvider): Promise<string[]> {
-    const base = provider.baseUrl.replace(/\/+$/, "");
-    const url = `${base}/models`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${provider.apiKey}` },
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { data?: Array<{ id?: string }> };
-    if (!Array.isArray(data.data)) return [];
-    return data.data
-      .map((m) => m.id ?? "")
-      .filter((id) => id.length > 0)
-      .sort((a, b) => a.localeCompare(b));
+    return listAvailableModels(provider);
   }
 
   /**
@@ -601,19 +537,6 @@ export class AiService {
     return this.imageProvider.generateImage(provider, prompt, options);
   }
 
-  private buildOpenAIUserContent(
-    user: string,
-    images?: Array<{ base64: string; mimeType: string }>,
-  ): string | Array<{ type: string; text?: string; image_url?: { url: string } }> {
-    if (!images?.length) return user;
-    const parts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
-    for (const img of images) {
-      parts.push({ type: "image_url", image_url: { url: `data:${img.mimeType};base64,${img.base64}` } });
-    }
-    parts.push({ type: "text", text: user });
-    return parts;
-  }
-
   private async callOpenAI(
     provider: AiProvider,
     system: string,
@@ -636,7 +559,7 @@ export class AiService {
         model: provider.model,
         messages: [
           { role: "system", content: system },
-          { role: "user", content: this.buildOpenAIUserContent(user, images) },
+          { role: "user", content: buildOpenAIUserContent(user, images) },
         ],
         temperature: 0.7,
         max_tokens: maxTokens,
@@ -676,7 +599,7 @@ export class AiService {
         model: provider.model,
         messages: [
           { role: "system", content: system },
-          { role: "user", content: this.buildOpenAIUserContent(user, images) },
+          { role: "user", content: buildOpenAIUserContent(user, images) },
         ],
         temperature: 0.7,
         max_tokens: maxTokens,
@@ -741,19 +664,6 @@ export class AiService {
     return full || "生成结果为空";
   }
 
-  private buildAnthropicUserContent(
-    user: string,
-    images?: Array<{ base64: string; mimeType: string }>,
-  ): string | Array<{ type: string; text?: string; source?: { type: string; media_type: string; data: string } }> {
-    if (!images?.length) return user;
-    const parts: Array<{ type: string; text?: string; source?: { type: string; media_type: string; data: string } }> = [];
-    for (const img of images) {
-      parts.push({ type: "image", source: { type: "base64", media_type: img.mimeType, data: img.base64 } });
-    }
-    parts.push({ type: "text", text: user });
-    return parts;
-  }
-
   private async callAnthropic(
     provider: AiProvider,
     system: string,
@@ -773,7 +683,7 @@ export class AiService {
       body: JSON.stringify({
         model: provider.model,
         system,
-        messages: [{ role: "user", content: this.buildAnthropicUserContent(user, images) }],
+        messages: [{ role: "user", content: buildAnthropicUserContent(user, images) }],
         max_tokens: maxTokens,
       }),
       signal,
@@ -806,7 +716,7 @@ export class AiService {
       body: JSON.stringify({
         model: provider.model,
         system,
-        messages: [{ role: "user", content: this.buildAnthropicUserContent(user, images) }],
+        messages: [{ role: "user", content: buildAnthropicUserContent(user, images) }],
         max_tokens: maxTokens,
         stream: true,
       }),

@@ -29,3 +29,12 @@
 - 验证：`npx vitest run electron/__tests__/model-capabilities.spec.ts electron/__tests__/ui-image-targets.spec.ts src/utils/provider-readiness.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。
 - 继续优化生成约束：新增统一的 `STRICT_REFERENCE_ADHERENCE_RULE`，但仅在模块级别生成时启用。模块级普通文档生成、UI 提示词分析、HTML 截图出图、图片模型直出会明确要求严格遵守参考项目/参考文档的项目风格、目录结构、技术体系、样式规范、组件框架、命名习惯和交互模式；项目级别生成不注入该硬约束。
 - 验证：`npx vitest run electron/__tests__/ai-service.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。
+- 已按用户确认创建提交 `d80abe8 Limit reference adherence hard rule to module scope`。
+- 推送尝试 2 次均失败：`Failed to connect to github.com port 443 via 127.0.0.1`。判断为本机代理或网络连通性问题，不影响本地代码和打包产物；后续网络恢复后需执行 `git push origin master`。
+- 开始 P3 深度优化：盘点高复杂度文件后，优先拆分 `electron/ai-service.ts` 中的纯逻辑。
+- 已新增 `electron/known-ai-models.ts`，将内置服务商模型清单从 `AiService` 类中移出。
+- 已新增 `electron/ai-message-content.ts`，将 OpenAI 兼容与 Anthropic 的多模态 user content 构造从 `AiService` 私有方法中移出。
+- 已新增 `electron/__tests__/ai-message-content.spec.ts` 和 `electron/__tests__/known-ai-models.spec.ts`。
+- 验证：`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-message-content.spec.ts electron/__tests__/known-ai-models.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
+- 继续拆分 AI 模型列表逻辑：新增 `electron/ai-model-list.ts`，将已知模型短路、OpenAI 兼容 `/models` 查询、异常兜底从 `AiService` 中移出；新增 `electron/__tests__/ai-model-list.spec.ts` 覆盖无 API Key、已知服务商不走网络、远程模型排序和网络失败兜底。
+- 验证：`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-message-content.spec.ts electron/__tests__/known-ai-models.spec.ts electron/__tests__/ai-model-list.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
