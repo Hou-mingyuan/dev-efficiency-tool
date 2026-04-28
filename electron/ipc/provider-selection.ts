@@ -7,7 +7,11 @@ interface ResolveGenerationProviderOptions {
   activeProviderId?: string;
 }
 
-function isUsableProvider(provider: AiProvider | undefined): provider is AiProvider {
+function hasApiKey(provider: AiProvider | undefined): provider is AiProvider {
+  return Boolean(provider?.apiKey);
+}
+
+function isEnabledProvider(provider: AiProvider | undefined): provider is AiProvider {
   return Boolean(provider?.enabled && provider.apiKey);
 }
 
@@ -16,10 +20,10 @@ export function resolveGenerationProvider(options: ResolveGenerationProviderOpti
   const byId = (id?: string) => providers.find((provider) => provider.id === id);
 
   return (
-    (isUsableProvider(byId(primaryProviderId)) ? byId(primaryProviderId) : null) ??
-    (isUsableProvider(byId(fallbackProviderId)) ? byId(fallbackProviderId) : null) ??
-    (isUsableProvider(byId(activeProviderId)) ? byId(activeProviderId) : null) ??
-    providers.find(isUsableProvider) ??
+    (hasApiKey(byId(primaryProviderId)) ? byId(primaryProviderId) : null) ??
+    (hasApiKey(byId(fallbackProviderId)) ? byId(fallbackProviderId) : null) ??
+    (isEnabledProvider(byId(activeProviderId)) ? byId(activeProviderId) : null) ??
+    providers.find(isEnabledProvider) ??
     null
   );
 }

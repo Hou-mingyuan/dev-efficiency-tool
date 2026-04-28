@@ -32,6 +32,21 @@ describe("resolveGenerationProvider", () => {
     expect(selected?.id).toBe("qwen");
   });
 
+  it("uses an explicitly selected provider with an API key even when it is not globally enabled", () => {
+    const providers = [
+      provider("openai", { apiKey: "", enabled: false }),
+      provider("deepseek", { apiKey: "feature-key", enabled: false }),
+    ];
+
+    const selected = resolveGenerationProvider({
+      providers,
+      primaryProviderId: "deepseek",
+      activeProviderId: "openai",
+    });
+
+    expect(selected?.id).toBe("deepseek");
+  });
+
   it("falls back to the feature provider when the image-specific provider is unavailable", () => {
     const providers = [
       provider("openai", { apiKey: "global-key", enabled: true }),
