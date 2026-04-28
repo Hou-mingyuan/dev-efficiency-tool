@@ -11,6 +11,7 @@ import {
 } from "../ai-service";
 import type { ProjectAnalyzer } from "../project-analyzer";
 import type { WrapIPC } from "./types";
+import { resolveGenerationProvider } from "./provider-selection";
 
 export interface RegisterAiHandlersOptions {
   appManager: () => AppManager | null;
@@ -163,17 +164,14 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
   let currentAbortController: AbortController | null = null;
 
-  const resolveProvider = (providerId?: string): AiProvider | null => {
-    const providers = appManager()?.getConfig().aiProviders ?? [];
-    let provider: AiProvider | null = null;
-    if (providerId) {
-      const custom = providers.find((p: any) => p.id === providerId && p.apiKey);
-      if (custom) provider = custom;
-    }
-    return provider
-      ?? appManager()?.getActiveProvider()
-      ?? providers.find((p: any) => p.apiKey) as AiProvider | undefined
-      ?? null;
+  const resolveProvider = (providerId?: string, fallbackProviderId?: string): AiProvider | null => {
+    const config = appManager()?.getConfig();
+    return resolveGenerationProvider({
+      providers: config?.aiProviders ?? [],
+      primaryProviderId: providerId,
+      fallbackProviderId,
+      activeProviderId: config?.activeProviderId,
+    });
   };
 
   ipcMain.handle("ai:stopGenerate", wrapIPC(async () => {
@@ -287,7 +285,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
   }));
 
   ipcMain.handle("ai:generateUIImage", wrapIPC(async (event: any, req: any) => {
-    const provider = resolveProvider(req.providerId);
+    const provider = resolveProvider(req.providerId, req.fallbackProviderId);
     if (!provider) throw new Error(currentLocale() === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
 
     const images = req.images as ImageInput;

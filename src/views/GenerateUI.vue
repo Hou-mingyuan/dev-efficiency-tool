@@ -178,6 +178,16 @@
             :selected-provider="selectedProvider"
             :save-provider-field="saveProviderField"
           />
+          <AiProviderInline
+            v-if="genMode === 'image'"
+            v-model="imageProviderId"
+            :all-providers="allProviders"
+            :selected-provider="selectedImageProvider"
+            :save-provider-field="saveProviderField"
+            :label="t('gen.ui.imageAi')"
+            :placeholder="t('gen.ui.imageAiPlaceholder')"
+            :hint="t('gen.ui.imageAiHint')"
+          />
           <a-form-item :label="t('gen.common.customOutputPath')">
             <a-input-group compact>
               <a-input
@@ -350,7 +360,12 @@ const UI_PREFS_KEY = "devtool-ui-prefs";
 const savedPrefs = (() => {
   try {
     const raw = localStorage.getItem(UI_PREFS_KEY);
-    return raw ? JSON.parse(raw) as { genMode?: string; imageFormat?: string; uiImageMode?: string } : {};
+    return raw ? JSON.parse(raw) as {
+      genMode?: string;
+      imageFormat?: string;
+      uiImageMode?: string;
+      imageProviderId?: string;
+    } : {};
   } catch { return {}; }
 })();
 
@@ -360,6 +375,7 @@ const genMode = ref<UIGenMode>(
 );
 const imageFormat = ref<"png" | "jpeg">(savedPrefs.imageFormat === "jpeg" ? "jpeg" : "png");
 const uiImageMode = ref<"fast" | "quality">(savedPrefs.uiImageMode === "quality" ? "quality" : "fast");
+const imageProviderId = ref(savedPrefs.imageProviderId || "");
 const uiPromptAnalyzing = ref(false);
 const uiAnalyzeStatus = ref("");
 const uiAnalyzedPrompt = ref("");
@@ -367,13 +383,18 @@ const imageGenerating = ref(false);
 const figmaGenerating = ref(false);
 const imageProgress = ref<{ stage: string; current: number; total: number; message: string } | null>(null);
 const figmaEnabled = computed(() => Boolean(appStore.config.figmaConnector?.enabled));
+const selectedImageProvider = computed(() => {
+  if (!imageProviderId.value) return null;
+  return (appStore.config.aiProviders ?? []).find((p) => p.id === imageProviderId.value) ?? null;
+});
 
-watch([genMode, imageFormat, uiImageMode], () => {
+watch([genMode, imageFormat, uiImageMode, imageProviderId], () => {
   try {
     localStorage.setItem(UI_PREFS_KEY, JSON.stringify({
       genMode: genMode.value,
       imageFormat: imageFormat.value,
       uiImageMode: uiImageMode.value,
+      imageProviderId: imageProviderId.value,
     }));
   } catch { /* ignore */ }
 });
@@ -626,7 +647,8 @@ async function generateUIImage() {
       projectName: projectName.value,
       userContent: uiAnalyzedPrompt.value,
       analyzedPrompt: uiAnalyzedPrompt.value,
-      providerId: customProviderId.value || undefined,
+      providerId: imageProviderId.value || customProviderId.value || undefined,
+      fallbackProviderId: imageProviderId.value ? customProviderId.value || undefined : undefined,
       images: images.length ? images : undefined,
       outputDir: customOutputPath.value || appStore.config.outputPath,
       imageFormat: imageFormat.value,

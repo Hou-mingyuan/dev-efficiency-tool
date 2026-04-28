@@ -1,10 +1,10 @@
 <template>
   <div class="ai-provider-inline">
-    <a-form-item :label="t('gen.common.customAi')">
+    <a-form-item :label="label || t('gen.common.customAi')">
       <a-select
         :value="modelValue"
         allow-clear
-        :placeholder="t('gen.common.useDefaultAi')"
+        :placeholder="placeholder || t('gen.common.useDefaultAi')"
         style="width: 100%"
         @update:value="onProviderChange"
       >
@@ -20,6 +20,9 @@
           </a-tag>
         </a-select-option>
       </a-select>
+      <div v-if="hint" class="ai-provider-inline__hint">
+        {{ hint }}
+      </div>
     </a-form-item>
 
     <template v-if="selectedProvider">
@@ -72,6 +75,9 @@ const props = defineProps<{
   allProviders: AiProvider[];
   selectedProvider: AiProvider | null;
   saveProviderField: (providerId: string, field: "apiKey" | "model", value: string) => Promise<void>;
+  label?: string;
+  placeholder?: string;
+  hint?: string;
 }>();
 
 const emit = defineEmits<{
@@ -234,5 +240,12 @@ async function onModelBlur() {
 <style lang="less" scoped>
 .ai-provider-inline :deep(.ant-form-item) {
   margin-bottom: 12px;
+}
+
+.ai-provider-inline__hint {
+  margin-top: 6px;
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  font-size: 12px;
+  line-height: 1.5;
 }
 </style>

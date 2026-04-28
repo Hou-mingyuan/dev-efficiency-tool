@@ -43,6 +43,29 @@ const progressPercent = computed(() => {
 });
 
 const showProgressInfo = computed(() => props.imageProgress?.stage !== "generating");
+const showWaitingCard = computed(() =>
+  props.imageGenerating && !props.generatedPages.length,
+);
+const waitSteps = computed(() => [
+  {
+    key: "generating",
+    label: t("gen.ui.waitingGeneratingCode"),
+    active: props.imageProgress?.stage === "generating",
+    done: props.imageProgress?.stage === "parsing" || props.imageProgress?.stage === "rendering" || props.imageProgress?.stage === "done",
+  },
+  {
+    key: "rendering",
+    label: t("gen.ui.waitingRendering"),
+    active: props.imageProgress?.stage === "parsing" || props.imageProgress?.stage === "rendering",
+    done: props.imageProgress?.stage === "done",
+  },
+  {
+    key: "done",
+    label: t("gen.ui.waitingDone"),
+    active: props.imageProgress?.stage === "done",
+    done: props.imageProgress?.stage === "done",
+  },
+]);
 
 function fileUrl(filePath: string): string {
   return `file:///${filePath.replace(/\\/g, "/")}`;
@@ -91,8 +114,33 @@ function fileUrl(filePath: string): string {
       class="preview-spin"
     >
       <div class="generator-page__preview-body">
+        <div
+          v-if="showWaitingCard"
+          class="ui-waiting-card"
+        >
+          <div class="ui-waiting-card__title">
+            {{ t("gen.ui.waitingTitle") }}
+          </div>
+          <div class="ui-waiting-card__hint">
+            {{ t("gen.ui.waitingHint") }}
+          </div>
+          <div class="ui-waiting-card__steps">
+            <div
+              v-for="step in waitSteps"
+              :key="step.key"
+              class="ui-waiting-step"
+              :class="{
+                'ui-waiting-step--active': step.active,
+                'ui-waiting-step--done': step.done,
+              }"
+            >
+              <span class="ui-waiting-step__dot" />
+              <span>{{ step.label }}</span>
+            </div>
+          </div>
+        </div>
         <a-empty
-          v-if="!result && !uiAnalyzedPrompt && !generating && !imageGenerating && !figmaGenerating && !uiPromptAnalyzing"
+          v-if="!showWaitingCard && !result && !uiAnalyzedPrompt && !generating && !imageGenerating && !figmaGenerating && !uiPromptAnalyzing"
           :description="t('gen.common.noResult')"
         />
         <template v-else-if="genMode === 'image' && generatedPages.length">
@@ -213,5 +261,61 @@ function fileUrl(filePath: string): string {
   font-size: 13px;
   color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
   margin-top: 4px;
+}
+
+.ui-waiting-card {
+  padding: 22px;
+  margin-bottom: 16px;
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--app-radius-md);
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08), rgba(135, 208, 104, 0.08));
+}
+
+.ui-waiting-card__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--app-text-primary, rgba(0, 0, 0, 0.88));
+  margin-bottom: 6px;
+}
+
+.ui-waiting-card__hint {
+  font-size: 13px;
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  line-height: 1.6;
+}
+
+.ui-waiting-card__steps {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.ui-waiting-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+}
+
+.ui-waiting-step__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--app-border, #d9d9d9);
+}
+
+.ui-waiting-step--active {
+  color: var(--app-primary, #1677ff);
+  font-weight: 500;
+}
+
+.ui-waiting-step--active .ui-waiting-step__dot {
+  background: var(--app-primary, #1677ff);
+  box-shadow: 0 0 0 5px rgba(22, 119, 255, 0.12);
+}
+
+.ui-waiting-step--done .ui-waiting-step__dot {
+  background: #52c41a;
 }
 </style>

@@ -147,6 +147,7 @@ declare global {
         projectName?: string;
         userContent: string;
         providerId?: string;
+        fallbackProviderId?: string;
         images?: Array<{ base64: string; mimeType: string }>;
         outputDir?: string;
         imageFormat?: "png" | "jpeg";
