@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pack": "vite build && npx electron-builder --win --config"
+    "pack": "npm run build && npx electron-builder --win --config"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
