@@ -11,6 +11,18 @@ vi.mock("electron", () => ({
   },
 }));
 
+const { pdfDestroyMock, pdfGetTextMock } = vi.hoisted(() => ({
+  pdfDestroyMock: vi.fn(async () => undefined),
+  pdfGetTextMock: vi.fn(async () => ({ text: "PDF 提取文本", total: 1, pages: [{ num: 1, text: "PDF 提取文本" }] })),
+}));
+
+vi.mock("pdf-parse", () => ({
+  PDFParse: vi.fn().mockImplementation(() => ({
+    getText: pdfGetTextMock,
+    destroy: pdfDestroyMock,
+  })),
+}));
+
 const tempRoots: string[] = [];
 
 function makeTempDir(name: string): string {
@@ -68,5 +80,22 @@ describe("AppManager config persistence", () => {
     const reloaded = new AppManager({ appDataDir, detectMethodologyPath: false });
     expect(reloaded.getConfig().aiProviders[0].apiKey).toBe("sk-test-secret");
     expect(reloaded.getConfig().outputPath).toBe(path.join(appDataDir, "output"));
+  });
+});
+
+describe("AppManager document parsing", () => {
+  it("extracts PDF text and releases the parser", async () => {
+    const { AppManager } = await import("../app-manager");
+    const appDataDir = makeTempDir("app-manager");
+    const docsDir = makeTempDir("docs");
+    const pdfPath = path.join(docsDir, "sample.pdf");
+    fs.writeFileSync(pdfPath, Buffer.from("%PDF-1.4\n", "utf-8"));
+
+    const manager = new AppManager({ appDataDir, detectMethodologyPath: false });
+    const result = await manager.parseDocument(pdfPath);
+
+    expect(result).toEqual({ content: "PDF 提取文本", type: "pdf" });
+    expect(pdfGetTextMock).toHaveBeenCalledTimes(1);
+    expect(pdfDestroyMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -173,6 +173,38 @@ function assertTrustedReadPath(filePath: string, label: string): string {
   return resolved;
 }
 
+function assertTrustedHistoryOutputPath(filePath: unknown, label: string): string | undefined {
+  if (filePath === undefined || filePath === null || filePath === "") {
+    return undefined;
+  }
+  if (typeof filePath !== "string") {
+    throw new Error(`${label}: invalid path`);
+  }
+  const resolved = normalizeFsPath(filePath);
+  if (!isTrustedPath(resolved)) {
+    throw new Error(currentLocale === "zh" ? `${label} 不在可信路径范围内` : `${label} is outside trusted paths`);
+  }
+  assertExistingFile(resolved, label);
+  return resolved;
+}
+
+function sanitizeGenerationRecord(record: any): any {
+  if (!record || typeof record !== "object") {
+    throw new Error(currentLocale === "zh" ? "生成记录无效" : "Invalid generation record");
+  }
+  const safe = { ...record };
+  const outputPath = assertTrustedHistoryOutputPath(
+    safe.outputPath,
+    currentLocale === "zh" ? "历史输出文件" : "History output file",
+  );
+  if (outputPath) {
+    safe.outputPath = outputPath;
+  } else {
+    delete safe.outputPath;
+  }
+  return safe;
+}
+
 function assertAllowedExtension(filePath: string, label: string, allowed: Set<string>): string {
   const ext = path.extname(filePath).toLowerCase();
   if (!allowed.has(ext)) {
@@ -572,7 +604,9 @@ function setupAutoUpdater() {
   autoUpdater.on("error", (err: Error) => {
     console.error("[autoUpdater] error", err);
   });
-  void autoUpdater.checkForUpdatesAndNotify();
+  void autoUpdater.checkForUpdatesAndNotify().catch((err: unknown) => {
+    console.error("[autoUpdater] check failed", err);
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -795,7 +829,7 @@ function registerIpcHandlers() {
     if (req.providerId) {
       const custom = appManager
         ?.getConfig()
-        .aiProviders?.find((p: any) => p.id === req.providerId && p.enabled && p.apiKey);
+        .aiProviders?.find((p: any) => p.id === req.providerId && p.apiKey);
       if (custom) provider = custom;
     }
     if (!provider) {
@@ -870,7 +904,7 @@ function registerIpcHandlers() {
     if (req.providerId) {
       const custom = appManager
         ?.getConfig()
-        .aiProviders?.find((p: any) => p.id === req.providerId && p.enabled && p.apiKey);
+        .aiProviders?.find((p: any) => p.id === req.providerId && p.apiKey);
       if (custom) provider = custom;
     }
     if (!provider) provider = appManager?.getActiveProvider() ?? null;
@@ -914,7 +948,7 @@ function registerIpcHandlers() {
     if (req.providerId) {
       const custom = appManager
         ?.getConfig()
-        .aiProviders?.find((p: any) => p.id === req.providerId && p.enabled && p.apiKey);
+        .aiProviders?.find((p: any) => p.id === req.providerId && p.apiKey);
       if (custom) provider = custom;
     }
     if (!provider) provider = appManager?.getActiveProvider() ?? null;
@@ -1143,7 +1177,9 @@ function registerIpcHandlers() {
   }));
 
   ipcMain.handle("ai:getHistory", () => appManager?.getGenerationHistory() ?? []);
-  ipcMain.handle("ai:addHistory", (_e, record: any) => { appManager?.addGenerationRecord(record); });
+  ipcMain.handle("ai:addHistory", wrapIPC(async (_e: any, record: any) => {
+    appManager?.addGenerationRecord(sanitizeGenerationRecord(record));
+  }));
   ipcMain.handle("ai:deleteHistory", (_e, id: string) => { appManager?.deleteGenerationRecord(id); return true; });
   ipcMain.handle("ai:readOutputFile", wrapIPC(async (_e: any, p: string) => {
     if (!p) return null;
@@ -1152,9 +1188,19 @@ function registerIpcHandlers() {
     assertExistingFile(filePath, currentLocale === "zh" ? "输出文件" : "Output file");
     return fs.readFileSync(filePath, "utf-8");
   }));
-  ipcMain.handle("ai:updateHistoryOutput", (_e, data: any) => {
-    appManager?.updateGenerationOutputPath(data.id, data.outputPath);
-  });
+  ipcMain.handle("ai:updateHistoryOutput", wrapIPC(async (_e: any, data: any) => {
+    if (!data || typeof data !== "object" || typeof data.id !== "string") {
+      throw new Error(currentLocale === "zh" ? "生成记录无效" : "Invalid generation record");
+    }
+    const outputPath = assertTrustedHistoryOutputPath(
+      data.outputPath,
+      currentLocale === "zh" ? "历史输出文件" : "History output file",
+    );
+    if (!outputPath) {
+      throw new Error(currentLocale === "zh" ? "未指定历史输出文件" : "No history output file specified");
+    }
+    appManager?.updateGenerationOutputPath(data.id, outputPath);
+  }));
   ipcMain.handle(
     "ai:testConnection",
     wrapIPC(async (_e: any, provider: any) => {

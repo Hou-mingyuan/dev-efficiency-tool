@@ -191,7 +191,7 @@ declare global {
     };
   }
 
-  type DocumentParseType = "markdown" | "docx" | "xlsx" | "unknown" | "error";
+  type DocumentParseType = "markdown" | "docx" | "xlsx" | "pdf" | "unknown" | "error";
 
   interface DocumentParseResult {
     content: string;

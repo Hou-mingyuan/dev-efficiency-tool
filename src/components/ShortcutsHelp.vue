@@ -6,6 +6,7 @@
     :width="520"
     :destroy-on-close="true"
     :centered="true"
+    :body-style="modalBodyStyle"
   >
     <p class="shortcuts-help__hint">{{ t("shortcuts.hint") }}</p>
     <a-list
@@ -43,6 +44,12 @@ const open = computed({
   get: () => props.visible,
   set: (v: boolean) => emit("update:visible", v),
 });
+
+const modalBodyStyle = {
+  maxHeight: "calc(100vh - 180px)",
+  overflowY: "auto",
+  paddingRight: "12px",
+};
 
 const rows = computed(() => [
   {

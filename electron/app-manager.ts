@@ -144,7 +144,7 @@ export interface MethodologyFileInfo {
   size: number;
 }
 
-export type DocumentParseType = "markdown" | "docx" | "xlsx" | "unknown" | "error";
+export type DocumentParseType = "markdown" | "docx" | "xlsx" | "pdf" | "unknown" | "error";
 
 export interface DocumentParseResult {
   content: string;
@@ -469,6 +469,17 @@ export class AppManager {
         const buffer = fs.readFileSync(filePath);
         const { value } = await mammoth.default.extractRawText({ buffer });
         return { content: value, type: "docx" };
+      }
+      if (ext === ".pdf") {
+        const { PDFParse } = await import("pdf-parse");
+        const buffer = fs.readFileSync(filePath);
+        const parser = new PDFParse({ data: new Uint8Array(buffer) });
+        try {
+          const result = await parser.getText();
+          return { content: result.text, type: "pdf" };
+        } finally {
+          await parser.destroy();
+        }
       }
       if (ext === ".xlsx" || ext === ".xls") {
         const XLSX = await import("xlsx");
