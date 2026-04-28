@@ -114,6 +114,15 @@ declare global {
       offDone: (cleanup?: IpcCleanup) => void;
       testConnection: (provider: AiProvider) => Promise<unknown>;
       listModels: (provider: AiProvider) => Promise<string[] | IpcErrorResult>;
+      analyzeUIPrompt: (req: {
+        projectName?: string;
+        userContent: string;
+        providerId?: string;
+        images?: Array<{ base64: string; mimeType: string }>;
+        referenceContent?: string;
+        projectPath?: string;
+        isModuleScope?: boolean;
+      }) => Promise<{ analyzedPrompt: string } | IpcErrorResult>;
       renderHtmlToImage: (req: {
         htmlCode: string;
         outputDir: string;
@@ -127,6 +136,7 @@ declare global {
         images?: Array<{ base64: string; mimeType: string }>;
         outputDir?: string;
         imageFormat?: "png" | "jpeg";
+        analyzedPrompt?: string;
         referenceContent?: string;
         projectPath?: string;
       }) => Promise<{ htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> } | IpcErrorResult>;

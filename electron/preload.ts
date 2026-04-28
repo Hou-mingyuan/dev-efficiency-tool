@@ -57,6 +57,7 @@ export interface ElectronAPI {
     offDone: (cleanup?: IpcCleanup) => void;
     testConnection: (provider: unknown) => Promise<unknown>;
     listModels: (provider: unknown) => Promise<unknown>;
+    analyzeUIPrompt: (req: unknown) => Promise<unknown>;
     renderHtmlToImage: (req: unknown) => Promise<unknown>;
     generateUIImage: (req: unknown) => Promise<unknown>;
     onImageProgress: (callback: (progress: unknown) => void) => IpcCleanup;
@@ -137,6 +138,7 @@ const electronAPI: ElectronAPI = {
     },
     testConnection: (provider) => ipcRenderer.invoke("ai:testConnection", provider),
     listModels: (provider) => ipcRenderer.invoke("ai:listModels", provider),
+    analyzeUIPrompt: (req) => ipcRenderer.invoke("ai:analyzeUIPrompt", req),
     renderHtmlToImage: (req) => ipcRenderer.invoke("ai:renderHtmlToImage", req),
     generateUIImage: (req) => ipcRenderer.invoke("ai:generateUIImage", req),
     onImageProgress: (callback) => listenPayload("ai:imageProgress", callback),

@@ -19,7 +19,13 @@ import pkg from "electron-updater";
 import { randomUUID } from "node:crypto";
 import { Marked } from "marked";
 import { AppManager, type AiProvider } from "./app-manager";
-import { AiService, buildPrompt, UI_IMAGE_PROMPT, type DocType } from "./ai-service";
+import {
+  AiService,
+  buildPrompt,
+  buildUIAnalyzePrompt,
+  buildUIImagePrompt,
+  type DocType,
+} from "./ai-service";
 import { ProjectAnalyzer } from "./project-analyzer";
 
 const { autoUpdater } = pkg;
@@ -748,6 +754,51 @@ function registerIpcHandlers() {
     if (win && !win.isDestroyed()) win.webContents.send("ai:done", result, recordId);
     return result;
   }));
+
+  ipcMain.handle("ai:analyzeUIPrompt", wrapIPC(async (_event: any, req: any) => {
+    let provider: AiProvider | null = null;
+    if (req.providerId) {
+      const custom = appManager
+        ?.getConfig()
+        .aiProviders?.find((p: any) => p.id === req.providerId && p.enabled && p.apiKey);
+      if (custom) provider = custom;
+    }
+    if (!provider) provider = appManager?.getActiveProvider() ?? null;
+    if (!provider) throw new Error(currentLocale === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
+
+    const images = req.images as Array<{ base64: string; mimeType: string }> | undefined;
+
+    let projectContext = "";
+    const analyzeProjectPath = req.projectPath || appManager?.getConfig().projectPath;
+    if (analyzeProjectPath && fs.existsSync(analyzeProjectPath)) {
+      try {
+        const analysis = projectAnalyzer.getOrAnalyze(analyzeProjectPath);
+        projectContext = projectAnalyzer.formatForPrompt(analysis, "ui");
+      } catch (e) {
+        appManager?.addLog("warn", `UI 提示词分析项目失败: ${(e instanceof Error ? e : new Error(String(e))).message}`, "ai-ui-analyze");
+      }
+    }
+
+    const { system, user } = buildUIAnalyzePrompt({
+      projectName: req.projectName,
+      userContent: req.userContent,
+      referenceContent: req.referenceContent,
+      projectContext,
+      imageCount: images?.length ?? 0,
+      isModuleScope: Boolean(req.isModuleScope),
+    });
+
+    const abortController = new AbortController();
+    currentAbortController = abortController;
+    try {
+      const analyzedPrompt = await aiService.generate(provider, system, user, images, abortController.signal);
+      appManager?.addLog("info", `UI 提示词分析完成: ${provider.name}`, "ai-ui-analyze");
+      return { analyzedPrompt };
+    } finally {
+      if (currentAbortController === abortController) currentAbortController = null;
+    }
+  }));
+
   ipcMain.handle("ai:generateUIImage", wrapIPC(async (event: any, req: any) => {
     let provider: AiProvider | null = null;
     if (req.providerId) {
@@ -761,33 +812,29 @@ function registerIpcHandlers() {
 
     const images = req.images as Array<{ base64: string; mimeType: string }> | undefined;
 
-    let systemPrompt = UI_IMAGE_PROMPT.system;
-    let userPrompt = UI_IMAGE_PROMPT.userPrefix;
+    let projectContext = "";
 
     const analyzeProjectPath = req.projectPath || appManager?.getConfig().projectPath;
     if (analyzeProjectPath && fs.existsSync(analyzeProjectPath)) {
       try {
         const analysis = projectAnalyzer.getOrAnalyze(analyzeProjectPath);
-        const ctx = projectAnalyzer.formatForPrompt(analysis, "ui");
-        if (ctx) {
-          systemPrompt += `\n\n请结合以下项目分析结果，确保生成的 UI 与项目现有的设计风格、配色方案、组件规范保持一致：`;
-          userPrompt += `**项目技术分析：**\n${ctx}\n\n---\n\n`;
-        }
+        projectContext = projectAnalyzer.formatForPrompt(analysis, "ui");
       } catch (e) {
         appManager?.addLog("warn", `UI 出图项目分析失败: ${(e instanceof Error ? e : new Error(String(e))).message}`, "ai-gen-ui");
       }
     }
 
-    if (req.referenceContent) {
-      userPrompt += `**参考文档内容：**\n${req.referenceContent}\n\n---\n\n`;
+    const analyzedPrompt = String(req.analyzedPrompt || req.userContent || "").trim();
+    if (!analyzedPrompt) {
+      throw new Error(currentLocale === "zh" ? "未提供 UI 出图提示词" : "No UI image prompt provided");
     }
-
-    if (images && images.length > 0) {
-      userPrompt += `**重要：已附带 ${images.length} 张参考图片。你必须严格分析这些图片中的视觉风格（配色、字体、间距、圆角、阴影、布局结构），并在生成的 HTML/CSS 中精确复现这些风格，不得使用默认模板或凭空设计。**\n\n`;
-    }
-
-    if (req.projectName) userPrompt += `**项目/模块名称：** ${req.projectName}\n\n`;
-    userPrompt += req.userContent || "请根据参考图片生成 UI 页面";
+    const { system: systemPrompt, user: userPrompt } = buildUIImagePrompt({
+      projectName: req.projectName,
+      analyzedPrompt,
+      referenceContent: req.referenceContent,
+      projectContext,
+      imageCount: images?.length ?? 0,
+    });
 
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
     const sendProgress = (stage: string, current: number, total: number, msg: string) => {

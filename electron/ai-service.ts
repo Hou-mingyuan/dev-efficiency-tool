@@ -217,6 +217,116 @@ HTML 代码要求：
 `,
 };
 
+export const UI_ANALYZE_PROMPT: PromptTemplate = {
+  system: `你是一位专业的 UI/UX 需求分析师。你的任务是将项目文档、需求描述和项目技术分析转换为结构化的 UI 设计提示词，专门供 AI UI 生成器使用。
+
+输出要求：
+1. 分析输入的文档/需求，提取所有需要设计的页面、组件和交互
+2. 为每个页面/组件生成详细的描述，包括：
+   - 页面名称和用途
+   - 布局结构（顶部导航、侧边栏、内容区等）
+   - 关键 UI 元素（表格、表单、按钮、卡片等）
+   - 交互状态（正常、悬停、加载、空状态等）
+   - 配色和风格建议（基于项目已有设计语言）
+3. 输出格式必须是清晰的中文描述，不要输出代码
+4. 如果有参考图片或项目代码风格，要明确指出需要复用的设计元素
+
+输出示例：
+---
+## 页面清单
+
+### 1. 用户列表页
+- 布局：左侧侧边栏导航 + 顶部面包屑 + 主内容区表格
+- 表格列：用户名、邮箱、角色、状态、操作
+- 操作按钮：编辑、删除、重置密码
+- 顶部区域：搜索框 + 筛选器 + "新增用户"按钮
+- 分页器：底部居中
+...
+---`,
+  userPrefix: `请分析以下项目信息和需求描述，提取所有需要设计的 UI 页面和组件，并为每个页面生成详细的 UI 设计提示词描述：
+
+`,
+};
+
+export interface BuildUIAnalyzePromptOptions {
+  projectName?: string;
+  userContent?: string;
+  referenceContent?: string;
+  projectContext?: string;
+  imageCount?: number;
+  isModuleScope?: boolean;
+}
+
+export interface BuildUIImagePromptOptions {
+  projectName?: string;
+  analyzedPrompt: string;
+  referenceContent?: string;
+  projectContext?: string;
+  imageCount?: number;
+}
+
+export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { system: string; user: string } {
+  let user = UI_ANALYZE_PROMPT.userPrefix;
+
+  if (options.projectName?.trim()) {
+    user += `**项目/模块名称：** ${options.projectName.trim()}\n\n`;
+  }
+
+  if (options.isModuleScope) {
+    user += "**需求范围：** 模块级别。请明确该模块在整体系统中的位置、上下游关系、导航入口和复用的组件/样式规范。\n\n";
+  } else {
+    user += "**需求范围：** 项目级别。请按完整项目体验拆分页面、导航和关键流程。\n\n";
+  }
+
+  if (options.projectContext?.trim()) {
+    user += `**项目技术与样式分析：**\n${options.projectContext.trim()}\n\n---\n\n`;
+  }
+
+  if (options.referenceContent?.trim()) {
+    user += `**参考文档内容：**\n${options.referenceContent.trim()}\n\n---\n\n`;
+  }
+
+  if ((options.imageCount ?? 0) > 0) {
+    user += `**参考图片：** 已附带 ${options.imageCount} 张参考图片。请分析图片中的布局结构、字体层级、颜色、间距、圆角、阴影、表格/表单/按钮样式，并把这些约束转写为清晰的 UI 生成提示词。\n\n`;
+  }
+
+  user += `**原始需求描述：**\n${options.userContent?.trim() || "请基于参考资料分析需要生成的 UI 页面。"}\n\n`;
+  user += "请输出可直接交给 UI 出图模型使用的结构化中文提示词，必须包含页面清单、每个页面的布局、组件、状态、交互、数据示例和视觉风格约束。";
+
+  return {
+    system: UI_ANALYZE_PROMPT.system,
+    user,
+  };
+}
+
+export function buildUIImagePrompt(options: BuildUIImagePromptOptions): { system: string; user: string } {
+  let user = UI_IMAGE_PROMPT.userPrefix;
+
+  if (options.projectName?.trim()) {
+    user += `**项目/模块名称：** ${options.projectName.trim()}\n\n`;
+  }
+
+  if (options.projectContext?.trim()) {
+    user += `**项目技术与样式分析：**\n${options.projectContext.trim()}\n\n---\n\n`;
+  }
+
+  if (options.referenceContent?.trim()) {
+    user += `**参考文档内容：**\n${options.referenceContent.trim()}\n\n---\n\n`;
+  }
+
+  if ((options.imageCount ?? 0) > 0) {
+    user += `**重要：已附带 ${options.imageCount} 张参考图片。你必须严格复用图片中的视觉风格，并结合下方已分析提示词生成 HTML/CSS。**\n\n`;
+  }
+
+  user += `**已分析生成的 UI 出图提示词：**\n${options.analyzedPrompt.trim()}\n\n`;
+  user += "请严格根据上述提示词生成页面，不要重新解释需求。输出必须使用 <!-- PAGE_START: 页面名称 --> 和 <!-- PAGE_END --> 包裹每个页面。";
+
+  return {
+    system: UI_IMAGE_PROMPT.system,
+    user,
+  };
+}
+
 export function buildPrompt(
   docType: DocType,
   projectName: string,

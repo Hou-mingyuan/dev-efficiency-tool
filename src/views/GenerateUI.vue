@@ -7,7 +7,7 @@
 
     <div class="generator-page__grid">
       <a-card class="generator-page__panel" :title="t('gen.common.input')" size="small">
-        <a-form layout="vertical" :disabled="generating || imageGenerating">
+        <a-form layout="vertical" :disabled="generating || imageGenerating || uiPromptAnalyzing">
           <a-form-item :label="t('gen.common.scopeLevel')">
             <a-radio-group v-model:value="scopeLevel">
               <a-radio-button value="project">{{ t('gen.common.scopeProject') }}</a-radio-button>
@@ -73,7 +73,7 @@
             </a-radio-group>
           </a-form-item>
 
-          <a-form-item v-if="genMode === 'doc'" :label="t('gen.common.reference')">
+          <a-form-item :label="t('gen.common.reference')">
             <div
               class="ref-drop-zone"
               :class="{ 'ref-drop-zone--active': refDragOver }"
@@ -101,6 +101,19 @@
                 </a-tag>
               </div>
             </div>
+          </a-form-item>
+
+          <a-form-item
+            v-if="genMode === 'image'"
+            :label="t('gen.ui.analyzedPrompt')"
+            :extra="t('gen.ui.analyzedPromptHint')"
+          >
+            <a-textarea
+              v-model:value="uiAnalyzedPrompt"
+              :placeholder="t('gen.ui.analyzedPromptPlaceholder')"
+              :rows="8"
+              show-count
+            />
           </a-form-item>
           <a-form-item :label="t('gen.common.referenceProject')">
             <a-input-group compact>
@@ -183,13 +196,23 @@
         <a-space wrap class="generator-actions">
           <a-button
             type="primary"
-            :loading="generating || imageGenerating"
-            @click="genMode === 'image' ? generateUIImage() : generate()"
+            :loading="generating || uiPromptAnalyzing"
+            @click="genMode === 'image' ? analyzeUIPrompt() : generate()"
           >
-            {{ genMode === 'image' ? t('gen.ui.generateImage') : t('gen.common.generate') }}
+            {{ genMode === 'image' ? t('gen.ui.analyzePrompt') : t('gen.common.generate') }}
+          </a-button>
+          <a-button
+            v-if="genMode === 'image'"
+            type="primary"
+            ghost
+            :loading="imageGenerating"
+            :disabled="uiPromptAnalyzing || imageGenerating || !uiAnalyzedPrompt.trim()"
+            @click="generateUIImage"
+          >
+            {{ t('gen.ui.generateFromPrompt') }}
           </a-button>
           <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
-          <a-button v-if="generating || imageGenerating" danger @click="genMode === 'image' ? stopImageGenerate() : stopGenerate()">
+          <a-button v-if="generating || imageGenerating || uiPromptAnalyzing" danger @click="genMode === 'image' ? stopImageGenerate() : stopGenerate()">
             {{ t("gen.common.stopGenerate") }}
           </a-button>
           <a-button v-if="genMode === 'doc'" :disabled="generating || !userContent.trim()" @click="onRegenerate">
@@ -223,7 +246,7 @@
       >
         <template #extra>
           <a-space>
-            <span v-if="generating || imageGenerating" class="gen-status">{{ imageProgress?.message || t("gen.common.generating") }}</span>
+            <span v-if="generating || imageGenerating || uiPromptAnalyzing" class="gen-status">{{ uiAnalyzeStatus || imageProgress?.message || t("gen.common.generating") }}</span>
             <a-button v-if="generatedPages.length && !imageGenerating" size="small" @click="refreshPreview">
               {{ t("gen.ui.refreshPreview") }}
             </a-button>
@@ -237,27 +260,22 @@
           />
           <div class="image-progress-text">{{ imageProgress.message }}</div>
         </div>
-        <a-spin :spinning="generating || imageGenerating" class="preview-spin">
+        <a-spin :spinning="generating || imageGenerating || uiPromptAnalyzing" class="preview-spin">
           <div class="generator-page__preview-body">
-            <a-empty v-if="!result && !generating && !imageGenerating" :description="t('gen.common.noResult')" />
-            <template v-else-if="genMode === 'image' && result">
-              <template v-if="generatedPages.length > 1">
-                <div v-for="(page, idx) in generatedPages" :key="idx" class="ui-page-section">
-                  <div class="ui-page-title">
-                    <a-typography-title :level="5" style="margin: 0">{{ page.name }}</a-typography-title>
-                    <a-tag color="blue">{{ idx + 1 }}/{{ generatedPages.length }}</a-tag>
-                  </div>
-                  <div class="ui-page-image">
-                    <img :src="'file:///' + page.imagePath.replace(/\\\\/g, '/')" :alt="page.name" style="max-width: 100%; border-radius: 6px;" />
-                  </div>
-                  <div class="ui-page-files">
-                    <a-typography-text type="secondary" style="font-size: 12px">{{ page.imagePath }}</a-typography-text>
-                  </div>
+            <a-empty v-if="!result && !uiAnalyzedPrompt && !generating && !imageGenerating && !uiPromptAnalyzing" :description="t('gen.common.noResult')" />
+            <template v-else-if="genMode === 'image' && generatedPages.length">
+              <div v-for="(page, idx) in generatedPages" :key="idx" class="ui-page-section">
+                <div class="ui-page-title">
+                  <a-typography-title :level="5" style="margin: 0">{{ page.name }}</a-typography-title>
+                  <a-tag color="blue">{{ idx + 1 }}/{{ generatedPages.length }}</a-tag>
                 </div>
-              </template>
-              <template v-else>
-                <div class="ui-preview-html" v-html="result" />
-              </template>
+                <div class="ui-page-image">
+                  <img :src="'file:///' + page.imagePath.replace(/\\\\/g, '/')" :alt="page.name" style="max-width: 100%; border-radius: 6px;" />
+                </div>
+                <div class="ui-page-files">
+                  <a-typography-text type="secondary" style="font-size: 12px">{{ page.imagePath }}</a-typography-text>
+                </div>
+              </div>
               <div v-if="generatedImagePaths.length" class="ui-saved-files">
                 <a-typography-text type="success">
                   {{ t('gen.ui.savedTo') }}（{{ generatedPages.length || 1 }} {{ t('gen.ui.pagesCount') }}）
@@ -267,6 +285,11 @@
                 </div>
               </div>
             </template>
+            <div
+              v-else-if="genMode === 'image' && uiAnalyzedPrompt"
+              class="markdown-body"
+              v-html="renderedHtml"
+            />
             <div
               v-else
               class="markdown-body"
@@ -373,6 +396,9 @@ const savedPrefs = (() => {
 
 const genMode = ref<"doc" | "image">(savedPrefs.genMode === "image" ? "image" : "doc");
 const imageFormat = ref<"png" | "jpeg">(savedPrefs.imageFormat === "jpeg" ? "jpeg" : "png");
+const uiPromptAnalyzing = ref(false);
+const uiAnalyzeStatus = ref("");
+const uiAnalyzedPrompt = ref("");
 const imageGenerating = ref(false);
 const imageProgress = ref<{ stage: string; current: number; total: number; message: string } | null>(null);
 
@@ -388,6 +414,12 @@ const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mim
 const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
 const generatedPages = ref<Array<{ name: string; imagePath: string; htmlPath: string }>>([]);
+watch(uiAnalyzedPrompt, (value) => {
+  if (genMode.value !== "image" || generatedPages.value.length) return;
+  result.value = value;
+  const raw = marked.parse(value || "") as string;
+  renderedHtml.value = DOMPurify.sanitize(raw);
+});
 const useAppStoreLazy = () => {
   const store = import("@/store/app").then((m) => m.useAppStore());
   return store;
@@ -454,11 +486,74 @@ async function stopImageGenerate() {
   try {
     await window.electronAPI.ai.stopGenerate();
   } catch { /* ignore */ }
+  uiPromptAnalyzing.value = false;
+  uiAnalyzeStatus.value = "";
   imageGenerating.value = false;
 }
 
+async function analyzeUIPrompt() {
+  if (!userContent.value.trim() && !refImages.value.length && !referenceItems.value.length && !referenceProjectPath.value) {
+    message.warning(t("gen.ui.needContentOrImage"));
+    return;
+  }
+  if (scopeLevel.value === "module" && !referenceItems.value.length && !referenceProjectPath.value && !refImages.value.length) {
+    message.warning(t("gen.common.needRefOrProject"));
+    return;
+  }
+
+  teardownListeners();
+  uiPromptAnalyzing.value = true;
+  uiAnalyzeStatus.value = t("gen.ui.analyzingPrompt");
+  uiAnalyzedPrompt.value = "";
+  result.value = "";
+  renderedHtml.value = "";
+  generatedImagePaths.value = [];
+  generatedPages.value = [];
+
+  try {
+    const appStore = (await import("@/store/app")).useAppStore();
+    const images = refImages.value.map((img) => ({
+      base64: img.base64,
+      mimeType: img.mimeType,
+    }));
+    const refContent = referenceItems.value.map((r) => r.content).join("\n\n---\n\n");
+    const res = await window.electronAPI.ai.analyzeUIPrompt({
+      projectName: projectName.value,
+      userContent: userContent.value,
+      providerId: customProviderId.value || undefined,
+      images: images.length ? images : undefined,
+      referenceContent: refContent || undefined,
+      projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
+      isModuleScope: scopeLevel.value === "module",
+    });
+
+    if (isIpcErr(res)) {
+      message.error(res.message);
+      return;
+    }
+
+    uiAnalyzedPrompt.value = String(res.analyzedPrompt || "").trim();
+    result.value = uiAnalyzedPrompt.value;
+    const raw = marked.parse(uiAnalyzedPrompt.value) as string;
+    renderedHtml.value = DOMPurify.sanitize(raw);
+    message.success(t("gen.ui.analyzePromptSuccess"));
+  } catch (err: unknown) {
+    const msg = err && typeof err === "object" && "message" in err
+      ? String((err as { message: string }).message) : String(err);
+    message.error(msg);
+  } finally {
+    uiPromptAnalyzing.value = false;
+    uiAnalyzeStatus.value = "";
+    setupListeners();
+  }
+}
+
 async function generateUIImage() {
-  if (!userContent.value.trim() && !refImages.value.length) {
+  if (!uiAnalyzedPrompt.value.trim()) {
+    message.warning(t("gen.ui.needAnalyzePrompt"));
+    return;
+  }
+  if (!userContent.value.trim() && !refImages.value.length && !referenceItems.value.length && !referenceProjectPath.value) {
     message.warning(t("gen.ui.needContentOrImage"));
     return;
   }
@@ -501,16 +596,12 @@ async function generateUIImage() {
       mimeType: img.mimeType,
     }));
 
-    let imgUserContent = userContent.value;
-    if (scopeLevel.value === "module") {
-      imgUserContent = `${t("gen.ui.moduleLevelPrompt")}\n\n${imgUserContent}`;
-    }
-
     const refContent = referenceItems.value.map((r) => r.content).join("\n\n---\n\n");
 
     const res = await window.electronAPI.ai.generateUIImage({
       projectName: projectName.value,
-      userContent: imgUserContent,
+      userContent: uiAnalyzedPrompt.value,
+      analyzedPrompt: uiAnalyzedPrompt.value,
       providerId: customProviderId.value || undefined,
       images: images.length ? images : undefined,
       outputDir: customOutputPath.value || appStore.config.outputPath,
