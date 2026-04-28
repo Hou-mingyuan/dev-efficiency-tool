@@ -155,11 +155,11 @@ function filterModelOption(input: string, option: { value: string }) {
   return option.value.toLowerCase().includes(input.toLowerCase());
 }
 
-function onCollapseChange(keys: string | string[]) {
-  aiOpenKey.value = keys;
+function onCollapseChange(keys: string | number | Array<string | number>) {
+  aiOpenKey.value = Array.isArray(keys) ? keys.map(String) : String(keys);
   const openIds = Array.isArray(keys) ? keys : [keys];
   for (const id of openIds) {
-    const p = draft.value.aiProviders.find((x) => x.id === id);
+    const p = draft.value.aiProviders.find((x) => x.id === String(id));
     if (p?.apiKey?.trim()) {
       void fetchModels(p);
     }

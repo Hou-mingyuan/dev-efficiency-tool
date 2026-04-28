@@ -132,9 +132,9 @@ watch(
   (v) => {
     if (v) {
       void nextTick(() => {
-        searchInputRef.value?.focus?.();
         const el = searchInputRef.value?.$el as HTMLElement | undefined;
         const input = el?.querySelector?.("input") as HTMLInputElement | undefined;
+        input?.focus?.();
         input?.select?.();
       });
     }

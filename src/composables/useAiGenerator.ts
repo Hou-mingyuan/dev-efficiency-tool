@@ -125,7 +125,7 @@ export function useAiGenerator(docType: DocType) {
       if (d.userContent) userContent.value = d.userContent;
       if (d.customProviderId) customProviderId.value = d.customProviderId;
       if (["md", "docx", "pdf", "png", "jpeg", "gif", "svg", "html"].includes(d.outputFormat ?? "")) {
-        outputFormat.value = d.outputFormat;
+        outputFormat.value = d.outputFormat as typeof outputFormat.value;
       }
       if (d.scopeLevel === "project" || d.scopeLevel === "module") {
         scopeLevel.value = d.scopeLevel;
@@ -577,4 +577,3 @@ export function useAiGenerator(docType: DocType) {
     setupListeners,
   };
 }
-

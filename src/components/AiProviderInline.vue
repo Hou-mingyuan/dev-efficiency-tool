@@ -115,8 +115,17 @@ function toPlain(p: AiProvider) {
   return { id: p.id, name: p.name, apiKey: p.apiKey, baseUrl: p.baseUrl, model: p.model, enabled: p.enabled };
 }
 
-function onProviderChange(val: string) {
-  emit("update:modelValue", val);
+function normalizeSelectValue(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (typeof val === "number") return String(val);
+  if (val && typeof val === "object" && "value" in val) {
+    return normalizeSelectValue((val as { value: unknown }).value);
+  }
+  return "";
+}
+
+function onProviderChange(val: unknown) {
+  emit("update:modelValue", normalizeSelectValue(val));
   modelOptions.value = [];
 }
 
@@ -200,15 +209,16 @@ function filterModelOption(input: string, option: { value: string }) {
 
 const pendingModel = ref("");
 
-async function onModelSelect(val: string) {
+async function onModelSelect(val: unknown) {
   if (!props.selectedProvider) return;
-  pendingModel.value = val;
-  await props.saveProviderField(props.selectedProvider.id, "model", val || "");
+  const model = normalizeSelectValue(val);
+  pendingModel.value = model;
+  await props.saveProviderField(props.selectedProvider.id, "model", model || "");
   message.success(t("gen.common.modelSaved"));
 }
 
-function onModelInput(val: string) {
-  pendingModel.value = val;
+function onModelInput(val: unknown) {
+  pendingModel.value = normalizeSelectValue(val);
 }
 
 async function onModelBlur() {

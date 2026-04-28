@@ -54,7 +54,7 @@ declare global {
     fileName: string;
     content: string;
     historyRecordId?: string;
-    format?: "md" | "docx" | "pdf";
+    format?: "md" | "docx" | "pdf" | "png" | "jpeg" | "gif" | "svg" | "html";
   }
 
   interface IpcErrorResult {
@@ -89,6 +89,12 @@ declare global {
   }
 
   interface ElectronAPI {
+    win: {
+      minimize: () => Promise<void>;
+      maximize: () => Promise<void>;
+      close: () => Promise<void>;
+      isMaximized: () => Promise<boolean>;
+    };
     project: {
       analyze: (projectPath: string) => Promise<unknown | IpcErrorResult>;
       getCache: (projectPath: string) => Promise<unknown | null>;
@@ -108,6 +114,7 @@ declare global {
       addHistory: (record: GenerationRecord) => Promise<unknown>;
       readOutputFile: (path: string) => Promise<string | null | IpcErrorResult>;
       updateHistoryOutput: (data: { id: string; outputPath: string }) => Promise<unknown>;
+      deleteHistory: (id: string) => Promise<unknown>;
       onChunk: (callback: (chunk: string) => void) => IpcCleanup;
       offChunk: (cleanup?: IpcCleanup) => void;
       onDone: (callback: (content: string, recordId: string) => void) => IpcCleanup;

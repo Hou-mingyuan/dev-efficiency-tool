@@ -168,6 +168,18 @@ const onToggleTheme = async () => {
   await window.electronAPI?.app.setTheme(next);
 };
 
+const minimizeWindow = () => {
+  void window.electronAPI?.win.minimize();
+};
+
+const maximizeWindow = () => {
+  void window.electronAPI?.win.maximize();
+};
+
+const closeWindow = () => {
+  void window.electronAPI?.win.close();
+};
+
 const setLocale = async (next: "zh" | "en") => {
   locale.value = next;
   localStorage.setItem("lng-locale", next);
@@ -516,9 +528,9 @@ onBeforeUnmount(() => {
               </a-tooltip>
               <NotificationCenter />
               <div class="app-header__winctrl">
-                <button class="winctrl-btn" @click="window.electronAPI?.win.minimize()" aria-label="Minimize"><MinusOutlined /></button>
-                <button class="winctrl-btn" @click="window.electronAPI?.win.maximize()" aria-label="Maximize"><BlockOutlined /></button>
-                <button class="winctrl-btn winctrl-btn--close" @click="window.electronAPI?.win.close()" aria-label="Close"><CloseOutlined /></button>
+                <button class="winctrl-btn" @click="minimizeWindow" aria-label="Minimize"><MinusOutlined /></button>
+                <button class="winctrl-btn" @click="maximizeWindow" aria-label="Maximize"><BlockOutlined /></button>
+                <button class="winctrl-btn winctrl-btn--close" @click="closeWindow" aria-label="Close"><CloseOutlined /></button>
               </div>
             </div>
           </a-layout-header>

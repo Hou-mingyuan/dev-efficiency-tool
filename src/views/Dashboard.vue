@@ -196,15 +196,25 @@ async function onCreateProject() {
   message.success(t("project.created"));
 }
 
-async function onProjectChange(id: string | null | undefined) {
-  if (id == null || id === "") {
+function normalizeSelectId(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (value && typeof value === "object" && "value" in value) {
+    return normalizeSelectId((value as { value: unknown }).value);
+  }
+  return "";
+}
+
+async function onProjectChange(id: unknown) {
+  const projectId = normalizeSelectId(id);
+  if (!projectId) {
     await appStore.setConfig({ activeProjectId: "" });
     return;
   }
-  const proj = projects.value.find((p) => p.id === id);
+  const proj = projects.value.find((p) => p.id === projectId);
   if (!proj) return;
   await appStore.setConfig({
-    activeProjectId: id,
+    activeProjectId: projectId,
     projectPath: proj.projectPath,
     outputPath: proj.outputPath,
     methodologyPath: proj.methodologyPath,

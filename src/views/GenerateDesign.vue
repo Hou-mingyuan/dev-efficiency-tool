@@ -539,7 +539,7 @@ async function loadMethFiles() {
   }
 }
 
-function onMethodologyPanelChange(keys: string | string[]) {
+function onMethodologyPanelChange(keys: string | number | Array<string | number>) {
   const arr = Array.isArray(keys) ? keys : [keys];
   if (arr.includes("methodology")) {
     void loadMethFiles();
