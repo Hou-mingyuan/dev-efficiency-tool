@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { AiProvider } from "./app-manager";
 import { OpenAICompatibleImageProvider } from "./ai-providers/openai-compatible-image-provider";
 import type { GeneratedImage, ImageGenerationOptions } from "./ai-providers/types";
+import { testAiConnection } from "./ai-connection-test";
 import { buildAnthropicUserContent, buildOpenAIUserContent } from "./ai-message-content";
 import { listAvailableModels } from "./ai-model-list";
 import { getModelOutputKind, isImageGenerationModel } from "./model-capabilities";
@@ -436,57 +437,7 @@ export class AiService {
    * 发送极简请求验证 API Key 与网络；成功则 resolve，失败则 throw
    */
   async testConnection(provider: AiProvider): Promise<void> {
-    if (!provider.apiKey?.trim()) throw new Error("未配置 API Key");
-    return provider.id === "anthropic"
-      ? this.testAnthropic(provider)
-      : this.testOpenAICompatible(provider);
-  }
-
-  private async testOpenAICompatible(provider: AiProvider): Promise<void> {
-    const base = provider.baseUrl.replace(/\/+$/, "");
-    const url = base.endsWith("/chat/completions")
-      ? base
-      : `${base}/chat/completions`;
-    if (!provider.model?.trim()) throw new Error("未配置模型名称");
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${provider.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 5,
-        temperature: 0,
-      }),
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "Unknown error");
-      throw new Error(`${provider.name} API (${res.status}): ${t}`);
-    }
-  }
-
-  private async testAnthropic(provider: AiProvider): Promise<void> {
-    const url = `${provider.baseUrl.replace(/\/+$/, "")}/v1/messages`;
-    if (!provider.model?.trim()) throw new Error("未配置模型名称");
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": provider.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 5,
-      }),
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "Unknown error");
-      throw new Error(`Anthropic API (${res.status}): ${t}`);
-    }
+    return testAiConnection(provider);
   }
 
   async generate(

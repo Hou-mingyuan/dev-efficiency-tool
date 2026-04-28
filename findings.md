@@ -23,3 +23,4 @@
 - P3 盘点显示当前最大文件包括 `src/views/GenerateUI.vue`、`src/App.vue`、`electron/ai-service.ts`、`electron/main.ts` 和 `electron/ipc/ai-handlers.ts`。其中 `electron/ai-service.ts` 同时承载提示词构造、模型清单、多模态消息构造和模型调用，适合优先做纯逻辑拆分。
 - `electron/ai-service.ts` 的模型清单和多模态消息构造不依赖 Electron 窗口、IPC 或网络，可拆为独立模块并用单元测试覆盖，作为低风险深度优化切口。
 - `AiService.listModels` 只需要委托模型列表模块，已知服务商模型清单和远程 `/models` 查询都不需要留在服务类内部；这能让后续 AI 服务层继续向“只负责调用生成接口”收敛。
+- `AiService.testConnection` 同样属于服务商健康检查，不属于生成调用核心流程。拆出后，OpenAI 兼容和 Anthropic 的连接测试请求可以独立覆盖，后续如果新增服务商也能更集中维护。

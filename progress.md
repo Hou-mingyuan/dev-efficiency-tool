@@ -31,6 +31,7 @@
 - 验证：`npx vitest run electron/__tests__/ai-service.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。
 - 已按用户确认创建提交 `d80abe8 Limit reference adherence hard rule to module scope`。
 - 推送尝试 2 次均失败：`Failed to connect to github.com port 443 via 127.0.0.1`。判断为本机代理或网络连通性问题，不影响本地代码和打包产物；后续网络恢复后需执行 `git push origin master`。
+- 用户确认当前代理端口为 `7897`，已将本仓库 Git 代理设置为 `http://127.0.0.1:7897`，并成功推送 `d80abe8` 和 `047f004` 到 `origin/master`。
 - 开始 P3 深度优化：盘点高复杂度文件后，优先拆分 `electron/ai-service.ts` 中的纯逻辑。
 - 已新增 `electron/known-ai-models.ts`，将内置服务商模型清单从 `AiService` 类中移出。
 - 已新增 `electron/ai-message-content.ts`，将 OpenAI 兼容与 Anthropic 的多模态 user content 构造从 `AiService` 私有方法中移出。
@@ -38,3 +39,6 @@
 - 验证：`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-message-content.spec.ts electron/__tests__/known-ai-models.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
 - 继续拆分 AI 模型列表逻辑：新增 `electron/ai-model-list.ts`，将已知模型短路、OpenAI 兼容 `/models` 查询、异常兜底从 `AiService` 中移出；新增 `electron/__tests__/ai-model-list.spec.ts` 覆盖无 API Key、已知服务商不走网络、远程模型排序和网络失败兜底。
 - 验证：`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-message-content.spec.ts electron/__tests__/known-ai-models.spec.ts electron/__tests__/ai-model-list.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
+- 按用户要求提交并重新打包：已创建本地提交 `047f004 Refactor AI service model helpers`，重新执行 `npm run pack` 成功，产物更新到 `release` 目录。
+- 继续拆分 AI 连接测试逻辑：新增 `electron/ai-connection-test.ts`，将 OpenAI 兼容与 Anthropic 的极简连接测试从 `AiService` 中移出；新增 `electron/__tests__/ai-connection-test.spec.ts` 覆盖无 API Key、OpenAI URL 兼容、Anthropic 请求和失败响应体透出。
+- 验证：`npx vitest run electron/__tests__/ai-connection-test.spec.ts electron/__tests__/ai-service.spec.ts electron/__tests__/ai-model-list.spec.ts electron/__tests__/ai-message-content.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
