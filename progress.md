@@ -27,3 +27,5 @@
 - 修复生成预览串台问题：通用生成器的 `ai:chunk` / `ai:done` 监听器现在只在页面激活时绑定，页面失活时解绑，避免生成需求文档时其它生成页面也收到流式内容。
 - 严格补强生成结果预览隔离：普通文档流式事件、完成事件、UI 图片进度事件和页面就绪事件都增加 `requestId`，前端只接收当前任务的事件；解绑监听器时只解绑当前页面注册的回调，不再清空其它页面监听器，避免不同生成功能之间结果预览串台。
 - 验证：`npx vitest run electron/__tests__/model-capabilities.spec.ts electron/__tests__/ui-image-targets.spec.ts src/utils/provider-readiness.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。
+- 继续优化生成约束：新增统一的 `STRICT_REFERENCE_ADHERENCE_RULE`，但仅在模块级别生成时启用。模块级普通文档生成、UI 提示词分析、HTML 截图出图、图片模型直出会明确要求严格遵守参考项目/参考文档的项目风格、目录结构、技术体系、样式规范、组件框架、命名习惯和交互模式；项目级别生成不注入该硬约束。
+- 验证：`npx vitest run electron/__tests__/ai-service.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。

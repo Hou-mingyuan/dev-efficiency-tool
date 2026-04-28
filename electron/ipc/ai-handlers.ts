@@ -224,6 +224,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
       req.referenceContent,
       customPrompts,
       projectContext,
+      Boolean(req.isModuleScope),
     );
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow();
     const requestId = typeof req.requestId === "string" && req.requestId.trim()
@@ -344,6 +345,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
         projectContext,
         imageCount: images?.length ?? 0,
         imageMode,
+        isModuleScope: Boolean(req.isModuleScope),
       });
       const targets = resolveDirectImageTargets(analyzedPrompt, req.projectName, imageMode);
 
@@ -458,6 +460,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
       projectContext,
       imageCount: images?.length ?? 0,
       imageMode,
+      isModuleScope: Boolean(req.isModuleScope),
     });
 
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow();

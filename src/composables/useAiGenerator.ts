@@ -463,6 +463,7 @@ export function useAiGenerator(docType: DocType) {
         referenceContent: referenceContent.value,
         providerId: customProviderId.value || undefined,
         projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
+        isModuleScope: scopeLevel.value === "module",
       });
       if (isIpcError(res)) {
         generating.value = false;

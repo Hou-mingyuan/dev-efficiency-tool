@@ -56,6 +56,7 @@ declare global {
     referenceContent: string;
     providerId?: string;
     projectPath?: string;
+    isModuleScope?: boolean;
   }
 
   interface SaveDocumentRequest {
@@ -158,6 +159,7 @@ declare global {
         analyzedPrompt?: string;
         referenceContent?: string;
         projectPath?: string;
+        isModuleScope?: boolean;
       }) => Promise<{ htmlResult: string; savedFiles: string[]; recordId: string; pages?: Array<{ name: string; imagePath: string; htmlPath: string }> } | IpcErrorResult>;
       generateFigmaFile: (req: {
         projectName?: string;

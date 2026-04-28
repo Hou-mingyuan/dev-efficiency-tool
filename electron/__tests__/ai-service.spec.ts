@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildDirectUIImagePrompt,
   buildPrompt,
   buildUIAnalyzePrompt,
   buildUIImagePrompt,
+  STRICT_REFERENCE_ADHERENCE_RULE,
 } from "../ai-service";
 
 describe("document prompt builder", () => {
-  it("uses custom prompts and includes project context and references", () => {
+  it("uses custom prompts and includes project context and references without module-only hard constraints", () => {
     const prompt = buildPrompt(
       "design",
       "订单系统",
@@ -18,10 +20,29 @@ describe("document prompt builder", () => {
 
     expect(prompt.system).toContain("自定义详设系统提示词");
     expect(prompt.system).toContain("项目分析上下文");
+    expect(prompt.system).not.toContain(STRICT_REFERENCE_ADHERENCE_RULE);
     expect(prompt.user).toContain("订单系统");
+    expect(prompt.user).not.toContain("必须严格遵守参考项目");
     expect(prompt.user).toContain("Vue 3 + Ant Design Vue");
     expect(prompt.user).toContain("实现订单列表、筛选和详情页");
     expect(prompt.user).toContain("参考文档：列表支持导出");
+  });
+
+  it("adds strict reference adherence only for module-level documents", () => {
+    const prompt = buildPrompt(
+      "design",
+      "订单模块",
+      "实现订单列表、筛选和详情页",
+      "参考文档：列表支持导出",
+      { design: "自定义详设系统提示词" },
+      "项目分析：Vue 3 + Ant Design Vue",
+      true,
+    );
+
+    expect(prompt.system).toContain(STRICT_REFERENCE_ADHERENCE_RULE);
+    expect(prompt.user).toContain("必须严格遵守参考项目");
+    expect(prompt.user).toContain("项目风格");
+    expect(prompt.user).toContain("组件框架");
   });
 });
 
@@ -37,7 +58,9 @@ describe("UI two-step prompt builders", () => {
     });
 
     expect(prompt.system).toContain("UI/UX 需求分析师");
+    expect(prompt.system).toContain(STRICT_REFERENCE_ADHERENCE_RULE);
     expect(prompt.user).toContain("订单系统");
+    expect(prompt.user).toContain("必须严格遵守参考项目");
     expect(prompt.user).toContain("订单列表和订单详情页面");
     expect(prompt.user).toContain("参考需求：订单可筛选、可导出");
     expect(prompt.user).toContain("组件库：Ant Design");
@@ -53,10 +76,13 @@ describe("UI two-step prompt builders", () => {
       projectContext: "主题色：#1677ff",
       imageCount: 1,
       imageMode: "quality",
+      isModuleScope: true,
     });
 
     expect(prompt.system).toContain("前端 UI 设计与开发专家");
+    expect(prompt.system).toContain(STRICT_REFERENCE_ADHERENCE_RULE);
     expect(prompt.user).toContain("订单系统");
+    expect(prompt.user).toContain("必须严格遵守参考项目");
     expect(prompt.user).toContain("页面清单：订单列表页、订单详情页");
     expect(prompt.user).toContain("参考交互：行操作包含查看详情");
     expect(prompt.user).toContain("主题色：#1677ff");
@@ -73,8 +99,42 @@ describe("UI two-step prompt builders", () => {
       imageMode: "fast",
     });
 
+    expect(prompt.system).not.toContain(STRICT_REFERENCE_ADHERENCE_RULE);
+    expect(prompt.user).not.toContain("必须严格遵守参考项目");
     expect(prompt.user).toContain("快速预览模式");
     expect(prompt.user).toContain("只生成 1-2 个最核心页面");
     expect(prompt.user).toContain("总页面数不得超过 2 个");
+  });
+
+  it("builds a direct image prompt with strict reference adherence", () => {
+    const prompt = buildDirectUIImagePrompt({
+      projectName: "订单系统",
+      analyzedPrompt: "页面清单：订单列表页",
+      referenceContent: "参考视觉：沿用 Ant Design 表格和蓝色主按钮",
+      projectContext: "组件库：Ant Design Vue；目录结构：src/views",
+      imageCount: 1,
+      imageMode: "quality",
+      isModuleScope: true,
+    });
+
+    expect(prompt).toContain(STRICT_REFERENCE_ADHERENCE_RULE);
+    expect(prompt).toContain("必须严格遵守参考项目");
+    expect(prompt).toContain("参考视觉：沿用 Ant Design 表格和蓝色主按钮");
+    expect(prompt).toContain("组件库：Ant Design Vue");
+    expect(prompt).toContain("已提供 1 张参考图片");
+  });
+
+  it("does not add strict reference adherence to project-level direct image prompts", () => {
+    const prompt = buildDirectUIImagePrompt({
+      projectName: "订单系统",
+      analyzedPrompt: "页面清单：订单列表页",
+      referenceContent: "参考视觉：沿用 Ant Design 表格和蓝色主按钮",
+      projectContext: "组件库：Ant Design Vue",
+      imageMode: "quality",
+    });
+
+    expect(prompt).not.toContain(STRICT_REFERENCE_ADHERENCE_RULE);
+    expect(prompt).not.toContain("必须严格遵守参考项目");
+    expect(prompt).toContain("参考视觉：沿用 Ant Design 表格和蓝色主按钮");
   });
 });

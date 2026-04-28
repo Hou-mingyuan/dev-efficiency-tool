@@ -711,6 +711,7 @@ async function generateUIImage() {
       imageMode: uiImageMode.value,
       referenceContent: refContent || undefined,
       projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
+      isModuleScope: scopeLevel.value === "module",
     });
 
     if (isIpcErr(res)) {

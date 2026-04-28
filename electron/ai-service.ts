@@ -15,6 +15,14 @@ export interface PromptTemplate {
   userPrefix: string;
 }
 
+export const STRICT_REFERENCE_ADHERENCE_RULE = [
+  "硬性参考约束：",
+  "- 如果提供了参考项目分析、参考项目代码、参考文档或参考图片，它们是生成内容的最高优先级约束。",
+  "- 输出必须严格遵守参考项目的项目风格、目录结构、技术体系、样式规范、组件框架、命名习惯和交互模式。",
+  "- 不得擅自替换框架、组件库、数据库、状态管理、路由结构、接口风格或视觉样式；没有证据的内容必须标注为待确认。",
+  "- 如果用户需求与参考资料冲突，必须优先保持参考项目/参考文档一致，并把冲突列为待确认事项。",
+].join("\n");
+
 export const PROMPTS: Record<DocType, PromptTemplate> = {
   prd: {
     system: `你是一位资深产品经理，擅长编写产品需求文档(PRD)。请根据用户提供的项目描述和上下文信息，生成一份完整、专业、充分详尽的 PRD 文档。
@@ -267,6 +275,7 @@ export interface BuildUIImagePromptOptions {
   projectContext?: string;
   imageCount?: number;
   imageMode?: "fast" | "quality";
+  isModuleScope?: boolean;
 }
 
 export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { system: string; user: string } {
@@ -277,6 +286,7 @@ export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { sy
   }
 
   if (options.isModuleScope) {
+    user += `**${STRICT_REFERENCE_ADHERENCE_RULE}**\n\n`;
     user += "**需求范围：** 模块级别。请明确该模块在整体系统中的位置、上下游关系、导航入口和复用的组件/样式规范。\n\n";
   } else {
     user += "**需求范围：** 项目级别。请按完整项目体验拆分页面、导航和关键流程。\n\n";
@@ -298,7 +308,9 @@ export function buildUIAnalyzePrompt(options: BuildUIAnalyzePromptOptions): { sy
   user += "请输出可直接交给 UI 出图模型使用的结构化中文提示词，必须包含页面清单、每个页面的布局、组件、状态、交互、数据示例和视觉风格约束。";
 
   return {
-    system: UI_ANALYZE_PROMPT.system,
+    system: options.isModuleScope
+      ? `${UI_ANALYZE_PROMPT.system}\n\n${STRICT_REFERENCE_ADHERENCE_RULE}`
+      : UI_ANALYZE_PROMPT.system,
     user,
   };
 }
@@ -309,6 +321,10 @@ export function buildUIImagePrompt(options: BuildUIImagePromptOptions): { system
 
   if (options.projectName?.trim()) {
     user += `**项目/模块名称：** ${options.projectName.trim()}\n\n`;
+  }
+
+  if (options.isModuleScope) {
+    user += `**${STRICT_REFERENCE_ADHERENCE_RULE}**\n\n`;
   }
 
   if (imageMode === "quality") {
@@ -335,7 +351,9 @@ export function buildUIImagePrompt(options: BuildUIImagePromptOptions): { system
     : "请严格根据上述提示词生成页面，不要重新解释需求。输出必须使用 <!-- PAGE_START: 页面名称 --> 和 <!-- PAGE_END --> 包裹每个页面，并且总页面数不得超过 2 个。";
 
   return {
-    system: UI_IMAGE_PROMPT.system,
+    system: options.isModuleScope
+      ? `${UI_IMAGE_PROMPT.system}\n\n${STRICT_REFERENCE_ADHERENCE_RULE}`
+      : UI_IMAGE_PROMPT.system,
     user,
   };
 }
@@ -344,6 +362,7 @@ export function buildDirectUIImagePrompt(options: BuildUIImagePromptOptions): st
   const parts = [
     "请直接生成一张高保真的桌面端 Web 产品界面图片，不要输出 HTML、CSS、Markdown 或解释文字。",
     "图片应像真实产品截图：布局完整、层级清晰、文字可读、组件状态自然，避免抽象海报风格。",
+    options.isModuleScope ? STRICT_REFERENCE_ADHERENCE_RULE : "",
     options.imageMode === "quality"
       ? "请优先保证视觉质量、细节完整度和可交付效果。"
       : "请优先生成清晰可用的首版预览，聚焦核心页面和首屏内容。",
@@ -372,9 +391,13 @@ export function buildPrompt(
   referenceContent: string,
   customPrompts?: Record<string, string> | null,
   projectContext?: string,
+  isModuleScope = false,
 ): { system: string; user: string } {
   const tmpl = PROMPTS[docType];
   let system = customPrompts?.[docType]?.trim() || tmpl.system;
+  if (isModuleScope) {
+    system += `\n\n${STRICT_REFERENCE_ADHERENCE_RULE}`;
+  }
 
   if (projectContext) {
     system += `\n\n请结合以下项目分析上下文来生成更贴合项目实际情况的文档。如果项目分析中包含了技术栈、框架、模块结构等信息，请在文档中充分利用这些信息。`;
@@ -386,6 +409,9 @@ export function buildPrompt(
   let user = tmpl.userPrefix;
   if (projectName) {
     user += `**项目/模块名称：** ${projectName}\n\n`;
+  }
+  if (isModuleScope) {
+    user += `**${STRICT_REFERENCE_ADHERENCE_RULE}**\n\n`;
   }
   if (projectContext) {
     user += `${projectContext}\n\n---\n\n`;
