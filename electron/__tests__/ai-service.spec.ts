@@ -1,8 +1,29 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPrompt,
   buildUIAnalyzePrompt,
   buildUIImagePrompt,
 } from "../ai-service";
+
+describe("document prompt builder", () => {
+  it("uses custom prompts and includes project context and references", () => {
+    const prompt = buildPrompt(
+      "design",
+      "订单系统",
+      "实现订单列表、筛选和详情页",
+      "参考文档：列表支持导出",
+      { design: "自定义详设系统提示词" },
+      "项目分析：Vue 3 + Ant Design Vue",
+    );
+
+    expect(prompt.system).toContain("自定义详设系统提示词");
+    expect(prompt.system).toContain("项目分析上下文");
+    expect(prompt.user).toContain("订单系统");
+    expect(prompt.user).toContain("Vue 3 + Ant Design Vue");
+    expect(prompt.user).toContain("实现订单列表、筛选和详情页");
+    expect(prompt.user).toContain("参考文档：列表支持导出");
+  });
+});
 
 describe("UI two-step prompt builders", () => {
   it("builds an analysis prompt with project context, references, images and module scope", () => {

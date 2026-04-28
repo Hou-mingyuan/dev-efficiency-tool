@@ -3,6 +3,9 @@ import { useAppStore, DEFAULT_AI_PROVIDERS } from "@/store/app";
 import { useNotificationStore } from "@/store/notification";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import SettingsAiProvidersTab from "@/components/settings/SettingsAiProvidersTab.vue";
+import SettingsBasicTab from "@/components/settings/SettingsBasicTab.vue";
+import SettingsPromptTab from "@/components/settings/SettingsPromptTab.vue";
 
 function isIpcError(v: unknown): v is IpcErrorResult {
   return (
@@ -102,6 +105,7 @@ function moveProvider(index: number, dir: -1 | 1) {
 }
 
 const BUILTIN_IDS = new Set(DEFAULT_AI_PROVIDERS.map((p) => p.id));
+const builtinProviderIds = DEFAULT_AI_PROVIDERS.map((p) => p.id);
 
 function addCustomProvider() {
   const n = draft.value.aiProviders.length;
@@ -269,247 +273,39 @@ onUnmounted(() => {
           key="basic"
           :tab="t('settings.tabBasic')"
         >
-          <a-space
-            direction="vertical"
-            :size="12"
-            style="width: 100%"
-            align="start"
-          >
-            <a-form
-              layout="vertical"
-              class="settings-form"
-            >
-              <a-form-item :label="t('settings.methodologyPath')">
-                <a-input-group compact>
-                  <a-input
-                    v-model:value="draft.methodologyPath"
-                    style="width: calc(100% - 88px)"
-                    :placeholder="t('settings.methodologyPathPlaceholder')"
-                  />
-                  <a-button @click="selectDir('methodologyPath')">
-                    {{ t("common.selectDir") }}
-                  </a-button>
-                </a-input-group>
-              </a-form-item>
-              <a-form-item :label="t('settings.projectPath')">
-                <a-input-group compact>
-                  <a-input
-                    v-model:value="draft.projectPath"
-                    style="width: calc(100% - 88px)"
-                    :placeholder="t('settings.projectPath')"
-                  />
-                  <a-button @click="selectDir('projectPath')">
-                    {{ t("common.selectDir") }}
-                  </a-button>
-                </a-input-group>
-              </a-form-item>
-              <a-form-item :label="t('settings.outputPath')">
-                <a-input-group compact>
-                  <a-input
-                    v-model:value="draft.outputPath"
-                    style="width: calc(100% - 88px)"
-                    :placeholder="t('settings.outputPath')"
-                  />
-                  <a-button @click="selectDir('outputPath')">
-                    {{ t("common.selectDir") }}
-                  </a-button>
-                </a-input-group>
-              </a-form-item>
-              <a-form-item :label="t('settings.cachePath')">
-                <a-input-group compact>
-                  <a-input
-                    v-model:value="draft.cachePath"
-                    style="width: calc(100% - 88px)"
-                    :placeholder="t('settings.cachePathPlaceholder')"
-                  />
-                  <a-button @click="selectDir('cachePath')">
-                    {{ t("common.selectDir") }}
-                  </a-button>
-                </a-input-group>
-              </a-form-item>
-              <a-form-item>
-                <a-popconfirm
-                  :title="t('settings.clearAllCachesConfirm')"
-                  :ok-text="t('common.confirm')"
-                  :cancel-text="t('common.cancel')"
-                  @confirm="onClearAllCaches"
-                >
-                  <a-button
-                    danger
-                    :loading="clearingCaches"
-                  >
-                    {{ t("settings.clearAllCaches") }}
-                  </a-button>
-                </a-popconfirm>
-              </a-form-item>
-            </a-form>
-          </a-space>
+          <SettingsBasicTab
+            v-model:draft="draft"
+            :clearing-caches="clearingCaches"
+            @select-dir="selectDir"
+            @clear-all-caches="onClearAllCaches"
+          />
         </a-tab-pane>
         <a-tab-pane
           key="ai"
           :tab="t('settings.tabAi')"
         >
-          <a-space
-            direction="vertical"
-            :size="12"
-            style="width: 100%"
-          >
-            <a-button
-              type="dashed"
-              block
-              @click="addCustomProvider"
-            >
-              {{ t("settings.addCustom") }}
-            </a-button>
-            <a-collapse
-              v-model:activeKey="aiOpenKey"
-              @change="onCollapseChange"
-            >
-              <a-collapse-panel
-                v-for="(p, idx) in draft.aiProviders"
-                :key="p.id"
-                :header="p.name"
-              >
-                <a-space
-                  direction="vertical"
-                  :size="8"
-                  style="width: 100%"
-                >
-                  <a-space>
-                    <span>{{ t("settings.providerName") }}:</span>
-                    <a-input
-                      v-model:value="p.name"
-                      style="min-width: 200px"
-                    />
-                    <span>{{ t("settings.providerEnabled") }}</span>
-                    <a-switch v-model:checked="p.enabled" />
-                  </a-space>
-                  <a-form-item
-                    :label="t('settings.apiKey')"
-                    class="form-item-embed"
-                  >
-                    <a-input-password
-                      v-model:value="p.apiKey"
-                      autocomplete="off"
-                    />
-                    <div v-if="p.apiKey" class="api-key-strength">
-                      <span
-                        class="api-key-strength__dot"
-                        :class="p.apiKey.length >= 20 ? 'api-key-strength__dot--strong' : 'api-key-strength__dot--weak'"
-                      />
-                      <span class="api-key-strength__label">
-                        {{ p.apiKey.length >= 20 ? t('settings.keyStrong') : t('settings.keyWeak') }}
-                      </span>
-                    </div>
-                  </a-form-item>
-                  <a-form-item
-                    :label="t('settings.baseUrl')"
-                    class="form-item-embed"
-                  >
-                    <a-input v-model:value="p.baseUrl" />
-                  </a-form-item>
-                  <a-form-item
-                    :label="t('settings.model')"
-                    class="form-item-embed"
-                  >
-                    <a-auto-complete
-                      v-model:value="p.model"
-                      :options="(modelOptionsMap[p.id] || []).map((m: string) => ({ value: m, label: m }))"
-                      :placeholder="t('settings.model')"
-                      allow-clear
-                      :filter-option="filterModelOption"
-                      style="width: 100%"
-                    />
-                    <a-button
-                      v-if="p.apiKey?.trim()"
-                      size="small"
-                      type="link"
-                      :loading="modelLoadingId === p.id"
-                      style="padding: 0; margin-top: 4px"
-                      @click="modelOptionsMap[p.id] = []; fetchModels(p)"
-                    >
-                      {{ modelLoadingId === p.id ? t('settings.testing') : t("settings.refreshModels") }}
-                    </a-button>
-                  </a-form-item>
-                  <a-space wrap>
-                    <a-button
-                      type="primary"
-                      :loading="testingId === p.id"
-                      @click="testProvider(p)"
-                    >
-                      {{ t("settings.testConnection") }}
-                    </a-button>
-                    <a-button
-                      :disabled="idx === 0"
-                      @click="moveProvider(idx, -1)"
-                    >
-                      {{ t("settings.moveUp") }}
-                    </a-button>
-                    <a-button
-                      :disabled="idx === draft.aiProviders.length - 1"
-                      @click="moveProvider(idx, 1)"
-                    >
-                      {{ t("settings.moveDown") }}
-                    </a-button>
-                    <a-popconfirm
-                      v-if="!BUILTIN_IDS.has(p.id)"
-                      :title="t('settings.deleteProviderConfirm')"
-                      :ok-text="t('common.confirm')"
-                      :cancel-text="t('common.cancel')"
-                      @confirm="removeProvider(idx)"
-                    >
-                      <a-button danger>
-                        {{ t("common.delete") }}
-                      </a-button>
-                    </a-popconfirm>
-                  </a-space>
-                </a-space>
-              </a-collapse-panel>
-            </a-collapse>
-          </a-space>
+          <SettingsAiProvidersTab
+            v-model:providers="draft.aiProviders"
+            v-model:active-key="aiOpenKey"
+            :built-in-ids="builtinProviderIds"
+            :testing-id="testingId"
+            :model-options-map="modelOptionsMap"
+            :model-loading-id="modelLoadingId"
+            :filter-model-option="filterModelOption"
+            @add-custom="addCustomProvider"
+            @collapse-change="onCollapseChange"
+            @clear-models="(providerId) => { modelOptionsMap[providerId] = []; }"
+            @fetch-models="fetchModels"
+            @test-provider="testProvider"
+            @move-provider="moveProvider"
+            @remove-provider="removeProvider"
+          />
         </a-tab-pane>
         <a-tab-pane
           key="prompt"
           :tab="t('settings.tabPrompt')"
         >
-          <a-space
-            direction="vertical"
-            :size="16"
-            style="width: 100%"
-          >
-            <a-form
-              layout="vertical"
-            >
-              <a-form-item :label="t('settings.promptPrd')">
-                <a-textarea
-                  v-model:value="draft.customPrompts.prd"
-                  :rows="6"
-                  :placeholder="t('settings.promptPrdPh')"
-                />
-              </a-form-item>
-              <a-form-item :label="t('settings.promptReq')">
-                <a-textarea
-                  v-model:value="draft.customPrompts.requirements"
-                  :rows="6"
-                  :placeholder="t('settings.promptReqPh')"
-                />
-              </a-form-item>
-              <a-form-item :label="t('settings.promptUi')">
-                <a-textarea
-                  v-model:value="draft.customPrompts.ui"
-                  :rows="6"
-                  :placeholder="t('settings.promptUiPh')"
-                />
-              </a-form-item>
-              <a-form-item :label="t('settings.promptDesign')">
-                <a-textarea
-                  v-model:value="draft.customPrompts.design"
-                  :rows="6"
-                  :placeholder="t('settings.promptDesignPh')"
-                />
-              </a-form-item>
-            </a-form>
-          </a-space>
+          <SettingsPromptTab v-model:prompts="draft.customPrompts" />
         </a-tab-pane>
         <a-tab-pane
           key="backup"
@@ -605,38 +401,6 @@ onUnmounted(() => {
   }
   :deep(.ant-tabs-ink-bar) {
     display: none !important;
-  }
-}
-
-.settings-form {
-  max-width: 640px;
-}
-
-.form-item-embed {
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.api-key-strength {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  font-size: 11px;
-
-  &__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-  &__dot--strong {
-    background: var(--app-success, #10b981);
-  }
-  &__dot--weak {
-    background: var(--app-warning, #f59e0b);
-  }
-  &__label {
-    color: var(--app-text-tertiary);
   }
 }
 

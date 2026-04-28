@@ -170,6 +170,11 @@ export function isPathWithinBase(baseDir: string, candidatePath: string): boolea
   return !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
+export interface AppManagerOptions {
+  appDataDir?: string;
+  detectMethodologyPath?: boolean;
+}
+
 export class AppManager {
   static readonly LOG_ROTATE_BYTES = 5 * 1024 * 1024;
 
@@ -181,13 +186,15 @@ export class AppManager {
   private readonly genHistoryPath: string;
   private warnedPlaintextApiKey = false;
 
-  constructor() {
-    const appData = path.join(os.homedir(), ".lng-methodology-desktop");
+  constructor(options: AppManagerOptions = {}) {
+    const appData = options.appDataDir ?? path.join(os.homedir(), ".lng-methodology-desktop");
     this.configPath = path.join(appData, "config.json");
     this.appLogFile = path.join(appData, "app.log");
     this.genHistoryPath = path.join(appData, "gen-history.json");
     this.config = this.loadConfig();
-    this.detectMethodologyPath();
+    if (options.detectMethodologyPath !== false) {
+      this.detectMethodologyPath();
+    }
   }
 
   decryptProviderApiKey(stored: string | undefined): string {

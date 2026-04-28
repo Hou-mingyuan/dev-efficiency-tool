@@ -18,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import pkg from "electron-updater";
 import { randomUUID } from "node:crypto";
 import { Marked } from "marked";
-import { AppManager, type AiProvider } from "./app-manager";
+import { AppManager, isPathWithinBase, type AiProvider } from "./app-manager";
 import {
   AiService,
   buildPrompt,
@@ -27,6 +27,8 @@ import {
   type DocType,
 } from "./ai-service";
 import { ProjectAnalyzer } from "./project-analyzer";
+import { registerProjectHandlers } from "./ipc/project-handlers";
+import { registerWindowHandlers } from "./ipc/window-handlers";
 
 const { autoUpdater } = pkg;
 
@@ -112,8 +114,115 @@ const defaultCacheDir = app.isPackaged
   : path.join(APP_DIR, ".project-cache");
 const projectAnalyzer = new ProjectAnalyzer(defaultCacheDir);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+const trustedFilePaths = new Set<string>();
+const trustedDirectoryPaths = new Set<string>();
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([".docx", ".xlsx", ".xls", ".pdf", ".md", ".txt"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"]);
+const ALLOWED_SAVE_FORMATS = new Set(["md", "txt", "docx", "pdf", "png", "jpeg", "jpg", "gif", "svg", "html"]);
 
 let currentLocale = "zh";
+
+function normalizeFsPath(p: string): string {
+  return path.resolve(p);
+}
+
+function trustFilePath(filePath: string): string {
+  const resolved = normalizeFsPath(filePath);
+  trustedFilePaths.add(resolved);
+  return resolved;
+}
+
+function trustDirectoryPath(dirPath: string): string {
+  const resolved = normalizeFsPath(dirPath);
+  trustedDirectoryPaths.add(resolved);
+  return resolved;
+}
+
+function configuredTrustedRoots(): string[] {
+  const cfg = appManager?.getConfig();
+  return [
+    cfg?.projectPath,
+    cfg?.outputPath,
+    cfg?.methodologyPath,
+    cfg?.cachePath,
+    ...trustedDirectoryPaths,
+  ].filter((p): p is string => Boolean(p?.trim()));
+}
+
+function isTrustedPath(filePath: string): boolean {
+  const resolved = normalizeFsPath(filePath);
+  if (trustedFilePaths.has(resolved)) return true;
+  return configuredTrustedRoots().some((root) => isPathWithinBase(root, resolved));
+}
+
+function isKnownHistoryOutputPath(filePath: string): boolean {
+  const resolved = normalizeFsPath(filePath);
+  return (appManager?.getGenerationHistory() ?? []).some((r) => (
+    r.outputPath ? normalizeFsPath(r.outputPath) === resolved : false
+  ));
+}
+
+function assertTrustedReadPath(filePath: string, label: string): string {
+  if (!filePath || typeof filePath !== "string") {
+    throw new Error(`${label}: invalid path`);
+  }
+  const resolved = normalizeFsPath(filePath);
+  if (!isTrustedPath(resolved) && !isKnownHistoryOutputPath(resolved)) {
+    throw new Error(currentLocale === "zh" ? `${label} 不在可信路径范围内` : `${label} is outside trusted paths`);
+  }
+  return resolved;
+}
+
+function assertAllowedExtension(filePath: string, label: string, allowed: Set<string>): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!allowed.has(ext)) {
+    throw new Error(currentLocale === "zh" ? `${label} 格式不受支持` : `${label} format is not supported`);
+  }
+  return ext;
+}
+
+function assertExistingFile(filePath: string, label: string): string {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new Error(currentLocale === "zh" ? `${label} 不存在` : `${label} does not exist`);
+  }
+  return filePath;
+}
+
+function assertTrustedOutputDirectory(outputDir: string): string {
+  if (!outputDir) {
+    throw new Error(currentLocale === "zh" ? "未指定输出路径" : "No output path specified");
+  }
+  const resolvedDir = normalizeFsPath(outputDir);
+  if (!configuredTrustedRoots().some((root) => isPathWithinBase(root, resolvedDir) || normalizeFsPath(root) === resolvedDir)) {
+    throw new Error(currentLocale === "zh" ? "输出目录不在可信路径范围内" : "Output directory is outside trusted paths");
+  }
+  return resolvedDir;
+}
+
+function assertTrustedOutputPath(outputDir: string, fileName: string): string {
+  if (!fileName || fileName !== path.basename(fileName)) {
+    throw new Error(currentLocale === "zh" ? "输出文件名非法" : "Invalid output file name");
+  }
+  const resolvedDir = assertTrustedOutputDirectory(outputDir);
+  const resolvedFile = normalizeFsPath(path.join(resolvedDir, fileName));
+  if (!isPathWithinBase(resolvedDir, resolvedFile)) {
+    throw new Error(currentLocale === "zh" ? "输出文件名非法" : "Invalid output file name");
+  }
+  return resolvedFile;
+}
+
+function assertSafeExternalUrl(rawUrl: string): string {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new Error(currentLocale === "zh" ? "无效的外部链接" : "Invalid external URL");
+  }
+  if (!["https:", "http:", "mailto:"].includes(url.protocol)) {
+    throw new Error(currentLocale === "zh" ? "不支持的外部链接协议" : "Unsupported external URL protocol");
+  }
+  return url.toString();
+}
 
 /* ------------------------------------------------------------------ */
 /*  Locale persistence                                                 */
@@ -492,14 +601,7 @@ function setupCSP() {
 /* ------------------------------------------------------------------ */
 
 function registerIpcHandlers() {
-  // Window controls (frameless)
-  ipcMain.handle("win:minimize", () => { BrowserWindow.getFocusedWindow()?.minimize(); });
-  ipcMain.handle("win:maximize", () => {
-    const w = BrowserWindow.getFocusedWindow();
-    if (w?.isMaximized()) w.unmaximize(); else w?.maximize();
-  });
-  ipcMain.handle("win:close", () => { BrowserWindow.getFocusedWindow()?.close(); });
-  ipcMain.handle("win:isMaximized", () => BrowserWindow.getFocusedWindow()?.isMaximized() ?? false);
+  registerWindowHandlers();
 
   // Locale (NEW – menu i18n)
   ipcMain.handle("app:setLocale", (_e, locale: string) => {
@@ -548,7 +650,7 @@ function registerIpcHandlers() {
   ipcMain.handle("app:writeMethodologyFile", (_e, p: string, content: string) => appManager?.writeMethodologyFile(p, content));
 
   // App utilities
-  ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle("app:openExternal", wrapIPC(async (_e: any, url: string) => shell.openExternal(assertSafeExternalUrl(url))));
   ipcMain.handle("app:getVersion", () => app.getVersion());
   ipcMain.handle("app:setAutoLaunch", (_e, v: boolean) => { setAutoLaunch(v); return true; });
   ipcMain.handle("app:getAutoLaunch", () => app.getLoginItemSettings().openAtLogin);
@@ -627,14 +729,19 @@ function registerIpcHandlers() {
   }));
 
   // Document
-  ipcMain.handle("app:parseDocument", wrapIPC(async (_e: any, p: string) => appManager?.parseDocument(p)));
+  ipcMain.handle("app:parseDocument", wrapIPC(async (_e: any, p: string) => {
+    const filePath = assertTrustedReadPath(p, currentLocale === "zh" ? "文档文件" : "Document file");
+    assertAllowedExtension(filePath, currentLocale === "zh" ? "文档文件" : "Document file", ALLOWED_DOCUMENT_EXTENSIONS);
+    assertExistingFile(filePath, currentLocale === "zh" ? "文档文件" : "Document file");
+    return appManager?.parseDocument(filePath);
+  }));
   ipcMain.handle("app:selectFile", wrapIPC(async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow!, {
       title: currentLocale === "zh" ? "选择文档" : "Select Document",
       filters: [{ name: currentLocale === "zh" ? "文档" : "Documents", extensions: ["docx", "xlsx", "pdf", "md", "txt"] }],
       properties: ["openFile"],
     });
-    return filePaths?.[0] || null;
+    return filePaths?.[0] ? trustFilePath(filePaths[0]) : null;
   }));
 
   ipcMain.handle("app:selectImages", wrapIPC(async () => {
@@ -643,13 +750,16 @@ function registerIpcHandlers() {
       filters: [{ name: currentLocale === "zh" ? "图片" : "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp"] }],
       properties: ["openFile", "multiSelections"],
     });
-    return filePaths || [];
+    return (filePaths || []).map((filePath) => trustFilePath(filePath));
   }));
 
   ipcMain.handle("app:readImageAsBase64", wrapIPC(async (_e: any, filePath: string) => {
-    if (!filePath || !fs.existsSync(filePath)) return null;
-    const buf = fs.readFileSync(filePath);
-    const ext = path.extname(filePath).toLowerCase().replace(".", "");
+    if (!filePath) return null;
+    const safePath = assertTrustedReadPath(filePath, currentLocale === "zh" ? "图片文件" : "Image file");
+    assertAllowedExtension(safePath, currentLocale === "zh" ? "图片文件" : "Image file", ALLOWED_IMAGE_EXTENSIONS);
+    assertExistingFile(safePath, currentLocale === "zh" ? "图片文件" : "Image file");
+    const buf = fs.readFileSync(safePath);
+    const ext = path.extname(safePath).toLowerCase().replace(".", "");
     const mimeMap: Record<string, string> = {
       png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
       gif: "image/gif", webp: "image/webp", bmp: "image/bmp",
@@ -658,7 +768,7 @@ function registerIpcHandlers() {
     return {
       base64: buf.toString("base64"),
       mimeType,
-      name: path.basename(filePath),
+      name: path.basename(safePath),
       dataUrl: `data:${mimeType};base64,${buf.toString("base64")}`,
     };
   }));
@@ -667,7 +777,7 @@ function registerIpcHandlers() {
       title: title || (currentLocale === "zh" ? "选择目录" : "Select Directory"),
       properties: ["openDirectory"],
     });
-    return filePaths?.[0] || null;
+    return filePaths?.[0] ? trustDirectoryPath(filePaths[0]) : null;
   }));
 
   // AI
@@ -878,12 +988,11 @@ function registerIpcHandlers() {
 
     sendProgress("rendering", 0, pages.length, `共 ${pages.length} 个页面，准备渲染...`);
 
-    const outputDir = req.outputDir || appManager?.getConfig().outputPath;
-    if (!outputDir) throw new Error(currentLocale === "zh" ? "未指定输出目录" : "No output directory specified");
+    const outputDir = assertTrustedOutputDirectory(req.outputDir || appManager?.getConfig().outputPath || "");
     fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const imgFormat = req.imageFormat || "png";
+    const imgFormat = req.imageFormat === "jpeg" ? "jpeg" : "png";
     const savedFiles: string[] = [];
     const pageResults: Array<{ name: string; imagePath: string; htmlPath: string }> = [];
     const wrapHtml = (body: string) =>
@@ -897,7 +1006,7 @@ function registerIpcHandlers() {
       const suffix = pages.length > 1 ? `-${i + 1}` : "";
       const safeName = page.name.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40);
       const imgFileName = `ui-${safeName}${suffix}-${timestamp}.${imgFormat}`;
-      const imgFilePath = path.join(outputDir, imgFileName);
+      const imgFilePath = assertTrustedOutputPath(outputDir, imgFileName);
       const fullHtml = wrapHtml(page.html);
 
       const renderWin = new BrowserWindow({ show: false, width: 1280, height: 800 });
@@ -916,7 +1025,7 @@ function registerIpcHandlers() {
       savedFiles.push(imgFilePath);
 
       const htmlFileName = `ui-${safeName}${suffix}-${timestamp}.html`;
-      const htmlFilePath = path.join(outputDir, htmlFileName);
+      const htmlFilePath = assertTrustedOutputPath(outputDir, htmlFileName);
       fs.writeFileSync(htmlFilePath, fullHtml, "utf-8");
       savedFiles.push(htmlFilePath);
 
@@ -941,8 +1050,11 @@ function registerIpcHandlers() {
 
   ipcMain.handle("ai:checkFilesExist", wrapIPC(async (_e: any, paths: string[]) => {
     const result: Record<string, boolean> = {};
-    for (const p of paths) {
-      result[p] = fs.existsSync(p);
+    for (const p of paths || []) {
+      if (typeof p !== "string" || !p) {
+        continue;
+      }
+      result[p] = isTrustedPath(p) || isKnownHistoryOutputPath(p) ? fs.existsSync(p) : false;
     }
     return result;
   }));
@@ -954,8 +1066,12 @@ function registerIpcHandlers() {
       fileName: string;
       format: "png" | "jpeg" | "gif";
     };
-    fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
-    const filePath = path.join(outputDir, fileName);
+    if (!["png", "jpeg", "gif"].includes(format)) {
+      throw new Error(currentLocale === "zh" ? "不支持的图片格式" : "Unsupported image format");
+    }
+    const safeOutputDir = assertTrustedOutputDirectory(outputDir);
+    fs.existsSync(safeOutputDir) || fs.mkdirSync(safeOutputDir, { recursive: true });
+    const filePath = assertTrustedOutputPath(safeOutputDir, fileName);
     const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1030,8 +1146,11 @@ function registerIpcHandlers() {
   ipcMain.handle("ai:addHistory", (_e, record: any) => { appManager?.addGenerationRecord(record); });
   ipcMain.handle("ai:deleteHistory", (_e, id: string) => { appManager?.deleteGenerationRecord(id); return true; });
   ipcMain.handle("ai:readOutputFile", wrapIPC(async (_e: any, p: string) => {
-    if (!p || !fs.existsSync(p)) return null;
-    return fs.readFileSync(p, "utf-8");
+    if (!p) return null;
+    const filePath = assertTrustedReadPath(p, currentLocale === "zh" ? "输出文件" : "Output file");
+    if (!fs.existsSync(filePath)) return null;
+    assertExistingFile(filePath, currentLocale === "zh" ? "输出文件" : "Output file");
+    return fs.readFileSync(filePath, "utf-8");
   }));
   ipcMain.handle("ai:updateHistoryOutput", (_e, data: any) => {
     appManager?.updateGenerationOutputPath(data.id, data.outputPath);
@@ -1061,11 +1180,16 @@ function registerIpcHandlers() {
     }),
   );
   ipcMain.handle("ai:saveDocument", wrapIPC(async (_e: any, req: any) => {
-    fs.existsSync(req.outputDir) || fs.mkdirSync(req.outputDir, { recursive: true });
-    const filePath = path.join(req.outputDir, req.fileName);
+    const format = String(req.format || "md").toLowerCase();
+    if (!ALLOWED_SAVE_FORMATS.has(format)) {
+      throw new Error(currentLocale === "zh" ? "不支持的保存格式" : "Unsupported save format");
+    }
+    const filePath = assertTrustedOutputPath(req.outputDir, req.fileName);
+    const outputDir = path.dirname(filePath);
+    fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
     const marked = new Marked();
 
-    if (req.format === "docx") {
+    if (format === "docx") {
       const htmlBody = await marked.parse(req.content);
       const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${htmlBody}</body></html>`;
       const HTMLtoDOCX = (await import("html-to-docx")).default;
@@ -1075,7 +1199,7 @@ function registerIpcHandlers() {
         pageNumber: true,
       });
       fs.writeFileSync(filePath, Buffer.from(docxBuf as ArrayBuffer));
-    } else if (req.format === "pdf") {
+    } else if (format === "pdf") {
       const htmlBody = await marked.parse(req.content);
       const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
@@ -1099,7 +1223,7 @@ function registerIpcHandlers() {
       });
       fs.writeFileSync(filePath, pdfData);
       pdfWin.close();
-    } else if (req.format === "png" || req.format === "jpeg" || req.format === "jpg") {
+    } else if (format === "png" || format === "jpeg" || format === "jpg") {
       const htmlBody = await marked.parse(req.content);
       const imgStyle = `
   body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 14px; line-height: 1.8; padding: 40px; color: #1a1a1a; background: #fff; margin: 0; }
@@ -1122,13 +1246,13 @@ function registerIpcHandlers() {
       imgWin.setSize(1200, Math.min(contentHeight + 40, 16000));
       await new Promise((r) => setTimeout(r, 300));
       const capturedImg = await imgWin.webContents.capturePage();
-      if (req.format === "png") {
+      if (format === "png") {
         fs.writeFileSync(filePath, capturedImg.toPNG());
       } else {
         fs.writeFileSync(filePath, capturedImg.toJPEG(90));
       }
       imgWin.close();
-    } else if (req.format === "gif") {
+    } else if (format === "gif") {
       const { GifWriter } = await import("omggif");
       const htmlBody = await marked.parse(req.content);
       const gifCss = `
@@ -1194,7 +1318,7 @@ function registerIpcHandlers() {
       }
       const finalGif = Buffer.from(outBuf.buffer, 0, gw.end());
       fs.writeFileSync(filePath, finalGif);
-    } else if (req.format === "svg") {
+    } else if (format === "svg") {
       const htmlBody = await marked.parse(req.content);
       const svgDoc = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="960" height="auto" viewBox="0 0 960 800">
@@ -1205,7 +1329,7 @@ function registerIpcHandlers() {
   </foreignObject>
 </svg>`;
       fs.writeFileSync(filePath, svgDoc, "utf-8");
-    } else if (req.format === "html") {
+    } else if (format === "html") {
       const htmlBody = await marked.parse(req.content);
       const htmlDoc = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -1246,50 +1370,18 @@ function registerIpcHandlers() {
     if (req.historyRecordId) appManager?.updateGenerationOutputPath(req.historyRecordId, filePath);
     appManager?.addLog(
       "info",
-      `文档已保存: ${req.fileName} (${req.format || "md"})`,
+      `文档已保存: ${req.fileName} (${format})`,
       "ai-save",
     );
     return filePath;
   }));
 
-  // Project analysis
-  ipcMain.handle("project:analyze", wrapIPC(async (_e: any, projectPath: string) => {
-    if (!projectPath) throw new Error(currentLocale === "zh" ? "未指定项目路径" : "No project path specified");
-    const result = projectAnalyzer.analyze(projectPath);
-    appManager?.addLog("info", `项目分析完成: ${projectPath} (${result.structure.totalFiles} 文件)`, "project-analyzer");
-    return result;
-  }));
-  ipcMain.handle("project:getCache", (_e, projectPath: string) => {
-    return projectAnalyzer.getCache(projectPath);
+  registerProjectHandlers({
+    appManager: () => appManager,
+    currentLocale: () => currentLocale,
+    projectAnalyzer,
+    wrapIPC,
   });
-  ipcMain.handle("project:getCacheInfo", (_e, projectPath: string) => {
-    return projectAnalyzer.getCacheInfo(projectPath);
-  });
-  ipcMain.handle("project:isCacheValid", (_e, projectPath: string) => {
-    return projectAnalyzer.isCacheValid(projectPath);
-  });
-  ipcMain.handle("project:clearCache", (_e, projectPath: string) => {
-    const cleared = projectAnalyzer.clearCache(projectPath);
-    if (cleared) appManager?.addLog("info", `已清除项目缓存: ${projectPath}`, "project-analyzer");
-    return cleared;
-  });
-  ipcMain.handle("project:clearAllCaches", () => {
-    const count = projectAnalyzer.clearAllCaches();
-    appManager?.addLog("info", `已清除全部项目缓存 (${count} 个)`, "project-analyzer");
-    return count;
-  });
-  ipcMain.handle("project:getCacheDir", () => {
-    return projectAnalyzer.cacheDir;
-  });
-  ipcMain.handle("project:setCacheDir", (_e, dir: string) => {
-    projectAnalyzer.setCacheDir(dir || null);
-    appManager?.addLog("info", `缓存目录已更新: ${projectAnalyzer.cacheDir}`, "project-analyzer");
-    return projectAnalyzer.cacheDir;
-  });
-  ipcMain.handle("project:formatForPrompt", wrapIPC(async (_e: any, projectPath: string, docType: string) => {
-    const cached = projectAnalyzer.getOrAnalyze(projectPath);
-    return projectAnalyzer.formatForPrompt(cached, docType);
-  }));
 
   // Theme
   ipcMain.handle("app:getTheme", () => {

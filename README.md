@@ -69,7 +69,7 @@ npx electron-builder --win --config
 ├── electron/                # Electron 主进程
 │   ├── main.ts              # 主进程入口、IPC 处理
 │   ├── ai-service.ts        # AI 服务封装（多模型支持）
-│   ├── mcp-manager.ts       # MCP 配置管理
+│   ├── app-manager.ts       # 应用配置、方法论路径与文档解析
 │   ├── preload.ts           # 预加载脚本
 │   └── project-analyzer.ts  # 项目分析与缓存
 ├── src/                     # 渲染进程（Vue 3）

@@ -59,11 +59,16 @@ declare module 'vue' {
     ATypographyText: typeof import('ant-design-vue/es')['TypographyText']
     ATypographyTitle: typeof import('ant-design-vue/es')['TypographyTitle']
     ErrorBoundary: typeof import('./components/ErrorBoundary.vue')['default']
+    GenerateUIHistoryDrawer: typeof import('./components/generate-ui/GenerateUIHistoryDrawer.vue')['default']
+    GenerateUIPreview: typeof import('./components/generate-ui/GenerateUIPreview.vue')['default']
     GlobalSearch: typeof import('./components/GlobalSearch.vue')['default']
     GuideTour: typeof import('./components/GuideTour.vue')['default']
     NotificationCenter: typeof import('./components/NotificationCenter.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SettingsAiProvidersTab: typeof import('./components/settings/SettingsAiProvidersTab.vue')['default']
+    SettingsBasicTab: typeof import('./components/settings/SettingsBasicTab.vue')['default']
+    SettingsPromptTab: typeof import('./components/settings/SettingsPromptTab.vue')['default']
     ShortcutsHelp: typeof import('./components/ShortcutsHelp.vue')['default']
   }
 }
