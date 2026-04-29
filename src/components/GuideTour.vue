@@ -169,8 +169,8 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
+  background: rgba(2, 4, 7, 0.54);
+  backdrop-filter: blur(3px);
   animation: guideFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -178,7 +178,7 @@ onBeforeUnmount(() => {
   position: fixed;
   border-radius: var(--app-radius-md, 12px);
   box-shadow:
-    0 0 0 9999px rgba(0, 0, 0, 0.5),
+    0 0 0 9999px rgba(2, 4, 7, 0.56),
     0 0 0 3px color-mix(in srgb, var(--app-primary, #3b82f6) 60%, transparent),
     0 0 20px color-mix(in srgb, var(--app-primary, #3b82f6) 25%, transparent);
   z-index: 10001;
@@ -190,28 +190,28 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: 10002;
   width: 340px;
-  background: var(--app-glass-bg, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  border: 1px solid var(--app-glass-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--app-radius-xl, 20px);
+  background: rgba(8, 13, 22, 0.96);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
   padding: 22px 24px 18px;
   box-shadow:
-    0 12px 48px rgba(0, 0, 0, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.08);
+    0 18px 60px rgba(0, 0, 0, 0.42);
   animation: guideSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   &__title {
     font-size: 16px;
-    font-weight: 700;
-    color: var(--app-text, #0f172a);
+    font-family: var(--app-font-display);
+    font-weight: 950;
+    color: rgba(248, 250, 252, 0.94);
     margin-bottom: 10px;
     letter-spacing: -0.01em;
   }
 
   &__desc {
     font-size: 13.5px;
-    color: var(--app-text-secondary, #475569);
+    color: rgba(203, 213, 225, 0.84);
     line-height: 1.7;
     margin-bottom: 18px;
   }
@@ -225,22 +225,15 @@ onBeforeUnmount(() => {
 
   &__progress {
     font-size: 12px;
-    color: var(--app-text-tertiary, #94a3b8);
-    font-weight: 500;
+    color: rgba(148, 163, 184, 0.82);
+    font-family: var(--app-font-mono);
+    font-weight: 800;
   }
 
   &__actions {
     display: flex;
     gap: 8px;
   }
-}
-
-[data-theme="dark"] .guide-popover {
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(51, 65, 85, 0.5);
-  box-shadow:
-    0 12px 48px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 @keyframes guideFadeIn {

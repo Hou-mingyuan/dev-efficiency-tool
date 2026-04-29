@@ -984,8 +984,8 @@ async function loadHistoryRecord(item: GenerationRecord) {
   width: 120px;
   height: 90px;
   object-fit: cover;
-  border-radius: var(--app-radius-sm);
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  border: 0;
   transition: transform var(--app-transition);
   &:hover {
     transform: scale(1.05);
@@ -1002,7 +1002,7 @@ async function loadHistoryRecord(item: GenerationRecord) {
   font-size: 14px;
   line-height: 1;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(8, 13, 22, 0.82);
   color: #fff;
   &:hover {
     background: rgba(255, 0, 0, 0.7);
@@ -1013,7 +1013,7 @@ async function loadHistoryRecord(item: GenerationRecord) {
 .ref-image-name {
   display: block;
   font-size: 11px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.82);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

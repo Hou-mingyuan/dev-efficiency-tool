@@ -116,18 +116,19 @@ const rows = computed(() => [
 .shortcuts-help__hint {
   margin: 0 0 12px;
   font-size: 13px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.84);
   line-height: 1.6;
+  font-weight: 600;
 }
 
 .shortcuts-help__list {
   :deep(.ant-list-item-meta-description) {
-    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, monospace;
+    font-family: var(--app-font-mono);
     font-size: 13px;
-    color: var(--app-text-secondary, rgba(0, 0, 0, 0.65));
-    background: var(--app-bg-spotlight, #f8fafc);
+    color: rgba(226, 232, 240, 0.9);
+    background: rgba(12, 19, 31, 0.72);
     padding: 3px 10px;
-    border-radius: var(--app-radius-xs, 6px);
+    border-radius: 0;
     display: inline-block;
   }
 }

@@ -275,8 +275,9 @@ async function onModelBlur() {
 
 .ai-provider-inline__hint {
   margin-top: 6px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.82);
   font-size: 12px;
   line-height: 1.5;
+  font-weight: 600;
 }
 </style>

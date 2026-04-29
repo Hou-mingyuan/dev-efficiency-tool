@@ -195,7 +195,7 @@ function fileUrl(filePath: string): string {
 .ui-page-section {
   margin-bottom: 24px;
   padding-bottom: 24px;
-  border-bottom: 1px dashed var(--app-border, #d9d9d9);
+  border-bottom: 0;
   &:last-child {
     border-bottom: none;
     margin-bottom: 0;
@@ -211,8 +211,8 @@ function fileUrl(filePath: string): string {
 }
 
 .ui-page-image {
-  border: 1px solid var(--app-glass-border);
-  border-radius: var(--app-radius-md);
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -237,15 +237,15 @@ function fileUrl(filePath: string): string {
 .ui-saved-files {
   margin-top: 12px;
   padding: 14px 16px;
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--app-glass-border);
-  border-radius: var(--app-radius-md);
+  background: rgba(4, 8, 14, 0.28);
+  backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
 }
 
 .ui-saved-file {
   font-size: 12px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.82);
   word-break: break-all;
   margin-top: 4px;
 }
@@ -253,36 +253,37 @@ function fileUrl(filePath: string): string {
 .image-progress-bar {
   padding: 14px 18px;
   margin-bottom: 12px;
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--app-glass-border);
-  border-radius: var(--app-radius-md);
+  background: rgba(4, 8, 14, 0.28);
+  backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
 }
 
 .image-progress-text {
   font-size: 13px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.82);
   margin-top: 4px;
 }
 
 .ui-waiting-card {
   padding: 22px;
   margin-bottom: 16px;
-  border: 1px solid var(--app-glass-border);
-  border-radius: var(--app-radius-md);
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08), rgba(135, 208, 104, 0.08));
+  border: 0;
+  border-radius: 0;
+  background: rgba(4, 8, 14, 0.32);
 }
 
 .ui-waiting-card__title {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--app-text-primary, rgba(0, 0, 0, 0.88));
+  font-family: var(--app-font-display);
+  font-weight: 950;
+  color: rgba(248, 250, 252, 0.94);
   margin-bottom: 6px;
 }
 
 .ui-waiting-card__hint {
   font-size: 13px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.84);
   line-height: 1.6;
 }
 
@@ -297,7 +298,7 @@ function fileUrl(filePath: string): string {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.82);
 }
 
 .ui-waiting-step__dot {
