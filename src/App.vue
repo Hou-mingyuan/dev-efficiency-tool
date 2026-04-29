@@ -79,10 +79,10 @@ let codeMatrixLastInteractionMark = 0;
 let codeMatrixAdaptivePenalty = 0;
 const codeMatrixCellWidth = 14;
 const codeMatrixCellHeight = 20;
-const codeMatrixFrameInterval = 58;
-const codeMatrixBaseBatchSize = 24;
-const codeMatrixBusyBatchSize = 18;
-const codeMatrixEditingBatchSize = 14;
+const codeMatrixFrameInterval = 33;
+const codeMatrixBaseBatchSize = 220;
+const codeMatrixBusyBatchSize = 180;
+const codeMatrixEditingBatchSize = 150;
 
 const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatrixChars.length)] ?? "0";
 
@@ -213,9 +213,9 @@ const drawCodeMatrix = (now: number) => {
 
   const total = codeMatrixCells.length;
   const baseBatch = editing ? codeMatrixEditingBatchSize : busy ? codeMatrixBusyBatchSize : codeMatrixBaseBatchSize;
-  const minimumBatch = editing ? 8 : busy ? 10 : 12;
+  const minimumBatch = editing ? 72 : busy ? 96 : 120;
   const adaptiveBatch = Math.max(minimumBatch, Math.floor(baseBatch * (1 - Math.min(codeMatrixAdaptivePenalty, 180) / 360)));
-  const batchSize = Math.min(adaptiveBatch, Math.max(minimumBatch, Math.floor(total * (busy ? 0.0022 : 0.0042))));
+  const batchSize = Math.min(adaptiveBatch, Math.max(minimumBatch, Math.floor(total * (editing ? 0.014 : busy ? 0.018 : 0.026))));
   for (let i = 0; i < batchSize; i += 1) {
     const index = Math.floor(Math.random() * total);
     const cell = codeMatrixCells[index];
