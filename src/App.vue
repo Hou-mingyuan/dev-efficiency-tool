@@ -116,21 +116,23 @@ const markCodeMatrixInteraction = () => {
 
 const createMatrixCell = (): MatrixCell => ({
   char: randomCodeChar(),
-  alpha: 0.02 + Math.random() * 0.045,
+  alpha: 0.055 + Math.random() * 0.07,
   tint: Math.random(),
 });
 
 const setCodeMatrixFont = (ctx: CanvasRenderingContext2D) => {
-  ctx.font = "700 13px Consolas, 'SFMono-Regular', 'Courier New', monospace";
+  ctx.font = "600 13px Consolas, 'SFMono-Regular', 'Courier New', monospace";
   ctx.textBaseline = "top";
+  ctx.shadowColor = "rgba(96, 165, 250, 0.16)";
+  ctx.shadowBlur = 2;
 };
 
 const getCodeMatrixFill = (cell: MatrixCell, boost = 1) => {
-  const alpha = Math.min(cell.alpha * boost, 0.14);
-  if (cell.tint > 0.9) return `rgba(216, 255, 122, ${alpha})`;
-  if (cell.tint > 0.76) return `rgba(96, 165, 250, ${alpha * 0.9})`;
-  if (cell.tint > 0.6) return `rgba(103, 232, 249, ${alpha * 0.78})`;
-  return `rgba(226, 232, 240, ${alpha * 0.68})`;
+  const alpha = Math.min(cell.alpha * boost, 0.22);
+  if (cell.tint > 0.92) return `rgba(216, 255, 122, ${alpha * 0.95})`;
+  if (cell.tint > 0.78) return `rgba(125, 185, 255, ${alpha * 0.9})`;
+  if (cell.tint > 0.6) return `rgba(115, 232, 255, ${alpha * 0.82})`;
+  return `rgba(226, 232, 240, ${alpha * 0.76})`;
 };
 
 const drawCodeMatrixCell = (
@@ -221,7 +223,7 @@ const drawCodeMatrix = (now: number) => {
     const cell = codeMatrixCells[index];
     if (!cell) continue;
     cell.char = randomCodeChar();
-    cell.alpha = 0.02 + Math.random() * (Math.random() > 0.86 ? 0.09 : 0.05);
+    cell.alpha = 0.055 + Math.random() * (Math.random() > 0.86 ? 0.14 : 0.08);
     cell.tint = Math.random();
     drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, editing ? 0.86 : busy ? 0.92 : 1);
   }
@@ -874,8 +876,7 @@ onBeforeUnmount(() => {
   z-index: 0;
   pointer-events: none;
   contain: strict;
-  mix-blend-mode: screen;
-  opacity: 0.9;
+  opacity: 0.72;
   transform: translateZ(0);
 }
 
