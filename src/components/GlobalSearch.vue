@@ -147,7 +147,7 @@ watch(
   margin-top: 16px;
   padding: 12px 0;
   font-size: 13px;
-  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
+  color: rgba(148, 163, 184, 0.78);
   font-weight: 700;
   text-align: center;
 }
@@ -163,6 +163,16 @@ watch(
   border-radius: 0;
   cursor: pointer;
   transition: background var(--app-transition, 0.2s ease), color var(--app-transition, 0.2s ease);
+
+  :deep(.ant-list-item-meta-title),
+  :deep(.ant-list-item-meta-title a) {
+    color: rgba(248, 250, 252, 0.92) !important;
+    font-weight: 800;
+  }
+
+  :deep(.ant-list-item-meta-description) {
+    color: rgba(203, 213, 225, 0.72) !important;
+  }
 }
 
 .global-search__row:hover,

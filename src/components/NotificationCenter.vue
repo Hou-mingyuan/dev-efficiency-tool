@@ -236,6 +236,7 @@ function onClearAll() {
   font-size: 13px;
   font-weight: 800;
   word-break: break-word;
+  color: rgba(248, 250, 252, 0.92);
 }
 
 .nc-item__time {
@@ -243,12 +244,12 @@ function onClearAll() {
   font-size: 12px;
   font-family: var(--app-font-mono);
   font-weight: 700;
-  color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
+  color: rgba(148, 163, 184, 0.76);
 }
 
 .nc-item__message {
   font-size: 12px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.55));
+  color: rgba(203, 213, 225, 0.74);
   margin-top: 4px;
   word-break: break-word;
   white-space: pre-wrap;
