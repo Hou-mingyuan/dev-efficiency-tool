@@ -67,3 +67,5 @@
 - 第二轮跨文档一致性检查已完成第一步：`validateGeneratedDocumentFormat` 支持传入上游内容；需求文档会继承输入中的 `PRD-F-xxx`，UI 文档会继承输入中的 `REQ-xxx`，详细设计会继承输入中的 `REQ-xxx` 和 `UI-Pxx`。主进程生成链路会把用户输入、参考文档和项目上下文作为上游来源传入校验器；测试增加到 14 个并全部通过。
 - 已提交并推送第二轮第一步：提交 `80f3458 Enforce-cross-document-trace-inheritance` 已推送到 `origin/master`。
 - 继续第二轮增强：自动修正 prompt 现在会携带上游来源内容，避免只知道漏了编号但不知道编号对应业务语义；PRD 和通用文档修正路径均已接入。
+- 已提交并推送自动修正增强：提交 `00d2d79 Include-source-context-in-repair-prompts` 已推送到 `origin/master`。
+- 继续推进追踪矩阵行级覆盖校验：新增追踪矩阵片段提取，要求继承的 `PRD-F-xxx`、`REQ-xxx`、`UI-Pxx` 不只是出现在正文里，还必须进入对应的需求/UI/设计追踪矩阵。

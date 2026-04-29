@@ -89,6 +89,29 @@ function addMissingSourceIds(missing: string[], label: string, sourceContent: st
   }
 }
 
+function findSection(content: string, headingPattern: RegExp): string {
+  const lines = content.split(/\r?\n/);
+  const start = lines.findIndex((line) => headingPattern.test(line));
+  if (start < 0) return "";
+  const collected: string[] = [];
+  for (let i = start; i < lines.length; i++) {
+    if (i > start && /^#{1,3}\s+/.test(lines[i]) && !headingPattern.test(lines[i])) break;
+    collected.push(lines[i]);
+  }
+  return collected.join("\n");
+}
+
+function addMissingMatrixSourceIds(missing: string[], label: string, sourceContent: string | undefined, outputContent: string, sourcePattern: RegExp, matrixHeading: RegExp): void {
+  if (!sourceContent) return;
+  const sourceIds = extractIds(sourceContent, sourcePattern);
+  if (!sourceIds.length) return;
+  const matrix = findSection(outputContent, matrixHeading);
+  const missed = sourceIds.filter((id) => !matrix.includes(id));
+  if (missed.length) {
+    missing.push(`${label}未进入追踪矩阵：${missed.slice(0, 12).join("、")}${missed.length > 12 ? "…" : ""}`);
+  }
+}
+
 function hasAny(content: string, patterns: Array<string | RegExp>): boolean {
   return patterns.some((pattern) => typeof pattern === "string" ? content.includes(pattern) : pattern.test(content));
 }
@@ -156,6 +179,7 @@ export function validateRequirementsFormat(content: string, sourceContent?: stri
   if (!hasAny(content, ["边界行为", "边界场景", "边界条件"])) missing.push("边界行为");
   if (!hasAny(content, ["TBD", "待确认"])) missing.push("TBD/待确认事项");
   addMissingSourceIds(missing, "PRD 编号", sourceContent, content, /\bPRD-F-\d{3,}\b/g);
+  addMissingMatrixSourceIds(missing, "PRD 编号", sourceContent, content, /\bPRD-F-\d{3,}\b/g, /需求追踪矩阵|追踪矩阵/);
 
   return { valid: missing.length === 0, missing };
 }
@@ -176,6 +200,7 @@ export function validateUiDesignFormat(content: string, sourceContent?: string):
   if (!hasAny(content, ["组件列表"])) missing.push("组件列表");
   if (!hasAny(content, ["交互说明"])) missing.push("交互说明");
   addMissingSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g);
+  addMissingMatrixSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g, /UI 需求追踪矩阵|需求追踪矩阵/);
 
   return { valid: missing.length === 0, missing };
 }
@@ -198,6 +223,8 @@ export function validateDesignFormat(content: string, sourceContent?: string): D
   if (!hasAny(content, ["开发任务拆分", "任务拆分"])) missing.push("开发任务拆分");
   addMissingSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g);
   addMissingSourceIds(missing, "UI 编号", sourceContent, content, /\bUI-P\d{2,}\b/g);
+  addMissingMatrixSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g, /设计追踪矩阵|追踪矩阵/);
+  addMissingMatrixSourceIds(missing, "UI 编号", sourceContent, content, /\bUI-P\d{2,}\b/g, /设计追踪矩阵|追踪矩阵/);
 
   return { valid: missing.length === 0, missing };
 }
