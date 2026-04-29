@@ -33,6 +33,37 @@ const { t, locale } = useI18n();
 const appVersion = ref("");
 
 const keepAliveViews = ["GeneratePRD", "GenerateRequirements", "GenerateUI", "GenerateDesign"];
+const codeWallSeeds = [
+  "HV+*$,Z{(&_-B,HT4R7)F0-WGP[P>>V!#ER>GKCS_.JR9OMXT!>GQV44+7KCG;/0]+QVTN+94NZ10",
+  "46_6}DM,A3?C{XF12LC2EXP-HN/4S58--[X_;VX&Y_G-]EJ,MKJ:S1>+WX(HUJ0SS?27",
+  "Z&NEX<DZI9E]]:A(I#}H2OD}B:*$A_SN0F;?P3VZS]-BX4)--<{U{5RP+#K+E!GF{7Q-<)",
+  "KQ]D58BMC;#P0}[E8A54KQ6/I:=0BZC>8#KDRRD:(7_{8+JSSZ1Z@}}&8/2OBLV>B)",
+  "0+V>*-_H|E&*{KQEE6SDF3X+CKA@EZU(U>+$VCE9,.S$RP+=W$1Z{VKCR#8H}IX#2-M",
+  "JB]]B<([I,<<4X/IZF> M,WP[2/MY46)1-E1I/JVSI)Z<VGCF4SG,8FG0[]H:CN-CS75Y",
+  "1PI)VG-0.[VB@]+|G6/JLH1X9.LV*B-6_78G3IOL,>2L2!4)_F}S}Q1&LOLGJJ/-AP<6*Z",
+  ">>S)<NFNFPUUN0( V-Y,M@8:{VAJ5.CNTY;C5IF7FED4,R&&G{6$ O685Q]FN2/_7*JPK",
+  "4HAT7(GYHML;PJ<]*Y,Q6&7TBD+Y*D+##[I_UL$;?Y5J5A@6J$B@]}#:>VQZ66C[$>V]&0",
+  "Z3JJ9CY,ZDC1K#}TI-OW6*#VQLNWQH11OK#66U+*4ZFEJ.GO8IG2E{W$[-H#;-M{@_DOSC2}",
+  "#KS2JDO]CB35RZBMA/8GN80:I*2,>&{HA();RT;#21KTHGD_-+R9@*L(J,A(269)F4GPH",
+  "1Q19OM36&Y=)HOT!*(_[-PV(F+]D8:)9S--9X+G074}JD*=V&=5G&E{EW$-[#;-M{@_DOSC2}",
+  "UT0#*S,I27:Y,V[CNV8)-_7*JPK_LHBX/>_B*6ZB5&BQ*RVX14|4A8OO{U1BBO()C",
+  "LMW7T7S:0>P]1EU#B5/#:16MP&*(!]*#WUO1+XIR>M/T.KWRM;KJ7<,P{=L.KX6D",
+  "X[LVK$DP0TMR,AQ:IR3GG_(Y#47P+P!Y-A+5*2X#6DA1[2]F)ODM|6C)>SPBC",
+  "T1*#C}ZK}$L,BP,ZOUTK.OP@G{G7JH=]7I.38K{!+I#2-[KM09}T0R$NVMX64",
+  "88DCJ2CYZ.ANUN$W_SHSLB}-X!5GP:Z5KTREI88W@H5UL&H!K6BXSD=THA](G*H",
+  "DULZX$)MJ,+2HC2-XY16_+8$$V+Q6PYSV{=_TTJLS*D8V*GRB1G]F5RQC(A8V)",
+  "P3H[S5Q;X=RDOT.I+K[GSD+X84GV.A44RTH;A*V19Z)C{9]]8YE:H&R=EVZ0Z",
+  "S)RI8RYV1:0(OKW$J_16*OV&W38,-N-XD7@*T]GN9.7H)K(SR+Q*E7D2K!4",
+  "J5J4SPD{Q/P,M&>[#4*&NO{2JM82I$Y=*YHGT-UN(J><GJ35S)6F+AQQEI4M3",
+  "5FZAP8&5VHI3?M@&I4M3SFZAP8&5VHI3?M@&I4M3SFZAP8&5VHI3?M@&I4M3",
+];
+const codeWallRows = Array.from({ length: 44 }, (_, index) => {
+  const left = codeWallSeeds[index % codeWallSeeds.length];
+  const right = codeWallSeeds[(index * 7 + 3) % codeWallSeeds.length];
+  const third = codeWallSeeds[(index * 11 + 5) % codeWallSeeds.length];
+  const fourth = codeWallSeeds[(index * 13 + 9) % codeWallSeeds.length];
+  return `${left} ${right} ${third} ${fourth} ${left}`;
+});
 
 const collapsed = ref(false);
 
@@ -363,25 +394,13 @@ onBeforeUnmount(() => {
         class="app-layout"
         has-sider
       >
-        <div class="app-tech-tracks" aria-hidden="true">
-          <span>AI_GEN::{LOCAL_CONTEXT}=LOCKED; REF_STYLE[STRICT]; MODULE_BOUNDARY::ONLY; REQUEST_ID=SAFE_PREVIEW_01; PACK_READY=true;</span>
-          <span>0xA7F3D0 / PRD_FLOWCHART / PAGE_STRUCTURE / STATE_TRANSITION / MERMAID_RENDER / DOCX_EXPORT / PDF_EXPORT</span>
-          <span>MODEL_ROUTE::TEXT+IMAGE; TRACE_MATRIX::REQUIREMENT_TO_DESIGN; OUTPUT_SCHEMA::HARD; NO_CROSSTALK::ENABLED</span>
-          <span>UI_REFERENCE_SCAN -- IMAGE_INPUT -- FIGMA_READY -- PREVIEW_SANDBOX -- CANVAS_HASH:84CC16 -- BUILD:LOCAL</span>
-          <span>CTX[project]::hydrate(); doc.guard(reference.lock).verify(style.framework.structure); renderer.commit(package.ready)</span>
-          <span>REQ:PRD:DESIGN:UI_DETAIL // FLOW_NODE:APPROVAL // STATE:WAITING_TO_SUBMITTED // EXPORT:WORD/PDF</span>
-          <span>AGENT_PIPELINE::{PLAN,GENERATE,VERIFY,PACK,PUSH}; TOKEN_BUDGET::STABLE; PROMPT_GUARD::ACTIVE</span>
-          <span>LOCAL_CACHE#19F6E2A -- ROUTE:/generate-prd -- ROUTE:/generate-ui -- ROUTE:/generate-design -- HEALTH:ONLINE</span>
-          <span>STRUCTURE_LOCK = true; STYLE_SYSTEM = inherited; FRAMEWORK = current_project; PREVIEW_CHANNEL = isolated</span>
-          <span>MERMAID.sequenceDiagram.render(); flowchart.attach(image); word.embed(diagram); pdf.embed(diagram); status=OK</span>
-          <span>REFERENCE_DOC::parsed / REFERENCE_IMAGE::attached / BUSINESS_FLOW::aligned / PAGE_SKETCH::optional</span>
-          <span>PACK_TARGET[win-x64] :: NSIS_SETUP :: PORTABLE_EXE :: RELEASE_READY :: CHECKSUM_PENDING :: PUSH_READY</span>
-          <span>const output = await generator.run({ strictReference:true, moduleScope:true, previewIsolation:true });</span>
-          <span>RISK_PANEL:LOW / BUILD_SIGNAL:GREEN / REQUEST_STREAM:SEALED / RESULT_PREVIEW:OWNED / HISTORY:SYNCED</span>
-          <span>DESIGN_TOKEN::{BLUE_60A5FA,LIME_D8FF7A,CYAN_22D3EE}; SURFACE::GLASS; BORDER::SOFT_NONE</span>
-          <span>LOG::generation.start -> context.resolve -> reference.lock -> model.call -> artifact.verify -> export.save</span>
-          <span>AI_WORKBENCH / PRD / REQUIREMENTS / UI_DESIGN / DETAIL_DESIGN / LOCAL_FIRST / DESKTOP_READY</span>
-          <span>0x5EED_2026 :: MIMO_ORBIT_STYLE :: DARK_CODE_FIELD :: SUBTLE_MOTION :: READABILITY_FIRST</span>
+        <div class="app-code-wall" aria-hidden="true">
+          <span
+            v-for="(line, index) in codeWallRows"
+            :key="`${index}-${line}`"
+          >
+            {{ line }}
+          </span>
         </div>
         <a-layout-sider
           v-model:collapsed="collapsed"
@@ -653,139 +672,67 @@ onBeforeUnmount(() => {
   }
 }
 
-.app-tech-tracks {
+.app-code-wall {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
   contain: layout paint style;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0;
   mix-blend-mode: screen;
+  opacity: 0.86;
+  transform: translateZ(0);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
 }
 
-.app-tech-tracks span {
-  position: absolute;
-  left: -8vw;
-  width: 185vw;
-  color: rgba(226, 232, 240, 0.034);
+.app-code-wall span {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 360vw;
+  color: rgba(226, 232, 240, 0.038);
   font-family: var(--app-font-mono);
-  font-size: clamp(11px, 0.95vw, 17px);
+  font-size: clamp(10px, 0.74vw, 14px);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   line-height: 1;
   white-space: nowrap;
   text-transform: uppercase;
-  text-shadow: 0 0 16px rgba(96, 165, 250, 0.08);
+  text-shadow: 0 0 14px rgba(96, 165, 250, 0.07);
   transform: translate3d(0, 0, 0);
   will-change: transform;
-  filter: blur(0.12px);
+  filter: blur(0.08px);
+  animation: codeWallDrift 118s linear infinite;
 }
 
-.app-tech-tracks span:nth-child(1) {
-  top: 2vh;
-  animation: techTrackDrift 70s linear infinite;
+.app-code-wall span:nth-child(2n) {
+  color: rgba(147, 197, 253, 0.034);
+  animation-name: codeWallDriftReverse;
+  animation-duration: 134s;
 }
 
-.app-tech-tracks span:nth-child(2) {
-  top: 7.5vh;
-  color: rgba(147, 197, 253, 0.032);
-  animation: techTrackDriftReverse 82s linear infinite;
+.app-code-wall span:nth-child(3n) {
+  color: rgba(216, 255, 122, 0.032);
+  animation-duration: 126s;
 }
 
-.app-tech-tracks span:nth-child(3) {
-  top: 13vh;
-  color: rgba(216, 255, 122, 0.03);
-  animation: techTrackDrift 76s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(4) {
-  top: 18.5vh;
+.app-code-wall span:nth-child(4n) {
   color: rgba(103, 232, 249, 0.03);
-  animation: techTrackDriftReverse 88s linear infinite;
+  animation-duration: 146s;
 }
 
-.app-tech-tracks span:nth-child(5) {
-  top: 24vh;
-  color: rgba(226, 232, 240, 0.028);
-  animation: techTrackDrift 94s linear infinite;
+.app-code-wall span:nth-child(5n) {
+  color: rgba(148, 163, 184, 0.04);
+  opacity: 0.86;
 }
 
-.app-tech-tracks span:nth-child(6) {
-  top: 29.5vh;
-  color: rgba(148, 163, 184, 0.034);
-  animation: techTrackDriftReverse 78s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(7) {
-  top: 35vh;
-  color: rgba(216, 255, 122, 0.028);
-  animation: techTrackDrift 90s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(8) {
-  top: 40.5vh;
-  color: rgba(147, 197, 253, 0.028);
-  animation: techTrackDriftReverse 84s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(9) {
-  top: 46vh;
-  color: rgba(226, 232, 240, 0.032);
-  animation: techTrackDrift 102s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(10) {
-  top: 51.5vh;
-  color: rgba(103, 232, 249, 0.026);
-  animation: techTrackDriftReverse 86s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(11) {
-  top: 57vh;
-  color: rgba(148, 163, 184, 0.032);
-  animation: techTrackDrift 74s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(12) {
-  top: 62.5vh;
-  color: rgba(216, 255, 122, 0.03);
-  animation: techTrackDriftReverse 96s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(13) {
-  top: 68vh;
-  color: rgba(226, 232, 240, 0.026);
-  animation: techTrackDrift 88s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(14) {
-  top: 73.5vh;
-  color: rgba(147, 197, 253, 0.03);
-  animation: techTrackDriftReverse 80s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(15) {
-  top: 79vh;
-  color: rgba(103, 232, 249, 0.026);
-  animation: techTrackDrift 98s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(16) {
-  top: 84.5vh;
-  color: rgba(226, 232, 240, 0.028);
-  animation: techTrackDriftReverse 92s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(17) {
-  top: 90vh;
-  color: rgba(216, 255, 122, 0.026);
-  animation: techTrackDrift 104s linear infinite;
-}
-
-.app-tech-tracks span:nth-child(18) {
-  top: 95.5vh;
-  color: rgba(148, 163, 184, 0.032);
-  animation: techTrackDriftReverse 86s linear infinite;
+.app-code-wall span:nth-child(6n) {
+  animation-name: codeWallDriftReverse;
+  animation-duration: 152s;
 }
 
 .app-layout,
@@ -1234,14 +1181,14 @@ onBeforeUnmount(() => {
   100% { transform: translate(10px, -10px) scale(1.02); }
 }
 
-@keyframes techTrackDrift {
-  0% { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(-28vw, 0, 0); }
+@keyframes codeWallDrift {
+  0% { transform: translate3d(-8vw, 0, 0); }
+  100% { transform: translate3d(-96vw, 0, 0); }
 }
 
-@keyframes techTrackDriftReverse {
-  0% { transform: translate3d(-24vw, 0, 0); }
-  100% { transform: translate3d(8vw, 0, 0); }
+@keyframes codeWallDriftReverse {
+  0% { transform: translate3d(-92vw, 0, 0); }
+  100% { transform: translate3d(-4vw, 0, 0); }
 }
 
 @keyframes shellScan {
