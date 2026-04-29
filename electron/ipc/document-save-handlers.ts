@@ -122,25 +122,6 @@ async function renderMermaidToDataUrl(code: string): Promise<string> {
   }
 }
 
-async function replaceMermaidBlocksWithImagesLegacy(content: string): Promise<string> {
-  const matches = [...content.matchAll(MERMAID_BLOCK_RE)];
-  if (!matches.length) return content;
-
-  let next = content;
-  for (const match of matches) {
-    const full = match[0];
-    const code = match[1]?.trim();
-    if (!code) continue;
-    try {
-      const dataUrl = await renderMermaidToDataUrl(code);
-      next = next.replace(full, `![Mermaid 图](${dataUrl})`);
-    } catch {
-      next = next.replace(full, `${full}\n\n> Mermaid 图渲染失败，已保留源码。`);
-    }
-  }
-  return next;
-}
-
 async function replaceMermaidBlocksWithImages(content: string): Promise<string> {
   const matches = [...content.matchAll(MERMAID_BLOCK_RE)];
   if (!matches.length) return content;
@@ -250,9 +231,6 @@ export function registerDocumentSaveHandlers(options: RegisterDocumentSaveHandle
     if (!ALLOWED_SAVE_FORMATS.has(format)) {
       throw new Error(currentLocale() === "zh" ? "不支持的保存格式" : "Unsupported save format");
     }
-    if (!ALLOWED_SAVE_FORMATS.has(format)) {
-      throw new Error(currentLocale() === "zh" ? "不支持的保存格式" : "Unsupported save format");
-    }
     const filePath = assertTrustedOutputPath(req.outputDir, req.fileName);
     const outputDir = path.dirname(filePath);
     fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
@@ -341,12 +319,6 @@ export function registerDocumentSaveHandlers(options: RegisterDocumentSaveHandle
 
     if (req.historyRecordId) appManager()?.updateGenerationOutputPath(req.historyRecordId, filePath);
     appManager()?.addLog("info", `文档已保存: ${req.fileName} (${format})`, "ai-save");
-    return filePath;
-    appManager()?.addLog(
-      "info",
-      `文档已保存: ${req.fileName} (${format})`,
-      "ai-save",
-    );
     return filePath;
   }));
 }
