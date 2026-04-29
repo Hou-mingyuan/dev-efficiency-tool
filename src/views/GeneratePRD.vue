@@ -58,6 +58,35 @@
               </div>
             </div>
           </a-form-item>
+          <a-form-item :label="t('gen.prd.referenceImages')">
+            <div
+              class="ref-drop-zone"
+              :class="{ 'ref-drop-zone--active': imgDragOver }"
+              @dragover.prevent="imgDragOver = true"
+              @dragleave.prevent="imgDragOver = false"
+              @drop.prevent="onImageDrop"
+            >
+              <a-space wrap>
+                <a-button @click="pickRefImages">
+                  {{ t("gen.prd.addReferenceImages") }}
+                </a-button>
+                <span class="ref-drop-hint">{{ t("gen.prd.dropImageHint") }}</span>
+              </a-space>
+              <div v-if="refImages.length" class="ref-image-grid">
+                <div v-for="(img, idx) in refImages" :key="idx" class="ref-image-item">
+                  <img :src="img.dataUrl" :alt="img.name" class="ref-image-thumb" />
+                  <a-button
+                    class="ref-image-remove"
+                    size="small"
+                    type="text"
+                    danger
+                    @click="refImages.splice(idx, 1)"
+                  >×</a-button>
+                  <span class="ref-image-name">{{ img.name }}</span>
+                </div>
+              </div>
+            </div>
+          </a-form-item>
           <a-form-item :label="t('gen.common.referenceProject')">
             <a-input-group compact>
               <a-input
@@ -108,6 +137,15 @@
             :selected-provider="selectedProvider"
             :save-provider-field="saveProviderField"
           />
+          <AiProviderInline
+            v-model="imageProviderId"
+            :all-providers="allProviders"
+            :selected-provider="selectedImageProvider"
+            :save-provider-field="saveProviderField"
+            :label="t('gen.prd.imageAi')"
+            :placeholder="t('gen.prd.imageAiPlaceholder')"
+            :hint="t('gen.prd.imageAiHint')"
+          />
           <a-form-item :label="t('gen.common.customOutputPath')">
             <a-input-group compact>
               <a-input
@@ -143,6 +181,13 @@
           </a-button>
           <a-button :disabled="!result" @click="saveDocument">
             {{ t("gen.common.save") }}
+          </a-button>
+          <a-button
+            :disabled="!result"
+            :loading="prdImageGenerating"
+            @click="generatePrdImages"
+          >
+            {{ t("gen.prd.generateImages") }}
           </a-button>
           <a-button :disabled="!result" @click="copyResult">
             {{ t("gen.common.copy") }}
@@ -237,12 +282,13 @@
 <script setup lang="ts">
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Modal, message } from "ant-design-vue";
 import { FullscreenOutlined } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useAiGenerator } from "@/composables/useAiGenerator";
+import { useAppStore } from "@/store/app";
 
 import "@/styles/generator.less";
 
@@ -251,6 +297,7 @@ defineOptions({ name: "GeneratePRD" });
 const { t } = useI18n();
 const fullscreenPreview = ref(false);
 const route = useRoute();
+const appStore = useAppStore();
 
 const {
   projectName,
@@ -264,6 +311,7 @@ const {
   customProviderId,
   customOutputPath,
   outputFormat,
+  generationImages,
   allProviders,
   selectedProvider,
   saveProviderField,
@@ -286,12 +334,144 @@ const {
   clearProjectCache,
 } = useAiGenerator("prd");
 
+const refImages = ref<Array<{ name: string; dataUrl: string; base64: string; mimeType: string }>>([]);
+const imgDragOver = ref(false);
+const prdImageGenerating = ref(false);
+const prdImageOutputPaths = ref<string[]>([]);
+const imageProviderId = ref(localStorage.getItem("devtool-prd-image-provider-id") || "");
+const selectedImageProvider = computed(() => {
+  if (!imageProviderId.value) return null;
+  return allProviders.value.find((p) => p.id === imageProviderId.value) ?? null;
+});
+const REF_IMAGE_MAX_EDGE = 1600;
+const REF_IMAGE_COMPRESS_MIN_BYTES = 900 * 1024;
+const REF_IMAGE_JPEG_QUALITY = 0.82;
+
+watch(refImages, (images) => {
+  generationImages.value = images.map((img) => ({
+    base64: img.base64,
+    mimeType: img.mimeType,
+  }));
+}, { deep: true });
+
+watch(imageProviderId, (value) => {
+  try {
+    if (value) localStorage.setItem("devtool-prd-image-provider-id", value);
+    else localStorage.removeItem("devtool-prd-image-provider-id");
+  } catch {
+    /* ignore */
+  }
+});
+
 async function pickOutputDir() {
   const dir = await selectOutputDir();
   if (dir) customOutputPath.value = dir;
 }
 
 const refDragOver = ref(false);
+
+function readFileAsBase64(file: File): Promise<{ base64: string; dataUrl: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+      if (match) {
+        resolve({ base64: match[2], dataUrl, mimeType: match[1] });
+      } else {
+        reject(new Error("Failed to read image"));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function estimateBase64Bytes(base64: string): number {
+  return Math.floor((base64.length * 3) / 4);
+}
+
+function compressImageDataUrl(payload: {
+  base64: string;
+  dataUrl: string;
+  mimeType: string;
+}): Promise<{ base64: string; dataUrl: string; mimeType: string }> {
+  if (!/^image\/(png|jpe?g|webp)$/i.test(payload.mimeType)) {
+    return Promise.resolve(payload);
+  }
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxEdge = Math.max(image.naturalWidth, image.naturalHeight);
+      const sourceBytes = estimateBase64Bytes(payload.base64);
+      if (maxEdge <= REF_IMAGE_MAX_EDGE && sourceBytes <= REF_IMAGE_COMPRESS_MIN_BYTES) {
+        resolve(payload);
+        return;
+      }
+
+      const scale = Math.min(1, REF_IMAGE_MAX_EDGE / Math.max(1, maxEdge));
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(payload);
+        return;
+      }
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(image, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", REF_IMAGE_JPEG_QUALITY);
+      const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+      if (!match) {
+        resolve(payload);
+        return;
+      }
+      resolve({ dataUrl, mimeType: match[1], base64: match[2] });
+    };
+    image.onerror = () => resolve(payload);
+    image.src = payload.dataUrl;
+  });
+}
+
+async function pickRefImages() {
+  const paths = await window.electronAPI.app.selectImages();
+  if (isIpcErr(paths) || !Array.isArray(paths) || !paths.length) return;
+  for (const fp of paths as string[]) {
+    const imgData = await window.electronAPI.app.readImageAsBase64(fp);
+    if (!imgData || isIpcErr(imgData)) {
+      message.error(t("gen.prd.imageReadFail"));
+      continue;
+    }
+    const data = imgData as { base64: string; mimeType: string; name: string; dataUrl: string };
+    const compressed = await compressImageDataUrl(data);
+    refImages.value = [...refImages.value, {
+      name: data.name,
+      dataUrl: compressed.dataUrl,
+      base64: compressed.base64,
+      mimeType: compressed.mimeType,
+    }];
+  }
+}
+
+async function onImageDrop(e: DragEvent) {
+  imgDragOver.value = false;
+  const files = e.dataTransfer?.files;
+  if (!files?.length) return;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (!f.type.startsWith("image/")) continue;
+    try {
+      const { base64, dataUrl, mimeType } = await compressImageDataUrl(await readFileAsBase64(f));
+      refImages.value = [...refImages.value, { name: f.name, dataUrl, base64, mimeType }];
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 async function onRefDrop(e: DragEvent) {
   refDragOver.value = false;
@@ -320,6 +500,61 @@ async function onRefDrop(e: DragEvent) {
   }
   if (added) {
     message.success(t("gen.common.referenceLoaded"));
+  }
+}
+
+async function generatePrdImages() {
+  if (!result.value.trim()) {
+    message.warning(t("gen.prd.needPrdResult"));
+    return;
+  }
+  const outputDir = customOutputPath.value || appStore.config.outputPath || (await selectOutputDir());
+  if (!outputDir) return;
+
+  prdImageGenerating.value = true;
+  try {
+    const res = await window.electronAPI.ai.generatePrdImages({
+      projectName: projectName.value,
+      prdContent: result.value,
+      providerId: imageProviderId.value || undefined,
+      outputDir,
+      imageFormat: "png",
+    });
+    if (isIpcErr(res)) {
+      if (/trusted paths|可信路径/.test(res.message)) {
+        customOutputPath.value = "";
+        message.warning(t("gen.common.outputPathUntrusted"));
+      }
+      message.error(res.message);
+      return;
+    }
+
+    const data = res as {
+      savedFiles: string[];
+      images: Array<{ name: string; imagePath: string; dataUrl: string }>;
+      recordId: string;
+    };
+    prdImageOutputPaths.value = data.savedFiles;
+    const imageMarkdown = [
+      "",
+      "## PRD 附加图",
+      "",
+      ...data.images.flatMap((img) => [
+        `### ${img.name}`,
+        "",
+        `![${img.name}](${img.dataUrl})`,
+        "",
+        `> 已保存到：${img.imagePath}`,
+        "",
+      ]),
+    ].join("\n");
+    result.value = `${result.value.trim()}\n\n${imageMarkdown}`;
+    const raw = marked.parse(result.value) as string;
+    renderedHtml.value = DOMPurify.sanitize(raw);
+    lastRecordId.value = data.recordId;
+    message.success(t("gen.prd.imageGenSuccess", { count: data.images.length }));
+  } finally {
+    prdImageGenerating.value = false;
   }
 }
 
@@ -402,4 +637,59 @@ async function loadHistoryRecord(item: GenerationRecord) {
 
 <style lang="less" scoped>
 .page-container { position: relative; z-index: 1; }
+
+.ref-image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ref-image-item {
+  position: relative;
+  width: 120px;
+  text-align: center;
+}
+
+.ref-image-thumb {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--app-radius-sm);
+  border: 1px solid var(--app-glass-border);
+  transition: transform var(--app-transition);
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.ref-image-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+
+  &:hover {
+    background: rgba(255, 0, 0, 0.7);
+    color: #fff;
+  }
+}
+
+.ref-image-name {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--app-text-secondary, rgba(255, 255, 255, 0.62));
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

@@ -102,6 +102,7 @@ export interface ElectronAPI {
     listModels: (provider: unknown) => Promise<unknown>;
     analyzeUIPrompt: (req: unknown) => Promise<unknown>;
     renderHtmlToImage: (req: unknown) => Promise<unknown>;
+    generatePrdImages: (req: unknown) => Promise<unknown>;
     generateUIImage: (req: unknown) => Promise<unknown>;
     generateFigmaFile: (req: unknown) => Promise<unknown>;
     onImageProgress: (callback: (progress: unknown) => void) => IpcCleanup;
@@ -183,6 +184,7 @@ const electronAPI: ElectronAPI = {
     listModels: (provider) => invoke("ai:listModels", provider),
     analyzeUIPrompt: (req) => invoke("ai:analyzeUIPrompt", req),
     renderHtmlToImage: (req) => invoke("ai:renderHtmlToImage", req),
+    generatePrdImages: (req) => invoke("ai:generatePrdImages", req),
     generateUIImage: (req) => invoke("ai:generateUIImage", req),
     generateFigmaFile: (req) => invoke("ai:generateFigmaFile", req),
     onImageProgress: (callback) => listenPayload("ai:imageProgress", callback),

@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { Marked } from "marked";
@@ -45,6 +45,100 @@ const imageCss = `
 
 function createHtmlDocument(body: string, css = documentCss): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${body}</body></html>`;
+}
+
+const MERMAID_BLOCK_RE = /```mermaid\s*([\s\S]*?)```/gi;
+
+function escapeScriptText(text: string): string {
+  return JSON.stringify(text).replace(/</g, "\\u003c");
+}
+
+function resolveMermaidBundlePath(): string {
+  return path.join(app.getAppPath(), "node_modules", "mermaid", "dist", "mermaid.min.js");
+}
+
+async function waitForMermaidRender(win: BrowserWindow): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < 8000) {
+    const state = await win.webContents.executeJavaScript(
+      "({done: Boolean(window.__MERMAID_DONE__), error: window.__MERMAID_ERROR__ || ''})",
+    ) as { done: boolean; error: string };
+    if (state.error) throw new Error(state.error);
+    if (state.done) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("Mermaid render timeout");
+}
+
+async function renderMermaidToDataUrl(code: string): Promise<string> {
+  const bundle = fs.readFileSync(resolveMermaidBundlePath(), "utf-8");
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; padding: 0; background: #fff; }
+    #diagram { display: inline-block; padding: 24px; background: #fff; }
+    svg { max-width: 1100px; height: auto; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="diagram"></div>
+  <script>${bundle}</script>
+  <script>
+    (async () => {
+      try {
+        const code = ${escapeScriptText(code)};
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default' });
+        const result = await mermaid.render('prd_mermaid_' + Date.now(), code);
+        document.getElementById('diagram').innerHTML = result.svg;
+        requestAnimationFrame(() => { window.__MERMAID_DONE__ = true; });
+      } catch (err) {
+        window.__MERMAID_ERROR__ = err && err.message ? err.message : String(err);
+      }
+    })();
+  </script>
+</body>
+</html>`;
+
+  const win = new BrowserWindow({ show: false, width: 1200, height: 800 });
+  try {
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    await waitForMermaidRender(win);
+    const bounds = await win.webContents.executeJavaScript(`(() => {
+      const el = document.getElementById('diagram');
+      const rect = el.getBoundingClientRect();
+      return {
+        width: Math.ceil(Math.max(rect.width, document.body.scrollWidth, 320)),
+        height: Math.ceil(Math.max(rect.height, document.body.scrollHeight, 180))
+      };
+    })()`) as { width: number; height: number };
+    win.setSize(Math.min(bounds.width + 4, 1400), Math.min(bounds.height + 4, 12000));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const image = await win.webContents.capturePage();
+    return `data:image/png;base64,${image.toPNG().toString("base64")}`;
+  } finally {
+    if (!win.isDestroyed()) win.close();
+  }
+}
+
+async function replaceMermaidBlocksWithImages(content: string): Promise<string> {
+  const matches = [...content.matchAll(MERMAID_BLOCK_RE)];
+  if (!matches.length) return content;
+
+  let next = content;
+  for (const match of matches) {
+    const full = match[0];
+    const code = match[1]?.trim();
+    if (!code) continue;
+    try {
+      const dataUrl = await renderMermaidToDataUrl(code);
+      next = next.replace(full, `![Mermaid 图](${dataUrl})`);
+    } catch {
+      next = next.replace(full, `${full}\n\n> Mermaid 图渲染失败，已保留源码。`);
+    }
+  }
+  return next;
 }
 
 async function renderMarkdownToImage(marked: Marked, content: string, filePath: string, format: string): Promise<void> {
@@ -139,8 +233,12 @@ export function registerDocumentSaveHandlers(options: RegisterDocumentSaveHandle
     fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
     const marked = new Marked();
 
+    const contentForRichExport = format === "docx" || format === "pdf"
+      ? await replaceMermaidBlocksWithImages(String(req.content || ""))
+      : String(req.content || "");
+
     if (format === "docx") {
-      const htmlBody = await marked.parse(req.content);
+      const htmlBody = await marked.parse(contentForRichExport);
       const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${htmlBody}</body></html>`;
       const HTMLtoDOCX = (await import("html-to-docx")).default;
       const docxBuf = await HTMLtoDOCX(htmlDoc, null, {
@@ -150,7 +248,7 @@ export function registerDocumentSaveHandlers(options: RegisterDocumentSaveHandle
       });
       fs.writeFileSync(filePath, Buffer.from(docxBuf as ArrayBuffer));
     } else if (format === "pdf") {
-      const htmlBody = await marked.parse(req.content);
+      const htmlBody = await marked.parse(contentForRichExport);
       const htmlDoc = createHtmlDocument(htmlBody);
       const pdfWin = new BrowserWindow({ show: false, width: 800, height: 600 });
       try {

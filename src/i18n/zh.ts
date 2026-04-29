@@ -279,6 +279,16 @@ export default {
     prd: {
       title: "生成 PRD",
       description: "从产品想法生成结构化产品需求文档。",
+      referenceImages: "参考图片",
+      addReferenceImages: "选择图片",
+      dropImageHint: "或拖拽图片到此处",
+      imageAi: "PRD 图片模型",
+      imageAiPlaceholder: "选择图片模型生成业务流程图/页面草图",
+      imageAiHint: "可选。生成 PRD 文本后，可用图片模型额外生成业务流程图和页面草图，并追加到 PRD 预览中。",
+      generateImages: "生成 PRD 配图",
+      imageReadFail: "图片读取失败",
+      imageGenSuccess: "PRD 配图已生成 {count} 张",
+      needPrdResult: "请先生成 PRD 文本",
     },
     requirements: {
       title: "生成需求文档",

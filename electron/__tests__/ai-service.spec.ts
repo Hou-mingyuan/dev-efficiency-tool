@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDirectUIImagePrompt,
+  buildDocumentRepairPrompt,
   buildPrompt,
+  buildPrdVisualRepairPrompt,
   buildUIAnalyzePrompt,
   buildUIImagePrompt,
+  DESIGN_TRACEABILITY_RULE,
+  PRD_VISUAL_OUTPUT_RULE,
+  REQUIREMENTS_TRACEABILITY_RULE,
   STRICT_REFERENCE_ADHERENCE_RULE,
+  UI_TRACEABILITY_RULE,
+  validateGeneratedDocumentFormat,
+  validatePrdVisualFormat,
 } from "../ai-service";
 
 describe("document prompt builder", () => {
@@ -43,6 +51,183 @@ describe("document prompt builder", () => {
     expect(prompt.user).toContain("必须严格遵守参考项目");
     expect(prompt.user).toContain("项目风格");
     expect(prompt.user).toContain("组件框架");
+  });
+
+  it("adds Mermaid visual output requirements for PRD documents", () => {
+    const prompt = buildPrompt(
+      "prd",
+      "风控系统",
+      "生成年度风险评估 PRD",
+      "",
+    );
+
+    expect(prompt.system).toContain(PRD_VISUAL_OUTPUT_RULE);
+    expect(prompt.user).toContain("PRD 图示输出要求");
+    expect(prompt.user).toContain("业务流程图");
+    expect(prompt.user).toContain("页面结构图");
+    expect(prompt.user).toContain("状态流转图");
+    expect(prompt.user).toContain("```mermaid");
+    expect(prompt.user).toContain("正文说明 → Mermaid 图 → 图文对照表");
+    expect(prompt.user).toContain("BF-01");
+    expect(prompt.user).toContain("图节点编号");
+    expect(prompt.user).toContain("对应正文位置");
+  });
+
+  it("adds traceability requirements for requirements, UI and design documents", () => {
+    const requirementsPrompt = buildPrompt("requirements", "订单系统", "基于 PRD 生成需求", "");
+    const uiPrompt = buildPrompt("ui", "订单系统", "基于需求生成 UI", "");
+    const designPrompt = buildPrompt("design", "订单系统", "基于 UI 生成详设", "");
+
+    expect(requirementsPrompt.system).toContain(REQUIREMENTS_TRACEABILITY_RULE);
+    expect(requirementsPrompt.user).toContain("REQ-001");
+    expect(requirementsPrompt.user).toContain("需求追踪矩阵");
+    expect(uiPrompt.system).toContain(UI_TRACEABILITY_RULE);
+    expect(uiPrompt.user).toContain("UI-P01");
+    expect(uiPrompt.user).toContain("UI 需求追踪矩阵");
+    expect(designPrompt.system).toContain(DESIGN_TRACEABILITY_RULE);
+    expect(designPrompt.user).toContain("API-001");
+    expect(designPrompt.user).toContain("设计追踪矩阵");
+  });
+
+  it("validates PRD visual text-to-diagram binding format", () => {
+    const invalid = validatePrdVisualFormat("## PRD\n\n只有文字，没有图。");
+    expect(invalid.valid).toBe(false);
+    expect(invalid.missing).toContain("至少 3 个 Mermaid 图代码块");
+
+    const valid = validatePrdVisualFormat(`
+## 功能需求清单
+PRD-F-001 支持用户提交申请。
+
+## 业务流程说明
+BF-01 用户提交，BF-02 系统审核。
+
+\`\`\`mermaid
+flowchart TD
+  BF01["BF-01 用户提交"] --> BF02["BF-02 系统审核"]
+\`\`\`
+
+### 图文对照表
+| 图节点编号 | 节点含义 | 对应正文位置 | 验收/边界关注点 |
+|---|---|---|---|
+| BF-01 | 用户提交 | 业务流程说明 | 校验必填 |
+
+### 未入图说明
+无
+
+### 待确认图节点
+无
+
+## 页面结构说明
+PS-01 列表页，PS-02 详情页。
+
+\`\`\`mermaid
+graph LR
+  PS01["PS-01 列表页"] --> PS02["PS-02 详情页"]
+\`\`\`
+
+### 图文对照表
+| 图节点编号 | 节点含义 | 对应正文位置 | 验收/边界关注点 |
+|---|---|---|---|
+| PS-01 | 列表页 | 页面结构说明 | 空态和分页 |
+
+### 未入图说明
+无
+
+### 待确认图节点
+无
+
+## 状态流转说明
+ST-01 草稿，ST-02 已提交。
+
+\`\`\`mermaid
+stateDiagram-v2
+  ST01: ST-01 草稿
+  ST02: ST-02 已提交
+  ST01 --> ST02
+\`\`\`
+
+### 图文对照表
+| 图节点编号 | 节点含义 | 对应正文位置 | 验收/边界关注点 |
+|---|---|---|---|
+| ST-01 | 草稿 | 状态流转说明 | 可编辑 |
+
+### 未入图说明
+无
+
+### 待确认图节点
+无
+`);
+    expect(valid.valid).toBe(true);
+  });
+
+  it("builds a PRD visual repair prompt with missing items", () => {
+    const prompt = buildPrdVisualRepairPrompt("## 原始 PRD", ["图文对照表"]);
+
+    expect(prompt.system).toContain("严格的 PRD 图文格式审校器");
+    expect(prompt.system).toContain(PRD_VISUAL_OUTPUT_RULE);
+    expect(prompt.user).toContain("缺失项：图文对照表");
+    expect(prompt.user).toContain("## 原始 PRD");
+  });
+
+  it("validates all generated document formats", () => {
+    expect(validateGeneratedDocumentFormat("requirements", `
+## 需求追踪矩阵
+| PRD 编号/来源 | REQ 编号 | 用户故事编号 | 验收条件编号 | 状态 |
+|---|---|---|---|---|
+| PRD-F-001 | REQ-001 | US-001 | AC-001 | 已覆盖 |
+
+## REQ-001 功能需求
+In Scope：本期支持创建订单。
+Out of Scope：暂不支持批量导入。
+TBD/待确认事项：审批规则待确认。
+正常流程：用户提交订单。
+异常流程：库存不足时提示失败。
+边界行为：重复提交时保持幂等。
+`).valid).toBe(true);
+
+    expect(validateGeneratedDocumentFormat("ui", `
+## UI 需求追踪矩阵
+| REQ 编号 | 页面编号 | 状态编号 | 组件编号 | 交互编号 | 验收关注点 |
+|---|---|---|---|---|---|
+| REQ-001 | UI-P01 | UI-S01 | UI-C01 | UI-I01 | 空态、加载态、错误态可见 |
+
+## 页面清单
+UI-P01 订单列表页。
+UI-S01 空态；UI-S02 加载态；UI-S03 错误态。
+组件列表：UI-C01 筛选表单。
+交互说明：UI-I01 点击查询。
+`).valid).toBe(true);
+
+    expect(validateGeneratedDocumentFormat("design", `
+## 设计追踪矩阵
+| REQ 编号 | UI 编号 | API 编号 | DB 编号 | TEST 编号 | 开发任务编号 |
+|---|---|---|---|---|---|
+| REQ-001 | UI-P01 | API-001 | DB-001 | TEST-001 | TASK-001 |
+
+## API 接口设计
+API-001 创建订单。
+## 数据库设计
+DB-001 order 表结构。
+## 业务逻辑
+覆盖正常与异常分支。
+## 异常处理
+参数错误返回错误码。
+## 权限设计
+需要订单创建权限。
+## 测试方案
+TEST-001 覆盖创建订单。
+## 开发任务拆分
+TASK-001 实现接口。
+`).valid).toBe(true);
+  });
+
+  it("builds generic document repair prompts", () => {
+    const prompt = buildDocumentRepairPrompt("requirements", "## 原始需求", ["需求追踪矩阵"]);
+
+    expect(prompt.system).toContain("需求文档结构审校器");
+    expect(prompt.system).toContain(REQUIREMENTS_TRACEABILITY_RULE);
+    expect(prompt.user).toContain("缺失项：需求追踪矩阵");
+    expect(prompt.user).toContain("## 原始需求");
   });
 });
 

@@ -57,6 +57,7 @@ declare global {
     providerId?: string;
     projectPath?: string;
     isModuleScope?: boolean;
+    images?: Array<{ base64: string; mimeType: string }>;
   }
 
   interface SaveDocumentRequest {
@@ -146,6 +147,17 @@ declare global {
         fileName: string;
         format: "png" | "jpeg" | "gif";
       }) => Promise<string | IpcErrorResult>;
+      generatePrdImages: (req: {
+        projectName?: string;
+        prdContent: string;
+        providerId?: string;
+        outputDir?: string;
+        imageFormat?: "png" | "jpeg";
+      }) => Promise<{
+        savedFiles: string[];
+        images: Array<{ name: string; imagePath: string; dataUrl: string }>;
+        recordId: string;
+      } | IpcErrorResult>;
       generateUIImage: (req: {
         requestId?: string;
         projectName?: string;

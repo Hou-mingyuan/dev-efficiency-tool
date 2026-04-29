@@ -4,10 +4,12 @@ import { randomUUID } from "node:crypto";
 import type { AppManager, AiProvider } from "../app-manager";
 import {
   AiService,
+  buildDocumentRepairPrompt,
   buildDirectUIImagePrompt,
   buildPrompt,
   buildUIAnalyzePrompt,
   buildUIImagePrompt,
+  validateGeneratedDocumentFormat,
   type DocType,
 } from "../ai-service";
 import type { ProjectAnalyzer } from "../project-analyzer";
@@ -246,6 +248,36 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
       result = await aiService.generate(provider, system, user, images, abortController.signal);
     } finally {
       if (currentAbortController === abortController) currentAbortController = null;
+    }
+
+    const docType = req.docType as DocType;
+    if (["prd", "requirements", "ui", "design"].includes(docType)) {
+      currentAbortController = abortController;
+      try {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const validation = validateGeneratedDocumentFormat(docType, result);
+          if (validation.valid) break;
+          appManager()?.addLog(
+            "warn",
+            `${docType} 生成结果结构校验未通过，尝试自动修正第 ${attempt} 次: ${validation.missing.join("、")}`,
+            "ai-gen",
+          );
+          const repairPrompt = buildDocumentRepairPrompt(docType, result, validation.missing);
+          result = await aiService.generate(provider, repairPrompt.system, repairPrompt.user, images, abortController.signal, 20000);
+        }
+
+        const finalValidation = validateGeneratedDocumentFormat(docType, result);
+        if (!finalValidation.valid) {
+          throw new Error(currentLocale() === "zh"
+            ? `${docType} 生成结果结构校验未通过：${finalValidation.missing.join("、")}。请重新生成或补充输入后再试。`
+            : `${docType} output structure validation failed: ${finalValidation.missing.join(", ")}. Please regenerate or refine the input.`);
+        }
+      } catch (err: unknown) {
+        if (abortController.signal.aborted) throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");
+        throw err;
+      } finally {
+        if (currentAbortController === abortController) currentAbortController = null;
+      }
     }
 
     const recordId = randomUUID();
@@ -591,6 +623,99 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     });
     appManager()?.addLog("info", `UI 图片已生成 ${pages.length} 张: ${savedFiles.filter((f) => f.endsWith(`.${imgFormat}`)).join(", ")}`, "ai-gen-ui");
     return { htmlResult, savedFiles, recordId, pages: pageResults };
+  }));
+
+  ipcMain.handle("ai:generatePrdImages", wrapIPC(async (_event: any, req: any) => {
+    const provider = resolveProvider(req.providerId);
+    if (!provider) {
+      throw new Error(currentLocale() === "zh" ? "未配置可用的 AI 服务商。" : "No AI provider configured.");
+    }
+    if (!aiService.isImageGenerationModel(provider)) {
+      throw new Error(currentLocale() === "zh"
+        ? "请选择支持图片生成的模型来生成 PRD 配图。"
+        : "Please choose an image generation model for PRD visuals.");
+    }
+
+    const prdContent = String(req.prdContent || "").trim();
+    if (!prdContent) {
+      throw new Error(currentLocale() === "zh" ? "请先生成 PRD 内容。" : "Generate the PRD content first.");
+    }
+
+    const outputDir = assertTrustedOutputDirectory(req.outputDir || appManager()?.getConfig().outputPath || "");
+    fs.existsSync(outputDir) || fs.mkdirSync(outputDir, { recursive: true });
+
+    const requestedFormat = req.imageFormat === "jpeg" ? "jpeg" : "png";
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const projectName = String(req.projectName || "PRD").trim();
+    const targets = [
+      {
+        name: currentLocale() === "zh" ? "业务流程图" : "Business Flow",
+        prompt: currentLocale() === "zh"
+          ? "请基于以下 PRD 生成一张清晰、专业、可读性强的业务流程图。画面应包含角色、系统、核心业务节点、异常分支和终态，并尽量沿用 PRD 正文或 Mermaid 中的节点编号，例如 BF-01、BF-02。图片中的节点文案要能和 PRD 正文逐项对应，使用产品文档风格，适合嵌入 PRD。"
+          : "Generate a clear professional business flow diagram from the PRD. Include actors, systems, core steps, exception branches, and end states. Reuse node IDs from the PRD or Mermaid where possible, such as BF-01 and BF-02. The image labels should map back to the PRD text. Use a product-document style suitable for embedding in a PRD.",
+      },
+      {
+        name: currentLocale() === "zh" ? "页面草图" : "Page Sketch",
+        prompt: currentLocale() === "zh"
+          ? "请基于以下 PRD 生成一张低保真页面结构草图。画面应展示核心页面、主要模块、入口、表单、列表、详情和关键操作区，并尽量沿用 PRD 页面结构图中的页面/模块编号，例如 PS-01、PS-02。图片中的页面和模块名称要能和 PRD 正文逐项对应，使用清爽的线框图风格，适合产品评审。"
+          : "Generate a low-fidelity page structure sketch from the PRD. Show key pages, modules, entry points, forms, lists, detail views, and main action areas. Reuse page/module IDs from the PRD page structure diagram where possible, such as PS-01 and PS-02. The image labels should map back to the PRD text. Use a clean wireframe style suitable for product review.",
+      },
+    ];
+
+    const abortController = new AbortController();
+    currentAbortController = abortController;
+
+    const savedFiles: string[] = [];
+    const images: Array<{ name: string; imagePath: string; dataUrl: string }> = [];
+
+    try {
+      for (const target of targets) {
+        const generated = await aiService.generateImage(provider, [
+          target.prompt,
+          "",
+          currentLocale() === "zh" ? `项目名称：${projectName}` : `Project name: ${projectName}`,
+          "",
+          currentLocale() === "zh" ? "PRD 内容：" : "PRD content:",
+          prdContent,
+        ].join("\n"), {
+          imageFormat: requestedFormat,
+          imageMode: "quality",
+          signal: abortController.signal,
+        });
+
+        const actualFormat = imageExtensionFromMime(generated.mimeType, requestedFormat);
+        const safeName = sanitizeFileNamePart(target.name).slice(0, 40);
+        const fileName = `prd-${safeName}-${timestamp}.${actualFormat}`;
+        const filePath = assertTrustedOutputPath(outputDir, fileName);
+        fs.writeFileSync(filePath, generated.bytes);
+        savedFiles.push(filePath);
+        images.push({
+          name: target.name,
+          imagePath: filePath,
+          dataUrl: `data:${generated.mimeType};base64,${generated.bytes.toString("base64")}`,
+        });
+      }
+    } catch (err: unknown) {
+      if (abortController.signal.aborted) {
+        throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");
+      }
+      throw err;
+    } finally {
+      if (currentAbortController === abortController) currentAbortController = null;
+    }
+
+    const recordId = randomUUID();
+    appManager()?.addGenerationRecord({
+      id: recordId,
+      docType: "prd",
+      projectName,
+      createdAt: new Date().toISOString(),
+      preview: `[PRD 配图 x${images.length}] ${images.map((img) => img.name).join(", ")}`,
+      outputPath: savedFiles[0],
+    });
+    appManager()?.addLog("info", `PRD 配图生成完成: provider=${provider.name ?? provider.id}, files=${savedFiles.join(", ")}`, "ai-prd-image");
+
+    return { savedFiles, images, recordId };
   }));
 
   ipcMain.handle("ai:generateFigmaFile", wrapIPC(async (_event: any, req: any) => {

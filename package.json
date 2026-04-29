@@ -16,7 +16,8 @@
     "pack": "npm run build && npx electron-builder --win --config"
   },
   "dependencies": {
-    "electron-updater": "^6.8.3"
+    "electron-updater": "^6.8.3",
+    "mermaid": "^11.14.0"
   },
   "devDependencies": {
     "@ant-design/icons-vue": "^7.0.1",

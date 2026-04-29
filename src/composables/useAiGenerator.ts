@@ -89,6 +89,7 @@ export function useAiGenerator(docType: DocType) {
   const customProviderId = ref("");
   const customOutputPath = ref("");
   const outputFormat = ref<"md" | "docx" | "pdf" | "png" | "jpeg" | "gif" | "svg" | "html">("md");
+  const generationImages = ref<Array<{ base64: string; mimeType: string }>>([]);
   const scopeLevel = ref<"project" | "module">("project");
 
   const projectCacheStatus = ref<"none" | "valid" | "expired" | "analyzing">("none");
@@ -464,6 +465,7 @@ export function useAiGenerator(docType: DocType) {
         providerId: customProviderId.value || undefined,
         projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
         isModuleScope: scopeLevel.value === "module",
+        images: generationImages.value.length ? generationImages.value : undefined,
       });
       if (isIpcError(res)) {
         generating.value = false;
@@ -573,6 +575,7 @@ export function useAiGenerator(docType: DocType) {
     customProviderId,
     customOutputPath,
     outputFormat,
+    generationImages,
     allProviders,
     availableProviders,
     selectedProvider,

@@ -279,6 +279,16 @@ export default {
     prd: {
       title: "Generate PRD",
       description: "Turn product ideas into a structured PRD.",
+      referenceImages: "Reference Images",
+      addReferenceImages: "Select Images",
+      dropImageHint: "or drag images here",
+      imageAi: "PRD Image Model",
+      imageAiPlaceholder: "Choose an image model for business flows/page sketches",
+      imageAiHint: "Optional. After generating PRD text, use an image model to create business flow and page sketch images, then append them to the PRD preview.",
+      generateImages: "Generate PRD Visuals",
+      imageReadFail: "Failed to read image",
+      imageGenSuccess: "{count} PRD visual(s) generated",
+      needPrdResult: "Generate the PRD text first",
     },
     requirements: {
       title: "Generate requirements",

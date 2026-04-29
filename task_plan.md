@@ -13,6 +13,7 @@
 5. P2：补测试，覆盖 ProjectAnalyzer、buildPrompt、UI prompt builder、isPathWithinBase、配置保存与 API Key 加密。✅ 已完成。
 6. P2：拆分大 Vue 页面，优先 `GenerateUI.vue` 和 `Settings.vue`。✅ 已完成第一轮低风险拆分。
 7. P3：深度优化桌面应用，继续降低高复杂度文件的维护风险，优先拆分 AI/生成链路中的纯逻辑与可测试模块。🚧 进行中。
+8. P3：补齐四类生成文档的全链路追踪编号和硬校验能力，先覆盖 PRD、需求文档、UI 设计、详细设计的结构校验与自动修正。✅ 已完成第一轮。
 
 ## 当前状态
 

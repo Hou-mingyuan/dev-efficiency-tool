@@ -60,3 +60,6 @@
 - 验证：`npx vue-tsc --noEmit --skipLibCheck` 通过；已用 Playwright 打开 `http://127.0.0.1:5174/#/gen/ui` 分别检查浅色和深色主题。浅色主题下生成页与应用浅色背景一致；深色主题下生成页与应用暗色背景一致。控制台仅有现存 `favicon.ico` 404。
 - 用户进一步明确：不是只让生成页继承普通应用背景，而是整个应用背景都要统一成 `https://100t.xiaomimimo.com/` 那种暗黑科技风。已将科技背景上移到 `src/App.vue` 的应用 Shell：侧栏、顶栏、内容区背后统一使用暗黑渐变、低对比代码纹理、网格线、扫描光和蓝绿光晕；生成页继续保持透明背景继承全局空间。
 - 验证：`npx vue-tsc --noEmit --skipLibCheck` 通过；已用 Playwright 预览 `http://127.0.0.1:5173/#/gen/ui` 和 `http://127.0.0.1:5173/#/`，确认生成页和仪表盘都处于同一个全局暗黑科技背景中，浏览器控制台未发现新增 warning/error。
+- 继续按用户确认推进四类生成功能的“全链路可追踪、可校验、可闭环”：计划补齐 PRD、需求文档、UI 设计、详细设计的统一追踪编号规则和生成后硬校验/自动修正机制。
+- 已完成第一轮全链路追踪编号与硬校验改造：`electron/ai-service.ts` 新增需求、UI、详设追踪规则与 `validateGeneratedDocumentFormat` 统一校验入口；`electron/ipc/ai-handlers.ts` 将生成后校验/最多两次自动修正/失败拦截扩展到 PRD、需求、UI、详设四类文档；`electron/__tests__/ai-service.spec.ts` 补充 13 个测试覆盖 PRD 图文校验、需求追踪矩阵、UI 需求追踪矩阵、设计追踪矩阵和通用修正提示词。
+- 验证：`npx vue-tsc --noEmit --skipLibCheck`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vitest run electron/__tests__/ai-service.spec.ts` 均已通过。
