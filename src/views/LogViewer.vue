@@ -286,7 +286,7 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    color: var(--app-text-quaternary);
+    color: rgba(148, 163, 184, 0.8);
   }
   &__actions {
     display: flex;
@@ -310,7 +310,7 @@ onUnmounted(() => {
     font-family: var(--app-font-mono);
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: var(--app-text-tertiary);
+    color: rgba(148, 163, 184, 0.82);
     margin-left: auto;
   }
 }
@@ -342,7 +342,7 @@ onUnmounted(() => {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--app-text-tertiary);
+  color: rgba(148, 163, 184, 0.82);
   border-bottom: 0;
   position: sticky;
   top: 0;
@@ -374,7 +374,7 @@ onUnmounted(() => {
 }
 
 .log-time {
-  color: var(--app-text-tertiary);
+  color: rgba(148, 163, 184, 0.82);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

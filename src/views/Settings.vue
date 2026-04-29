@@ -425,7 +425,7 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    color: var(--app-text-tertiary);
+    color: rgba(148, 163, 184, 0.82);
   }
   :deep(.ant-tabs-tab-active .ant-tabs-tab-btn) {
     color: var(--app-primary) !important;
@@ -458,7 +458,7 @@ onUnmounted(() => {
 .settings-backup-title {
   margin: 0;
   font-size: 12px;
-  color: var(--app-text-tertiary, rgba(100, 116, 139, 0.65));
+  color: rgba(148, 163, 184, 0.82);
   font-family: var(--app-font-mono);
   font-weight: 800;
   letter-spacing: 0.06em;

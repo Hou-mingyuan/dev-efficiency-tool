@@ -577,6 +577,23 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
+  color: rgba(248, 250, 252, 0.92);
+  --app-bg: #050915;
+  --app-bg-container: rgba(8, 13, 22, 0.46);
+  --app-bg-elevated: rgba(12, 19, 31, 0.68);
+  --app-bg-spotlight: rgba(20, 31, 49, 0.56);
+  --app-bg-hover: rgba(96, 165, 250, 0.12);
+  --app-text: rgba(248, 250, 252, 0.94);
+  --app-text-secondary: rgba(203, 213, 225, 0.82);
+  --app-text-tertiary: rgba(148, 163, 184, 0.74);
+  --app-text-quaternary: rgba(100, 116, 139, 0.62);
+  --app-border: rgba(96, 165, 250, 0.22);
+  --app-border-secondary: rgba(148, 163, 184, 0.16);
+  --app-fill: rgba(96, 165, 250, 0.1);
+  --app-fill-secondary: rgba(96, 165, 250, 0.06);
+  --app-code-bg: rgba(8, 13, 22, 0.72);
+  --app-glass-bg: rgba(8, 13, 22, 0.42);
+  --app-glass-border: rgba(148, 163, 184, 0.18);
   background:
     radial-gradient(circle at 12% 10%, rgba(96, 165, 250, 0.2), transparent 28%),
     radial-gradient(circle at 82% 8%, rgba(216, 255, 122, 0.13), transparent 24%),
@@ -626,6 +643,71 @@ onBeforeUnmount(() => {
 .app-layout :deep(.ant-layout-header),
 .app-layout :deep(.ant-layout-content) {
   background: transparent !important;
+}
+
+.app-layout :deep(.ant-typography),
+.app-layout :deep(.ant-form-item-label > label),
+.app-layout :deep(.ant-radio-wrapper),
+.app-layout :deep(.ant-checkbox-wrapper),
+.app-layout :deep(.ant-descriptions-item-label),
+.app-layout :deep(.ant-descriptions-item-content),
+.app-layout :deep(.ant-tabs-tab-btn),
+.app-layout :deep(.ant-empty-description) {
+  color: var(--app-text-secondary) !important;
+}
+
+.app-layout :deep(.ant-input),
+.app-layout :deep(.ant-input-number),
+.app-layout :deep(.ant-input-number-input),
+.app-layout :deep(.ant-input-affix-wrapper),
+.app-layout :deep(.ant-input-password input),
+.app-layout :deep(.ant-select-selector),
+.app-layout :deep(.ant-picker),
+.app-layout :deep(.ant-radio-button-wrapper),
+.app-layout :deep(.ant-btn-default) {
+  background: rgba(12, 19, 31, 0.72) !important;
+  border-color: transparent !important;
+  color: var(--app-text) !important;
+  box-shadow: none !important;
+}
+
+.app-layout :deep(.ant-input::placeholder),
+.app-layout :deep(.ant-input-number-input::placeholder),
+.app-layout :deep(.ant-select-selection-placeholder) {
+  color: rgba(148, 163, 184, 0.7) !important;
+}
+
+.app-layout :deep(.ant-select-selection-item),
+.app-layout :deep(.ant-select-arrow),
+.app-layout :deep(.ant-input-suffix),
+.app-layout :deep(.ant-input-prefix),
+.app-layout :deep(.ant-btn-default span),
+.app-layout :deep(.ant-btn-text span),
+.app-layout :deep(.ant-btn-text svg) {
+  color: var(--app-text) !important;
+}
+
+.app-layout :deep(.ant-select-dropdown),
+.app-layout :deep(.ant-dropdown-menu),
+.app-layout :deep(.ant-popover-inner),
+.app-layout :deep(.ant-modal-content) {
+  background: rgba(8, 13, 22, 0.96) !important;
+  color: var(--app-text) !important;
+  border: 0 !important;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42) !important;
+}
+
+.app-layout :deep(.ant-select-item),
+.app-layout :deep(.ant-dropdown-menu-item),
+.app-layout :deep(.ant-popover-inner-content) {
+  color: var(--app-text-secondary) !important;
+}
+
+.app-layout :deep(.ant-select-item-option-active),
+.app-layout :deep(.ant-select-item-option-selected),
+.app-layout :deep(.ant-dropdown-menu-item:hover) {
+  background: rgba(96, 165, 250, 0.12) !important;
+  color: var(--app-text) !important;
 }
 
 .app-sider {
@@ -740,6 +822,14 @@ onBeforeUnmount(() => {
     color var(--app-transition),
     border-color var(--app-transition),
     background var(--app-transition);
+  color: rgba(203, 213, 225, 0.74) !important;
+}
+
+.app-menu :deep(.ant-menu-title-content),
+.app-menu :deep(.ant-menu-item-icon),
+.app-menu :deep(.ant-menu-submenu-arrow),
+.app-menu :deep(.anticon) {
+  color: inherit !important;
 }
 
 .app-menu :deep(.ant-menu-item::after) {
@@ -756,6 +846,7 @@ onBeforeUnmount(() => {
 .app-menu :deep(.ant-menu-submenu-title:hover) {
   background:
     linear-gradient(90deg, rgba(148, 163, 184, 0.08), transparent 72%) !important;
+  color: rgba(248, 250, 252, 0.92) !important;
 }
 
 .app-header {

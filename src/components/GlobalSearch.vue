@@ -181,7 +181,7 @@ watch(
     background: rgba(4, 8, 14, 0.42);
     border: 0;
     border-radius: 0;
-    color: var(--app-text-tertiary);
+    color: rgba(203, 213, 225, 0.84);
     min-width: 20px;
     text-align: center;
   }

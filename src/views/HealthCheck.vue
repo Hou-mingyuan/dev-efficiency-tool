@@ -258,7 +258,7 @@ onMounted(() => {
   }
   &__hint {
     font-size: 12px;
-    color: var(--app-text-tertiary);
+    color: rgba(148, 163, 184, 0.78);
     margin-top: 2px;
   }
 }
@@ -344,7 +344,7 @@ onMounted(() => {
 
   &__label {
     font-size: 12px;
-    color: var(--app-text-tertiary);
+    color: rgba(148, 163, 184, 0.82);
     font-family: var(--app-font-mono);
     font-weight: 800;
     text-transform: uppercase;

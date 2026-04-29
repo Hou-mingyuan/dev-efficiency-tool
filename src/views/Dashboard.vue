@@ -724,7 +724,7 @@ onMounted(() => {
   gap: 16px;
   padding: 16px 20px;
   border-radius: 0;
-  background: transparent;
+  background: rgba(4, 8, 14, 0.22);
   backdrop-filter: none;
   border: 0;
   flex-wrap: wrap;
@@ -766,7 +766,7 @@ onMounted(() => {
   gap: 14px;
   padding: 20px;
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.2);
+  background: rgba(4, 8, 14, 0.32);
   backdrop-filter: none;
   border: 0;
   cursor: pointer;
@@ -807,7 +807,7 @@ onMounted(() => {
   }
   &__label {
     font-size: 12px;
-    color: var(--app-text-tertiary);
+    color: rgba(203, 213, 225, 0.78);
     font-weight: 700;
     letter-spacing: 0.02em;
     margin-top: 2px;
@@ -917,7 +917,7 @@ onMounted(() => {
 
 .dash-recent {
   border-radius: 0;
-  background: transparent;
+  background: rgba(4, 8, 14, 0.2);
   backdrop-filter: none;
   border: 0;
   overflow: hidden;
@@ -973,7 +973,7 @@ onMounted(() => {
   }
   &__preview {
     font-size: 13px;
-    color: var(--app-text-secondary);
+    color: rgba(203, 213, 225, 0.78);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -986,7 +986,7 @@ onMounted(() => {
   }
   &__time {
     font-size: 12px;
-    color: var(--app-text-quaternary);
+    color: rgba(148, 163, 184, 0.76);
     white-space: nowrap;
   }
   &__delete {
@@ -1016,7 +1016,7 @@ onMounted(() => {
   gap: 10px;
   padding: 28px 16px;
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.2);
+  background: rgba(4, 8, 14, 0.32);
   backdrop-filter: none;
   border: 0;
   cursor: pointer;
@@ -1044,7 +1044,7 @@ onMounted(() => {
   }
   &__desc {
     font-size: 12px;
-    color: var(--app-text-tertiary);
+    color: rgba(203, 213, 225, 0.76);
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -1053,7 +1053,7 @@ onMounted(() => {
   }
   &__hint {
     font-size: 11px;
-    color: var(--app-text-quaternary);
+    color: rgba(148, 163, 184, 0.76);
   }
 }
 
