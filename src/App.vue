@@ -480,6 +480,7 @@ const displayLocale = computed<"zh" | "en">({
 
 router.beforeEach(() => {
   pageLoading.value = true;
+  markCodeMatrixInteraction();
 });
 router.afterEach(() => {
   setTimeout(() => { pageLoading.value = false; }, 200);
