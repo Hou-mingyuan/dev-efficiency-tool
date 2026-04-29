@@ -572,12 +572,12 @@ onMounted(() => {
   left: -8%;
   right: -8%;
   top: 18px;
-  color: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.045);
   font-family: var(--app-font-mono);
-  font-size: clamp(14px, 1.6vw, 22px);
-  letter-spacing: 0.14em;
+  font-size: clamp(12px, 1.35vw, 18px);
+  letter-spacing: 0.2em;
   white-space: nowrap;
-  animation: dashCodeMarquee 15s linear infinite alternate;
+  animation: dashCodeMarquee 24s linear infinite alternate;
 }
 
 @keyframes dashCodeMarquee {

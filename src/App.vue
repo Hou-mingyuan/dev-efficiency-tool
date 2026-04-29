@@ -363,6 +363,14 @@ onBeforeUnmount(() => {
         class="app-layout"
         has-sider
       >
+        <div class="app-tech-tracks" aria-hidden="true">
+          <span>AI_GENERATION_PIPELINE / LOCAL_CONTEXT / REFERENCE_LOCK / REQUEST_PREVIEW_ISOLATION / PACK_READY</span>
+          <span>MODULE_BOUNDARY / STRUCTURE_LOCK / STYLE_LOCK / FRAMEWORK_SYNC / CONTEXT_SAFE</span>
+          <span>PRD_FLOWCHART / PAGE_STRUCTURE / STATE_TRANSITION / MERMAID_RENDER / DOC_EXPORT</span>
+          <span>UI_REFERENCE_SCAN / IMAGE_INPUT / FIGMA_READY / PREVIEW_SANDBOX / NO_CROSSTALK</span>
+          <span>REQUIREMENT_TRACE / DESIGN_TRACE / OUTPUT_PACK / LOCAL_BUILD / RELEASE_READY</span>
+          <span>AGENT_PIPELINE / MODEL_ROUTE / PROMPT_GUARD / RESULT_VERIFY / PUSH_READY</span>
+        </div>
         <a-layout-sider
           v-model:collapsed="collapsed"
           :theme="isDark ? 'dark' : 'light'"
@@ -608,13 +616,13 @@ onBeforeUnmount(() => {
     right: 0;
     z-index: 0;
     pointer-events: none;
-    color: rgba(226, 232, 240, 0.052);
+    color: rgba(226, 232, 240, 0.026);
     font-family: var(--app-font-mono);
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.28em;
     white-space: nowrap;
-    animation: shellCodeDrift 28s linear infinite;
+    animation: shellCodeDrift 36s linear infinite;
   }
 
   &::after {
@@ -635,6 +643,68 @@ onBeforeUnmount(() => {
       shellScan 7.2s ease-in-out infinite,
       shellGridDrift 22s linear infinite;
   }
+}
+
+.app-tech-tracks {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout paint style;
+  mix-blend-mode: screen;
+}
+
+.app-tech-tracks span {
+  position: absolute;
+  left: -18vw;
+  width: 150vw;
+  color: rgba(216, 255, 122, 0.032);
+  font-family: var(--app-font-mono);
+  font-size: clamp(10px, 0.86vw, 14px);
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(96, 165, 250, 0.1);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.app-tech-tracks span:nth-child(1) {
+  top: 7vh;
+  animation: techTrackDrift 44s linear infinite;
+}
+
+.app-tech-tracks span:nth-child(2) {
+  top: 18vh;
+  color: rgba(147, 197, 253, 0.03);
+  animation: techTrackDriftReverse 52s linear infinite;
+}
+
+.app-tech-tracks span:nth-child(3) {
+  top: 34vh;
+  color: rgba(226, 232, 240, 0.026);
+  animation: techTrackDrift 58s linear infinite;
+}
+
+.app-tech-tracks span:nth-child(4) {
+  top: 57vh;
+  color: rgba(103, 232, 249, 0.028);
+  animation: techTrackDriftReverse 48s linear infinite;
+}
+
+.app-tech-tracks span:nth-child(5) {
+  top: 73vh;
+  color: rgba(216, 255, 122, 0.028);
+  animation: techTrackDrift 64s linear infinite;
+}
+
+.app-tech-tracks span:nth-child(6) {
+  top: 88vh;
+  color: rgba(148, 163, 184, 0.03);
+  animation: techTrackDriftReverse 60s linear infinite;
 }
 
 .app-layout,
@@ -1086,6 +1156,16 @@ onBeforeUnmount(() => {
 @keyframes shellCodeDrift {
   0% { transform: translateX(0); }
   100% { transform: translateX(-34%); }
+}
+
+@keyframes techTrackDrift {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-28vw, 0, 0); }
+}
+
+@keyframes techTrackDriftReverse {
+  0% { transform: translate3d(-24vw, 0, 0); }
+  100% { transform: translate3d(8vw, 0, 0); }
 }
 
 @keyframes shellScan {
