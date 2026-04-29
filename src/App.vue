@@ -878,6 +878,8 @@ onBeforeUnmount(() => {
   contain: strict;
   opacity: 0.72;
   transform: translateZ(0);
+  -webkit-mask-image: radial-gradient(ellipse 72% 66% at 50% 48%, #000 0%, rgba(0, 0, 0, 0.96) 42%, rgba(0, 0, 0, 0.46) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 66% at 50% 48%, #000 0%, rgba(0, 0, 0, 0.96) 42%, rgba(0, 0, 0, 0.46) 72%, transparent 100%);
 }
 
 .app-layout,

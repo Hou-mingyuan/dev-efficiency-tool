@@ -256,9 +256,6 @@ onMounted(() => {
 <template>
   <div class="page-dashboard">
     <section class="dash-hero">
-      <div class="dash-hero__code" aria-hidden="true">
-        AI_GENERATION_PIPELINE / PROJECT_CONTEXT / REQUEST_ID_ISOLATION / PACK_READY
-      </div>
       <div class="dash-hero__scan" aria-hidden="true" />
       <div class="dash-hero__content">
         <div class="dash-hero__kicker">
@@ -565,24 +562,6 @@ onMounted(() => {
 @keyframes dashMoonFloat {
   from { transform: translate3d(0, 0, 0) scale(1); }
   to { transform: translate3d(18px, 12px, 0) scale(1.04); }
-}
-
-.dash-hero__code {
-  position: absolute;
-  left: -8%;
-  right: -8%;
-  top: 18px;
-  color: rgba(255, 255, 255, 0.045);
-  font-family: var(--app-font-mono);
-  font-size: clamp(12px, 1.35vw, 18px);
-  letter-spacing: 0.2em;
-  white-space: nowrap;
-  animation: dashCodeMarquee 24s linear infinite alternate;
-}
-
-@keyframes dashCodeMarquee {
-  from { transform: translateX(-3%); }
-  to { transform: translateX(9%); }
 }
 
 .dash-hero__scan {
