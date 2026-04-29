@@ -568,12 +568,56 @@ onBeforeUnmount(() => {
 .app-root {
   height: 100%;
   min-height: 100vh;
+  background: #050915;
 }
 .app-welcome {
   min-height: 100vh;
 }
 .app-layout {
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(96, 165, 250, 0.18), transparent 32%),
+    radial-gradient(circle at 88% 12%, rgba(132, 204, 22, 0.14), transparent 30%),
+    radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.1), transparent 36%),
+    linear-gradient(135deg, #070c17 0%, #0c1624 42%, #050915 100%) !important;
+
+  &::before {
+    content: 'AI_GENERATION_PIPELINE / LOCAL_CONTEXT / REFERENCE_LOCK / REQUEST_PREVIEW_ISOLATION / PACK_READY';
+    position: fixed;
+    top: 72px;
+    left: 220px;
+    right: 0;
+    z-index: 0;
+    pointer-events: none;
+    color: rgba(226, 232, 240, 0.045);
+    font-family: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.28em;
+    white-space: nowrap;
+    animation: shellCodeDrift 28s linear infinite;
+  }
+
+  &::after {
+    content: '';
+    position: fixed;
+    inset: 48px 0 0 220px;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent, rgba(132, 204, 22, 0.09), transparent),
+      linear-gradient(rgba(148, 163, 184, 0.026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.026) 1px, transparent 1px);
+    background-size: 38% 100%, 36px 36px, 36px 36px;
+    background-position: -42% 0, 0 0, 0 0;
+    mix-blend-mode: screen;
+    opacity: 0.62;
+    animation:
+      shellScan 7.2s ease-in-out infinite,
+      shellGridDrift 22s linear infinite;
+  }
 }
 
 .app-sider {
@@ -582,8 +626,9 @@ onBeforeUnmount(() => {
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: 1px solid var(--app-glass-border) !important;
-  background: var(--app-glass-bg) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.12) !important;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(10, 17, 30, 0.9)) !important;
   backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -597,7 +642,7 @@ onBeforeUnmount(() => {
     left: 0;
     right: 0;
     height: 120px;
-    background: linear-gradient(to top, color-mix(in srgb, var(--app-primary) 5%, transparent), transparent);
+    background: linear-gradient(to top, rgba(96, 165, 250, 0.08), transparent);
     pointer-events: none;
     z-index: 0;
   }
@@ -610,7 +655,7 @@ onBeforeUnmount(() => {
     padding: 0 16px;
     position: relative;
     z-index: 1;
-    border-bottom: 1px solid var(--app-glass-border);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     margin-bottom: 8px;
   }
   &__logo {
@@ -678,10 +723,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 0 0 12px;
-  background: var(--app-glass-bg);
+  background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
   -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
-  border-bottom: 1px solid var(--app-glass-border);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
   height: 48px;
   position: sticky;
   top: 0;
@@ -774,11 +819,12 @@ onBeforeUnmount(() => {
 .app-content {
   margin: 0;
   padding: var(--app-page-padding-y) var(--app-page-padding-x) 32px;
-  background: var(--app-bg);
+  background: transparent;
   overflow-y: auto;
   overflow-x: hidden;
   height: calc(100vh - 48px);
   position: relative;
+  z-index: 1;
 }
 
 .app-content__orbs {
@@ -793,7 +839,7 @@ onBeforeUnmount(() => {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.07;
+  opacity: 0.11;
   will-change: transform;
   contain: layout style;
   animation: orbFloat 20s ease-in-out infinite alternate;
@@ -803,7 +849,7 @@ onBeforeUnmount(() => {
 .app-orb--1 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, #3b82f6, transparent 70%);
+  background: radial-gradient(circle, #60a5fa, transparent 70%);
   top: -10%;
   right: -5%;
   animation-delay: 0s;
@@ -812,7 +858,7 @@ onBeforeUnmount(() => {
 .app-orb--2 {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, #8b5cf6, transparent 70%);
+  background: radial-gradient(circle, #84cc16, transparent 70%);
   bottom: 10%;
   left: 5%;
   animation-delay: -7s;
@@ -821,7 +867,7 @@ onBeforeUnmount(() => {
 .app-orb--3 {
   width: 350px;
   height: 350px;
-  background: radial-gradient(circle, #06b6d4, transparent 70%);
+  background: radial-gradient(circle, #22d3ee, transparent 70%);
   top: 40%;
   right: 30%;
   animation-delay: -14s;
@@ -832,6 +878,31 @@ onBeforeUnmount(() => {
   33% { transform: translate(30px, -20px) scale(1.05); }
   66% { transform: translate(-20px, 30px) scale(0.95); }
   100% { transform: translate(10px, -10px) scale(1.02); }
+}
+
+@keyframes shellCodeDrift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-34%); }
+}
+
+@keyframes shellScan {
+  0%, 14% {
+    background-position: -45% 0, 0 0, 0 0;
+    opacity: 0.34;
+  }
+  48%, 62% {
+    background-position: 145% 0, 12px 18px, 12px 18px;
+    opacity: 0.68;
+  }
+  100% {
+    background-position: 145% 0, 24px 36px, 24px 36px;
+    opacity: 0.36;
+  }
+}
+
+@keyframes shellGridDrift {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(16deg); }
 }
 
 .app-loading-bar {
