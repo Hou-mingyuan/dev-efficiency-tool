@@ -29,6 +29,20 @@ const stepItems = computed(() => [
   { title: t("welcome.step5Title"), description: t("welcome.step5Desc") },
 ]);
 
+const progressPercent = computed(() => Math.round(((step.value + 1) / stepItems.value.length) * 100));
+
+const heroMetrics = computed(() => [
+  { value: "04", label: t("welcome.metricGenerators") },
+  { value: "AI", label: t("welcome.metricWorkflow") },
+  { value: "100%", label: t("welcome.metricLocal") },
+]);
+
+const capabilityCards = computed(() => [
+  { code: "01", title: t("welcome.capabilityPrd"), desc: t("welcome.capabilityPrdDesc") },
+  { code: "02", title: t("welcome.capabilityUi"), desc: t("welcome.capabilityUiDesc") },
+  { code: "03", title: t("welcome.capabilityDesign"), desc: t("welcome.capabilityDesignDesc") },
+]);
+
 function syncOptionsFromConfig() {
   const list = appStore.config.aiProviders?.length
     ? appStore.config.aiProviders
@@ -190,237 +204,441 @@ onMounted(async () => {
 
 <template>
   <div class="page-welcome">
-    <a-card
-      class="welcome-card"
-      :bordered="false"
-    >
-      <a-steps
-        v-model:current="step"
-        class="welcome-steps"
-        :items="stepItems"
-        direction="vertical"
-        size="small"
-      />
-      <div class="welcome-body">
-        <div
-          v-show="step === 0"
-          class="step-panel"
-        >
-          <h1 class="welcome-title">
-            {{ t("welcome.headline") }}
-          </h1>
-          <p class="welcome-sub">
-            {{ t("app.description") }}
-          </p>
+    <div class="welcome-noise" />
+    <div class="welcome-code-bg" aria-hidden="true">
+      <span>AI_WORKFLOW::PRD_REQUIREMENTS_UI_DESIGN</span>
+      <span>LOCAL_PROJECT_CONTEXT + REFERENCE_DOCS + MODEL_ROUTING</span>
+      <span>REQUEST_ID_ISOLATION / HTML_RENDER / DIRECT_IMAGE</span>
+      <span>TYPECHECK PASSED · TESTS PASSED · PACK READY</span>
+    </div>
+
+    <header class="welcome-topbar">
+      <div class="welcome-brand">
+        <span class="brand-mark">D</span>
+        <span>{{ t("app.name") }}</span>
+      </div>
+      <div class="welcome-status">
+        <span>{{ t("welcome.setupProgress", { percent: progressPercent }) }}</span>
+      </div>
+    </header>
+
+    <main class="welcome-shell">
+      <section class="welcome-hero">
+        <div class="hero-kicker">
+          <span class="pulse-dot" />
+          {{ t("welcome.heroKicker") }}
         </div>
-        <div
-          v-show="step === 1"
-          class="step-panel"
-        >
-          <h2 class="step-heading">
-            {{ t("welcome.step2Title") }}
-          </h2>
-          <a-input-group
-            compact
-            class="path-row"
-          >
-            <a-input
-              v-model:value="methPath"
-              :placeholder="t('settings.methodologyPath')"
-            />
-            <a-button @click="pickMethodology">
-              {{ t("welcome.chooseDir") }}
-            </a-button>
-          </a-input-group>
-        </div>
-        <div
-          v-show="step === 2"
-          class="step-panel"
-        >
-          <h2 class="step-heading">
-            {{ t("welcome.step3Title") }}
-          </h2>
-          <a-input-group
-            compact
-            class="path-row"
-          >
-            <a-input
-              v-model:value="projPath"
-              :placeholder="t('settings.projectPath')"
-            />
-            <a-button @click="pickProject">
-              {{ t("welcome.chooseDir") }}
-            </a-button>
-          </a-input-group>
-        </div>
-        <div
-          v-show="step === 3"
-          class="step-panel"
-        >
-          <h2 class="step-heading">
-            {{ t("welcome.step4Title") }}
-          </h2>
-          <a-form
-            layout="vertical"
-            class="wizard-form"
-          >
-            <a-form-item :label="t('welcome.selectProvider')">
-              <a-select
-                v-model:value="selectedProviderId"
-                :options="providerOptions"
-                style="width: 100%; max-width: 400px"
-              />
-            </a-form-item>
-            <a-form-item :label="t('settings.apiKey')">
-              <a-input-password
-                v-model:value="wizardApiKey"
-                autocomplete="off"
-                style="max-width: 400px"
-              />
-            </a-form-item>
-            <a-form-item>
-              <a-button
-                :loading="apiKeyTesting"
-                :disabled="!wizardApiKey.trim()"
-                @click="testApiKey"
-              >
-                {{ apiKeyTesting ? t("welcome.testing") : t("welcome.testConnection") }}
-              </a-button>
-              <a-alert
-                v-if="apiKeyTestResult === 'success'"
-                type="success"
-                :message="t('welcome.testSuccess')"
-                show-icon
-                class="test-alert"
-              />
-              <a-alert
-                v-else-if="apiKeyTestResult === 'fail'"
-                type="error"
-                :message="t('welcome.testFail', { msg: apiKeyTestMsg })"
-                show-icon
-                class="test-alert"
-              />
-            </a-form-item>
-          </a-form>
-        </div>
-        <div
-          v-show="step === 4"
-          class="step-panel"
-        >
-          <h1 class="welcome-title">
-            {{ t("welcome.allSet") }}
-          </h1>
-          <p class="welcome-sub">
-            {{ t("welcome.subtitle") }}
-          </p>
+        <h1 class="welcome-title">
+          {{ t("welcome.heroTitle") }}
+        </h1>
+        <p class="welcome-sub">
+          {{ t("welcome.heroSubtitle") }}
+        </p>
+
+        <div class="metric-grid">
           <div
-            v-if="apiKeyTesting"
-            class="finish-test-hint"
+            v-for="item in heroMetrics"
+            :key="item.label"
+            class="metric-card"
           >
-            <a-spin size="small" />
-            <span>{{ t("welcome.autoTesting") }}</span>
+            <strong>{{ item.value }}</strong>
+            <span>{{ item.label }}</span>
           </div>
-          <a-alert
-            v-else-if="apiKeyTestResult === 'success'"
-            type="success"
-            :message="t('welcome.testSuccess')"
-            show-icon
-            class="finish-test-alert"
-          />
-          <a-alert
-            v-else-if="apiKeyTestResult === 'fail'"
-            type="warning"
-            :message="t('welcome.testFail', { msg: apiKeyTestMsg })"
-            show-icon
-            class="finish-test-alert"
-          />
         </div>
-      </div>
-      <div class="welcome-actions">
-        <a-button
-          v-if="step > 0"
-          @click="onPrev"
-        >
-          {{ t("common.prev") }}
-        </a-button>
-        <a-button
-          v-if="step < 4"
-          type="primary"
-          @click="onNext"
-        >
-          {{ t("common.next") }}
-        </a-button>
-        <a-button
-          v-else
-          type="primary"
-          @click="onFinish"
-        >
-          {{ t("common.finish") }}
-        </a-button>
-      </div>
-    </a-card>
+
+        <div class="capability-list">
+          <article
+            v-for="item in capabilityCards"
+            :key="item.code"
+            class="capability-card"
+          >
+            <span>{{ item.code }}</span>
+            <div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.desc }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <a-card
+        class="welcome-card"
+        :bordered="false"
+      >
+        <div class="wizard-header">
+          <div>
+            <span class="wizard-label">{{ t("welcome.wizardLabel") }}</span>
+            <h2>{{ stepItems[step]?.title }}</h2>
+          </div>
+          <span class="wizard-count">{{ step + 1 }}/{{ stepItems.length }}</span>
+        </div>
+
+        <a-steps
+          v-model:current="step"
+          class="welcome-steps"
+          :items="stepItems"
+          direction="vertical"
+          size="small"
+        />
+
+        <div class="welcome-body">
+          <div
+            v-show="step === 0"
+            class="step-panel"
+          >
+            <h1 class="step-title">
+              {{ t("welcome.headline") }}
+            </h1>
+            <p class="welcome-sub">
+              {{ t("app.description") }}
+            </p>
+          </div>
+          <div
+            v-show="step === 1"
+            class="step-panel"
+          >
+            <h2 class="step-heading">
+              {{ t("welcome.step2Title") }}
+            </h2>
+            <a-input-group
+              compact
+              class="path-row"
+            >
+              <a-input
+                v-model:value="methPath"
+                :placeholder="t('settings.methodologyPath')"
+              />
+              <a-button @click="pickMethodology">
+                {{ t("welcome.chooseDir") }}
+              </a-button>
+            </a-input-group>
+          </div>
+          <div
+            v-show="step === 2"
+            class="step-panel"
+          >
+            <h2 class="step-heading">
+              {{ t("welcome.step3Title") }}
+            </h2>
+            <a-input-group
+              compact
+              class="path-row"
+            >
+              <a-input
+                v-model:value="projPath"
+                :placeholder="t('settings.projectPath')"
+              />
+              <a-button @click="pickProject">
+                {{ t("welcome.chooseDir") }}
+              </a-button>
+            </a-input-group>
+          </div>
+          <div
+            v-show="step === 3"
+            class="step-panel"
+          >
+            <h2 class="step-heading">
+              {{ t("welcome.step4Title") }}
+            </h2>
+            <a-form
+              layout="vertical"
+              class="wizard-form"
+            >
+              <a-form-item :label="t('welcome.selectProvider')">
+                <a-select
+                  v-model:value="selectedProviderId"
+                  :options="providerOptions"
+                />
+              </a-form-item>
+              <a-form-item :label="t('settings.apiKey')">
+                <a-input-password
+                  v-model:value="wizardApiKey"
+                  autocomplete="off"
+                />
+              </a-form-item>
+              <a-form-item>
+                <a-button
+                  :loading="apiKeyTesting"
+                  :disabled="!wizardApiKey.trim()"
+                  @click="testApiKey"
+                >
+                  {{ apiKeyTesting ? t("welcome.testing") : t("welcome.testConnection") }}
+                </a-button>
+                <a-alert
+                  v-if="apiKeyTestResult === 'success'"
+                  type="success"
+                  :message="t('welcome.testSuccess')"
+                  show-icon
+                  class="test-alert"
+                />
+                <a-alert
+                  v-else-if="apiKeyTestResult === 'fail'"
+                  type="error"
+                  :message="t('welcome.testFail', { msg: apiKeyTestMsg })"
+                  show-icon
+                  class="test-alert"
+                />
+              </a-form-item>
+            </a-form>
+          </div>
+          <div
+            v-show="step === 4"
+            class="step-panel"
+          >
+            <h1 class="step-title">
+              {{ t("welcome.allSet") }}
+            </h1>
+            <p class="welcome-sub">
+              {{ t("welcome.subtitle") }}
+            </p>
+            <div
+              v-if="apiKeyTesting"
+              class="finish-test-hint"
+            >
+              <a-spin size="small" />
+              <span>{{ t("welcome.autoTesting") }}</span>
+            </div>
+            <a-alert
+              v-else-if="apiKeyTestResult === 'success'"
+              type="success"
+              :message="t('welcome.testSuccess')"
+              show-icon
+              class="finish-test-alert"
+            />
+            <a-alert
+              v-else-if="apiKeyTestResult === 'fail'"
+              type="warning"
+              :message="t('welcome.testFail', { msg: apiKeyTestMsg })"
+              show-icon
+              class="finish-test-alert"
+            />
+          </div>
+        </div>
+        <div class="welcome-actions">
+          <a-button
+            v-if="step > 0"
+            @click="onPrev"
+          >
+            {{ t("common.prev") }}
+          </a-button>
+          <a-button
+            v-if="step < 4"
+            type="primary"
+            @click="onNext"
+          >
+            {{ t("common.next") }}
+          </a-button>
+          <a-button
+            v-else
+            type="primary"
+            @click="onFinish"
+          >
+            {{ t("common.finish") }}
+          </a-button>
+        </div>
+      </a-card>
+    </main>
   </div>
 </template>
 
 <style lang="less" scoped>
 .page-welcome {
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px 48px;
+  min-height: 100vh;
+  padding: 28px clamp(18px, 4vw, 56px) 48px;
   box-sizing: border-box;
-  background: var(--app-bg, #f1f5f9);
+  color: #f6f8ff;
+  background:
+    radial-gradient(circle at 74% 8%, rgba(255, 255, 255, 0.22) 0 7%, transparent 7.3%),
+    radial-gradient(circle at 20% 18%, rgba(63, 131, 248, 0.18), transparent 34%),
+    linear-gradient(180deg, #030407 0%, #05070a 42%, #000 100%);
   position: relative;
   overflow: hidden;
 
-  &::before,
   &::after {
     content: '';
     position: absolute;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.12;
+    inset: 0;
     pointer-events: none;
-    will-change: transform;
-    animation: welcomeOrb 18s ease-in-out infinite alternate;
-  }
-  &::before {
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, #3b82f6, transparent 70%);
-    top: -15%;
-    left: -10%;
-    animation-delay: 0s;
-  }
-  &::after {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, #8b5cf6, transparent 70%);
-    bottom: -15%;
-    right: -10%;
-    animation-delay: -9s;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 52px 52px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 82%);
   }
 }
 
-@keyframes welcomeOrb {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(40px, -30px) scale(1.1); }
-  100% { transform: translate(-20px, 20px) scale(0.95); }
+.welcome-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+  mix-blend-mode: screen;
+}
+
+.welcome-code-bg {
+  position: absolute;
+  inset: 56px 0 auto;
+  z-index: 0;
+  display: grid;
+  gap: 8px;
+  padding: 0 8px;
+  color: rgba(255, 255, 255, 0.07);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: clamp(13px, 1.6vw, 24px);
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  user-select: none;
+  transform: rotate(-1deg);
+
+  span {
+    animation: codeDrift 16s linear infinite;
+  }
+
+  span:nth-child(2n) {
+    animation-direction: reverse;
+    color: rgba(148, 163, 184, 0.08);
+  }
+}
+
+@keyframes codeDrift {
+  from { transform: translateX(-8%); }
+  to { transform: translateX(8%); }
+}
+
+.welcome-topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1320px;
+  margin: 0 auto 64px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.welcome-brand,
+.welcome-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  color: #fff;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.welcome-status {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.welcome-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(420px, 520px);
+  gap: clamp(28px, 5vw, 80px);
+  align-items: center;
+}
+
+.welcome-hero {
+  min-width: 0;
+}
+
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d8ff7a;
+  box-shadow: 0 0 24px rgba(216, 255, 122, 0.9);
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.7); opacity: 0.45; }
 }
 
 .welcome-card {
   width: 100%;
-  max-width: 680px;
-  border-radius: var(--app-radius-xl, 20px) !important;
-  background: var(--app-glass-bg, rgba(255, 255, 255, 0.72)) !important;
-  backdrop-filter: blur(28px) saturate(1.6);
-  -webkit-backdrop-filter: blur(28px) saturate(1.6);
-  border: 1px solid var(--app-glass-border, rgba(255, 255, 255, 0.5)) !important;
-  box-shadow: var(--app-shadow-lg), 0 0 60px color-mix(in srgb, var(--app-primary) 6%, transparent) !important;
+  border-radius: 0 !important;
+  background: rgba(7, 10, 14, 0.82) !important;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   position: relative;
-  z-index: 1;
   animation: welcomeCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    border-top: 1px solid rgba(216, 255, 122, 0.7);
+    opacity: 0.55;
+  }
+
+  :deep(.ant-card-body) {
+    padding: clamp(22px, 3vw, 36px);
+  }
+
+  :deep(.ant-steps-item-title),
+  :deep(.ant-steps-item-description),
+  :deep(.ant-form-item-label > label) {
+    color: rgba(255, 255, 255, 0.74) !important;
+  }
+
+  :deep(.ant-input),
+  :deep(.ant-input-password),
+  :deep(.ant-select-selector) {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+  }
+
+  :deep(.ant-btn:not(.ant-btn-primary)) {
+    color: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  :deep(.ant-btn-primary) {
+    color: #05070a;
+    background: #d8ff7a;
+    border-color: #d8ff7a;
+    box-shadow: 0 0 28px rgba(216, 255, 122, 0.22);
+  }
 }
 
 @keyframes welcomeCardIn {
@@ -436,17 +654,44 @@ onMounted(async () => {
   }
 }
 
+.wizard-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 6px 0 0;
+    color: #fff;
+    font-size: 22px;
+    line-height: 1.2;
+  }
+}
+
+.wizard-label,
+.wizard-count {
+  color: rgba(216, 255, 122, 0.88);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.wizard-count {
+  color: rgba(255, 255, 255, 0.54);
+}
+
 .welcome-steps {
-  margin-bottom: 28px;
+  margin-bottom: 30px;
 }
 
 .welcome-body {
-  min-height: 200px;
-  margin-bottom: 28px;
+  min-height: 190px;
+  margin-bottom: 30px;
 }
 
 .step-panel {
-  text-align: center;
+  text-align: left;
   animation: stepFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -462,35 +707,101 @@ onMounted(async () => {
 }
 
 .welcome-title {
-  font-size: 1.6rem;
+  max-width: 760px;
+  margin: 0 0 20px;
+  color: #f8fafc;
+  font-family: "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+  font-size: clamp(52px, 8vw, 108px);
   font-weight: 800;
-  margin: 0 0 12px;
-  line-height: 1.35;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: welcomeTitleShimmer 4s ease-in-out infinite;
+  line-height: 0.98;
+  letter-spacing: -0.07em;
+  text-wrap: balance;
 }
 
-@keyframes welcomeTitleShimmer {
-  0%, 100% { background-position: 0% center; }
-  50% { background-position: 100% center; }
+.step-title {
+  margin: 0 0 12px;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .welcome-sub {
   margin: 0;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.65));
-  font-size: 15px;
+  max-width: 640px;
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 16px;
   line-height: 1.7;
 }
 
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 680px;
+  margin: 42px 0 26px;
+}
+
+.metric-card {
+  min-height: 96px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+
+  strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #fff;
+    font-family: "DIN Alternate", "Bahnschrift", sans-serif;
+    font-size: clamp(30px, 4vw, 52px);
+    line-height: 1;
+  }
+
+  span {
+    color: rgba(226, 232, 240, 0.64);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+}
+
+.capability-list {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+}
+
+.capability-card {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+  > span {
+    color: #d8ff7a;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    font-weight: 700;
+  }
+
+  h3 {
+    margin: 0 0 6px;
+    color: #fff;
+    font-size: 15px;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(226, 232, 240, 0.58);
+    line-height: 1.65;
+  }
+}
+
 .step-heading {
-  font-size: 1.15rem;
+  color: #fff;
+  font-size: 1.1rem;
   margin: 0 0 18px;
   text-align: left;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .path-row {
@@ -501,8 +812,7 @@ onMounted(async () => {
 }
 
 .wizard-form {
-  max-width: 440px;
-  margin: 0 auto;
+  max-width: 100%;
   text-align: left;
 }
 
@@ -510,7 +820,7 @@ onMounted(async () => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .test-alert {
@@ -520,24 +830,52 @@ onMounted(async () => {
 .finish-test-hint {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   margin-top: 16px;
-  color: var(--app-text-secondary, rgba(0, 0, 0, 0.65));
+  color: rgba(226, 232, 240, 0.7);
   font-size: 14px;
 }
 
 .finish-test-alert {
   margin-top: 16px;
   max-width: 420px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0;
+  margin-right: 0;
   text-align: left;
 }
 
-@media (min-width: 480px) {
-  .welcome-title {
-    font-size: 1.85rem;
+@media (max-width: 980px) {
+  .welcome-topbar {
+    margin-bottom: 34px;
+  }
+
+  .welcome-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-card {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 640px) {
+  .welcome-topbar,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .metric-grid {
+    display: grid;
+  }
+
+  .welcome-actions {
+    justify-content: flex-start;
   }
 }
 </style>

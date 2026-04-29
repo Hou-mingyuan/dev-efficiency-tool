@@ -6,6 +6,7 @@ import type { GeneratedImage, ImageGenerationOptions } from "./ai-providers/type
 import { testAiConnection } from "./ai-connection-test";
 import { buildAnthropicUserContent, buildOpenAIUserContent } from "./ai-message-content";
 import { listAvailableModels } from "./ai-model-list";
+import { throwProviderResponseError } from "./ai-response-errors";
 import { getModelOutputKind, isImageGenerationModel } from "./model-capabilities";
 
 /** ESM replacement for `__dirname` (this module’s directory) */
@@ -426,6 +427,12 @@ export function buildPrompt(
   return { system, user };
 }
 
+const MISSING_API_KEY_MESSAGE = "当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置";
+
+function assertProviderApiKey(provider: AiProvider): void {
+  if (!provider.apiKey) throw new Error(MISSING_API_KEY_MESSAGE);
+}
+
 export class AiService {
   private readonly imageProvider = new OpenAICompatibleImageProvider();
 
@@ -448,9 +455,7 @@ export class AiService {
     signal?: AbortSignal,
     maxTokens = 16384,
   ): Promise<string> {
-    if (!provider.apiKey) {
-      throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
-    }
+    assertProviderApiKey(provider);
     return provider.id === "anthropic"
       ? this.callAnthropic(provider, system, user, images, signal, maxTokens)
       : this.callOpenAI(provider, system, user, images, signal, maxTokens);
@@ -465,9 +470,7 @@ export class AiService {
     signal?: AbortSignal,
     maxTokens = 16384,
   ): Promise<string> {
-    if (!provider.apiKey) {
-      throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
-    }
+    assertProviderApiKey(provider);
     return provider.id === "anthropic"
       ? this.callAnthropicStream(provider, system, user, onChunk, images, signal, maxTokens)
       : this.callOpenAIStream(provider, system, user, onChunk, images, signal, maxTokens);
@@ -482,9 +485,7 @@ export class AiService {
   }
 
   async generateImage(provider: AiProvider, prompt: string, options: ImageGenerationOptions = {}): Promise<GeneratedImage> {
-    if (!provider.apiKey) {
-      throw new Error("当前 AI 服务商未配置 API Key，请在「配置管理 → AI 模型配置」中设置");
-    }
+    assertProviderApiKey(provider);
     return this.imageProvider.generateImage(provider, prompt, options);
   }
 
@@ -518,8 +519,7 @@ export class AiService {
       signal,
     });
     if (!res.ok) {
-      const t = await res.text().catch(() => "未知错误");
-      throw new Error(`${provider.name} API 调用失败 (${res.status}): ${t}`);
+      await throwProviderResponseError(res, `${provider.name} API 调用失败`);
     }
     const data = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
@@ -559,8 +559,7 @@ export class AiService {
       signal,
     });
     if (!res.ok) {
-      const t = await res.text().catch(() => "未知错误");
-      throw new Error(`${provider.name} API 流式调用失败 (${res.status}): ${t}`);
+      await throwProviderResponseError(res, `${provider.name} API 流式调用失败`);
     }
     if (!res.body) {
       throw new Error(`${provider.name} 响应体不可读，无法流式解析`);
@@ -640,8 +639,7 @@ export class AiService {
       signal,
     });
     if (!res.ok) {
-      const t = await res.text().catch(() => "未知错误");
-      throw new Error(`Anthropic API 调用失败 (${res.status}): ${t}`);
+      await throwProviderResponseError(res, "Anthropic API 调用失败");
     }
     const data = (await res.json()) as { content?: Array<{ text?: string }> };
     return data.content?.[0]?.text ?? "生成结果为空";
@@ -674,8 +672,7 @@ export class AiService {
       signal,
     });
     if (!res.ok) {
-      const t = await res.text().catch(() => "未知错误");
-      throw new Error(`Anthropic API 流式调用失败 (${res.status}): ${t}`);
+      await throwProviderResponseError(res, "Anthropic API 流式调用失败");
     }
     if (!res.body) throw new Error("Anthropic 响应体不可读，无法流式解析");
 

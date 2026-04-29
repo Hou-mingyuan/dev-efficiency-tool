@@ -1,4 +1,5 @@
 import type { AiProvider } from "./app-manager";
+import { throwProviderResponseError } from "./ai-response-errors";
 
 export async function testAiConnection(provider: AiProvider): Promise<void> {
   if (!provider.apiKey?.trim()) throw new Error("未配置 API Key");
@@ -27,8 +28,7 @@ export async function testOpenAICompatibleConnection(provider: AiProvider): Prom
     }),
   });
   if (!res.ok) {
-    const t = await res.text().catch(() => "Unknown error");
-    throw new Error(`${provider.name} API (${res.status}): ${t}`);
+    await throwProviderResponseError(res, `${provider.name} API`, "Unknown error");
   }
 }
 
@@ -49,8 +49,6 @@ export async function testAnthropicConnection(provider: AiProvider): Promise<voi
     }),
   });
   if (!res.ok) {
-    const t = await res.text().catch(() => "Unknown error");
-    throw new Error(`Anthropic API (${res.status}): ${t}`);
+    await throwProviderResponseError(res, "Anthropic API", "Unknown error");
   }
 }
-

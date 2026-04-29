@@ -42,3 +42,17 @@
 - 按用户要求提交并重新打包：已创建本地提交 `047f004 Refactor AI service model helpers`，重新执行 `npm run pack` 成功，产物更新到 `release` 目录。
 - 继续拆分 AI 连接测试逻辑：新增 `electron/ai-connection-test.ts`，将 OpenAI 兼容与 Anthropic 的极简连接测试从 `AiService` 中移出；新增 `electron/__tests__/ai-connection-test.spec.ts` 覆盖无 API Key、OpenAI URL 兼容、Anthropic 请求和失败响应体透出。
 - 验证：`npx vitest run electron/__tests__/ai-connection-test.spec.ts electron/__tests__/ai-service.spec.ts electron/__tests__/ai-model-list.spec.ts electron/__tests__/ai-message-content.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
+- 按用户确认提交并推送连接测试拆分：提交 `1545cf7 Refactor AI connection test helper`，已推送到 `origin/master`。
+- 重新执行 `npm run pack` 成功，release 目录安装包和便携版已更新。
+- 继续小步优化：`electron/ai-service.ts` 中三个生成入口的 API Key 校验已收敛为统一的 `assertProviderApiKey`，错误提示保持不变。
+- 验证：`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-connection-test.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过。
+- 用户提供 `https://100t.xiaomimimo.com/` 作为视觉参考，已用 Playwright 查看页面并截图分析。该页面核心设计语言为黑色背景、低对比代码纹理、超大标题、指标卡、细边框面板和开发者/AI 工具氛围。
+- 已将 `src/views/Welcome.vue` 改造成暗黑科技感欢迎页：新增顶部状态栏、代码纹理背景、超大 Hero 标题、三项指标卡、能力说明列表和控制台式初始化向导面板；保留原有初始化步骤、目录选择、AI Key 测试和完成逻辑。
+- 已补充 `src/i18n/zh.ts` 和 `src/i18n/en.ts` 的欢迎页新增文案。
+- 验证：`npx vue-tsc --noEmit --skipLibCheck` 通过；`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-connection-test.spec.ts electron/__tests__/ai-response-errors.spec.ts` 通过；已用 Playwright 打开 `http://127.0.0.1:5173/#/welcome` 并截图确认页面可正常展示。控制台仅有现存 `favicon.ico` 404。
+- 已继续把仪表盘首页改造成同一套暗黑科技风：新增 AI 生成驾驶舱 Hero、低对比代码滚动纹理、扫描光层、脉冲状态点、光晕背景和细边框指标卡，强化用户要求的动态科技感。
+- 已补充 `src/i18n/zh.ts` 和 `src/i18n/en.ts` 的仪表盘新增文案。
+- 验证：`npx vue-tsc --noEmit --skipLibCheck`、`npx vitest run electron/__tests__/ai-service.spec.ts electron/__tests__/ai-connection-test.spec.ts electron/__tests__/ai-response-errors.spec.ts`、`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json` 均已通过；已用 Playwright 打开 `http://127.0.0.1:5173/#/` 并截图确认仪表盘可正常展示，浏览器控制台未发现新增 warning/error。
+- 已继续统一四个生成页面的科技风外观：通过 `src/styles/generator.less` 给 PRD、需求文档、UI 设计、详细设计页面统一增加暗黑控制台背景、动态代码轨道、扫描光层、网格漂移、面板流光、发光拖拽区和深色预览容器。
+- 预览时发现浅色主题下生成页面表单标签在暗黑面板里可读性不足，已补充生成页专用文字颜色覆盖，确保标签、提示、历史、缓存信息在新背景下可读。
+- 验证：`npx vue-tsc --noEmit --skipLibCheck` 通过；已用 Playwright 分别打开 `http://127.0.0.1:5173/#/gen/prd` 和 `http://127.0.0.1:5173/#/gen/ui`，截图确认页面正常，浏览器控制台未发现新增 warning/error。

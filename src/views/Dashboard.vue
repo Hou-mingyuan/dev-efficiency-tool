@@ -98,6 +98,15 @@ const animatedTotal = useCountUp(() => totalGenerated.value);
 const animatedStats = Object.fromEntries(
   docTypes.map((dt) => [dt.key, useCountUp(() => statsByType.value[dt.key]?.length ?? 0)])
 ) as Record<string, ReturnType<typeof useCountUp>>;
+const enabledProviderCount = computed(() => (appStore.config.aiProviders ?? []).filter((p) => p.enabled).length);
+const activeProjectLabel = computed(() => activeProject.value?.name || t("project.selectProject"));
+const latestRecordLabel = computed(() => recentHistory.value[0]?.projectName || recentHistory.value[0]?.docType || "—");
+const cockpitMetrics = computed(() => [
+  { label: t("dash.totalGenerated"), value: animatedTotal.value, sub: t("dash.totalDesc") },
+  { label: t("dash.activeProject"), value: activeProjectLabel.value, sub: t("dash.projectContext") },
+  { label: t("dash.enabledModels"), value: enabledProviderCount.value, sub: t("dash.modelRouting") },
+  { label: t("dash.latestOutput"), value: latestRecordLabel.value, sub: t("dash.recentHistory") },
+]);
 
 async function loadHistory() {
   historyLoading.value = true;
@@ -246,6 +255,32 @@ onMounted(() => {
 
 <template>
   <div class="page-dashboard">
+    <section class="dash-hero">
+      <div class="dash-hero__code" aria-hidden="true">
+        AI_GENERATION_PIPELINE / PROJECT_CONTEXT / REQUEST_ID_ISOLATION / PACK_READY
+      </div>
+      <div class="dash-hero__scan" aria-hidden="true" />
+      <div class="dash-hero__content">
+        <div class="dash-hero__kicker">
+          <span class="dash-hero__pulse" />
+          {{ t("dash.cockpitKicker") }}
+        </div>
+        <h1>{{ t("dash.cockpitTitle") }}</h1>
+        <p>{{ t("dash.cockpitDesc") }}</p>
+      </div>
+      <div class="dash-cockpit-grid">
+        <div
+          v-for="metric in cockpitMetrics"
+          :key="metric.label"
+          class="dash-cockpit-card"
+        >
+          <span>{{ metric.label }}</span>
+          <strong>{{ metric.value }}</strong>
+          <small>{{ metric.sub }}</small>
+        </div>
+      </div>
+    </section>
+
     <!-- Project Selector -->
     <div class="dash-project-bar">
       <div class="dash-project-bar__left">
@@ -469,14 +504,210 @@ onMounted(() => {
 
 <style lang="less" scoped>
 .page-dashboard {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0 4px 24px;
+  padding: 0 4px 28px;
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.dash-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  padding: clamp(24px, 4vw, 42px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at 78% 12%, rgba(216, 255, 122, 0.18), transparent 18%),
+    radial-gradient(circle at 16% 8%, rgba(59, 130, 246, 0.22), transparent 30%),
+    linear-gradient(135deg, #05070b 0%, #080d14 48%, #020304 100%);
+  color: #f8fafc;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+  }
+
+  &::before {
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.95), transparent 78%);
+    animation: dashGridDrift 18s linear infinite;
+  }
+
+  &::after {
+    width: 260px;
+    height: 260px;
+    right: 9%;
+    top: -40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 44%, transparent 70%);
+    filter: blur(1px);
+    opacity: 0.7;
+    animation: dashMoonFloat 8s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes dashGridDrift {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 88px 44px, 88px 44px; }
+}
+
+@keyframes dashMoonFloat {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(18px, 12px, 0) scale(1.04); }
+}
+
+.dash-hero__code {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  top: 18px;
+  color: rgba(255, 255, 255, 0.09);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: clamp(14px, 1.6vw, 22px);
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  animation: dashCodeMarquee 15s linear infinite alternate;
+}
+
+@keyframes dashCodeMarquee {
+  from { transform: translateX(-3%); }
+  to { transform: translateX(9%); }
+}
+
+.dash-hero__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, rgba(216, 255, 122, 0.1) 48%, transparent 52%);
+  opacity: 0.65;
+  transform: translateY(-100%);
+  animation: dashScan 5.5s ease-in-out infinite;
+}
+
+@keyframes dashScan {
+  0%, 30% { transform: translateY(-100%); }
+  55%, 100% { transform: translateY(100%); }
+}
+
+.dash-hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+
+  h1 {
+    margin: 0 0 14px;
+    color: #fff;
+    font-family: "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+    font-size: clamp(38px, 5.8vw, 78px);
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+  }
+
+  p {
+    max-width: 560px;
+    margin: 0;
+    color: rgba(226, 232, 240, 0.66);
+    line-height: 1.7;
+  }
+}
+
+.dash-hero__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  color: rgba(216, 255, 122, 0.9);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.dash-hero__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d8ff7a;
+  box-shadow: 0 0 24px rgba(216, 255, 122, 0.86);
+  animation: dashPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes dashPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.8); opacity: 0.45; }
+}
+
+.dash-cockpit-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 38px;
+}
+
+.dash-cockpit-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 112px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.045);
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(216, 255, 122, 0.18), transparent);
+    transform: translateX(-120%);
+    transition: transform 0.6s ease;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(216, 255, 122, 0.48);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  &:hover::before {
+    transform: translateX(120%);
+  }
+
+  span,
+  small {
+    display: block;
+    color: rgba(226, 232, 240, 0.58);
+    font-size: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  strong {
+    display: block;
+    margin: 10px 0 8px;
+    color: #fff;
+    font-family: "DIN Alternate", "Bahnschrift", sans-serif;
+    font-size: clamp(24px, 3vw, 42px);
+    line-height: 1.05;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .dash-project-bar {
@@ -485,10 +716,10 @@ onMounted(() => {
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: rgba(7, 10, 14, 0.82);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   flex-wrap: wrap;
 
   &__left {
@@ -526,10 +757,10 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(9, 13, 20, 0.92), rgba(5, 7, 10, 0.88));
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   cursor: pointer;
   transition: all var(--app-transition);
 
@@ -592,8 +823,11 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 24px 28px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-primary-gradient);
+  border-radius: 0;
+  background:
+    linear-gradient(135deg, rgba(216, 255, 122, 0.22), rgba(59, 130, 246, 0.22)),
+    #05070b;
+  border: 1px solid rgba(216, 255, 122, 0.24);
   position: relative;
   overflow: hidden;
 
@@ -671,10 +905,10 @@ onMounted(() => {
 }
 
 .dash-recent {
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: rgba(7, 10, 14, 0.86);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
 
   &__header {
@@ -768,10 +1002,10 @@ onMounted(() => {
   justify-content: center;
   gap: 10px;
   padding: 28px 16px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(9, 13, 20, 0.9), rgba(5, 7, 10, 0.86));
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   cursor: pointer;
   transition: all var(--app-transition);
   text-align: center;
@@ -807,6 +1041,22 @@ onMounted(() => {
   &__hint {
     font-size: 11px;
     color: var(--app-text-quaternary);
+  }
+}
+
+@media (max-width: 980px) {
+  .dash-cockpit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-hero {
+    padding: 24px;
+  }
+
+  .dash-cockpit-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
