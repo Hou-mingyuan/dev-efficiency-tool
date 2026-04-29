@@ -446,11 +446,20 @@ onMounted(async () => {
   min-height: 100vh;
   padding: 28px clamp(18px, 4vw, 56px) 48px;
   box-sizing: border-box;
-  color: #f6f8ff;
+  color: rgba(248, 250, 252, 0.94);
+  --app-primary: #60a5fa;
+  --app-primary-gradient: linear-gradient(135deg, #60a5fa 0%, #8b5cf6 100%);
+  --app-text: rgba(248, 250, 252, 0.94);
+  --app-text-secondary: rgba(203, 213, 225, 0.84);
+  --app-text-tertiary: rgba(148, 163, 184, 0.78);
+  --app-text-quaternary: rgba(100, 116, 139, 0.66);
+  --app-font-display: "DIN Alternate", "Bahnschrift", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  --app-font-mono: "JetBrains Mono", "Cascadia Code", Consolas, "SFMono-Regular", monospace;
   background:
-    radial-gradient(circle at 74% 8%, rgba(255, 255, 255, 0.22) 0 7%, transparent 7.3%),
-    radial-gradient(circle at 20% 18%, rgba(63, 131, 248, 0.18), transparent 34%),
-    linear-gradient(180deg, #030407 0%, #05070a 42%, #000 100%);
+    radial-gradient(circle at 76% 10%, rgba(216, 255, 122, 0.14), transparent 22%),
+    radial-gradient(circle at 18% 16%, rgba(96, 165, 250, 0.2), transparent 32%),
+    radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.08), transparent 38%),
+    linear-gradient(135deg, #05070b 0%, #09111d 44%, #020407 100%);
   position: relative;
   overflow: hidden;
 
@@ -460,9 +469,9 @@ onMounted(async () => {
     inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-    background-size: 52px 52px;
+      linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+    background-size: 36px 36px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 82%);
   }
 }
@@ -486,8 +495,8 @@ onMounted(async () => {
   display: grid;
   gap: 8px;
   padding: 0 8px;
-  color: rgba(255, 255, 255, 0.07);
-  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  color: rgba(226, 232, 240, 0.06);
+  font-family: var(--app-font-mono);
   font-size: clamp(13px, 1.6vw, 24px);
   line-height: 1.1;
   letter-spacing: 0.08em;
@@ -501,7 +510,7 @@ onMounted(async () => {
 
   span:nth-child(2n) {
     animation-direction: reverse;
-    color: rgba(148, 163, 184, 0.08);
+    color: rgba(148, 163, 184, 0.09);
   }
 }
 
@@ -519,8 +528,10 @@ onMounted(async () => {
   gap: 16px;
   max-width: 1320px;
   margin: 0 auto 64px;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(203, 213, 225, 0.82);
   font-size: 13px;
+  font-family: var(--app-font-mono);
+  font-weight: 800;
   letter-spacing: 0.08em;
 }
 
@@ -536,16 +547,17 @@ onMounted(async () => {
   height: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  border: 0;
   color: #fff;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--app-primary-gradient);
+  box-shadow: 0 6px 24px rgba(96, 165, 250, 0.26);
 }
 
 .welcome-status {
   padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  background: rgba(4, 8, 14, 0.28);
 }
 
 .welcome-shell {
@@ -568,9 +580,10 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   margin-bottom: 24px;
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(216, 255, 122, 0.9);
   font-size: 12px;
-  font-weight: 700;
+  font-family: var(--app-font-mono);
+  font-weight: 800;
   letter-spacing: 0.28em;
   text-transform: uppercase;
 }
@@ -592,21 +605,22 @@ onMounted(async () => {
 .welcome-card {
   width: 100%;
   border-radius: 0 !important;
-  background: rgba(7, 10, 14, 0.82) !important;
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  background: rgba(4, 8, 14, 0.32) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0 !important;
+  box-shadow: none !important;
   position: relative;
   animation: welcomeCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 
   &::before {
     content: "";
     position: absolute;
-    inset: -1px;
+    inset: auto 0 0;
     pointer-events: none;
-    border-top: 1px solid rgba(216, 255, 122, 0.7);
-    opacity: 0.55;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(216, 255, 122, 0.34), transparent);
+    opacity: 0.72;
   }
 
   :deep(.ant-card-body) {
@@ -616,28 +630,43 @@ onMounted(async () => {
   :deep(.ant-steps-item-title),
   :deep(.ant-steps-item-description),
   :deep(.ant-form-item-label > label) {
-    color: rgba(255, 255, 255, 0.74) !important;
+    color: rgba(203, 213, 225, 0.84) !important;
+    font-weight: 700;
+  }
+
+  :deep(.ant-steps-item-icon) {
+    background: rgba(12, 19, 31, 0.72) !important;
+    border-color: transparent !important;
+  }
+
+  :deep(.ant-steps-item-process .ant-steps-item-icon) {
+    background: var(--app-primary-gradient) !important;
   }
 
   :deep(.ant-input),
   :deep(.ant-input-password),
   :deep(.ant-select-selector) {
-    color: #fff !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: rgba(248, 250, 252, 0.94) !important;
+    background: rgba(12, 19, 31, 0.72) !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  :deep(.ant-input::placeholder) {
+    color: rgba(148, 163, 184, 0.74) !important;
   }
 
   :deep(.ant-btn:not(.ant-btn-primary)) {
-    color: rgba(255, 255, 255, 0.82);
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(248, 250, 252, 0.9);
+    background: rgba(12, 19, 31, 0.72);
+    border-color: transparent;
   }
 
   :deep(.ant-btn-primary) {
-    color: #05070a;
-    background: #d8ff7a;
-    border-color: #d8ff7a;
-    box-shadow: 0 0 28px rgba(216, 255, 122, 0.22);
+    color: #fff;
+    background: var(--app-primary-gradient);
+    border-color: transparent;
+    box-shadow: 0 0 28px rgba(96, 165, 250, 0.22);
   }
 }
 
@@ -662,7 +691,9 @@ onMounted(async () => {
 
   h2 {
     margin: 6px 0 0;
-    color: #fff;
+    color: rgba(248, 250, 252, 0.94);
+    font-family: var(--app-font-display);
+    font-weight: 950;
     font-size: 22px;
     line-height: 1.2;
   }
@@ -671,7 +702,7 @@ onMounted(async () => {
 .wizard-label,
 .wizard-count {
   color: rgba(216, 255, 122, 0.88);
-  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--app-font-mono);
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -709,10 +740,10 @@ onMounted(async () => {
 .welcome-title {
   max-width: 760px;
   margin: 0 0 20px;
-  color: #f8fafc;
-  font-family: "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+  color: rgba(248, 250, 252, 0.96);
+  font-family: var(--app-font-display);
   font-size: clamp(52px, 8vw, 108px);
-  font-weight: 800;
+  font-weight: 950;
   line-height: 0.98;
   letter-spacing: -0.07em;
   text-wrap: balance;
@@ -720,7 +751,8 @@ onMounted(async () => {
 
 .step-title {
   margin: 0 0 12px;
-  color: #fff;
+  color: rgba(248, 250, 252, 0.94);
+  font-family: var(--app-font-display);
   font-size: 28px;
   font-weight: 800;
   line-height: 1.2;
@@ -729,8 +761,9 @@ onMounted(async () => {
 .welcome-sub {
   margin: 0;
   max-width: 640px;
-  color: rgba(226, 232, 240, 0.68);
+  color: rgba(203, 213, 225, 0.82);
   font-size: 16px;
+  font-weight: 600;
   line-height: 1.7;
 }
 
@@ -745,20 +778,20 @@ onMounted(async () => {
 .metric-card {
   min-height: 96px;
   padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+  border: 0;
+  background: rgba(4, 8, 14, 0.32);
 
   strong {
     display: block;
     margin-bottom: 8px;
     color: #fff;
-    font-family: "DIN Alternate", "Bahnschrift", sans-serif;
+    font-family: var(--app-font-display);
     font-size: clamp(30px, 4vw, 52px);
     line-height: 1;
   }
 
   span {
-    color: rgba(226, 232, 240, 0.64);
+    color: rgba(203, 213, 225, 0.78);
     font-size: 12px;
     letter-spacing: 0.08em;
   }
@@ -775,29 +808,32 @@ onMounted(async () => {
   grid-template-columns: 46px 1fr;
   gap: 16px;
   padding: 16px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 0;
+  background: rgba(4, 8, 14, 0.18);
+  padding-inline: 14px;
 
   > span {
     color: #d8ff7a;
-    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    font-family: var(--app-font-mono);
     font-weight: 700;
   }
 
   h3 {
     margin: 0 0 6px;
-    color: #fff;
+    color: rgba(248, 250, 252, 0.92);
     font-size: 15px;
   }
 
   p {
     margin: 0;
-    color: rgba(226, 232, 240, 0.58);
+    color: rgba(203, 213, 225, 0.76);
     line-height: 1.65;
   }
 }
 
 .step-heading {
-  color: #fff;
+  color: rgba(248, 250, 252, 0.94);
+  font-family: var(--app-font-display);
   font-size: 1.1rem;
   margin: 0 0 18px;
   text-align: left;
@@ -833,7 +869,7 @@ onMounted(async () => {
   justify-content: flex-start;
   gap: 8px;
   margin-top: 16px;
-  color: rgba(226, 232, 240, 0.7);
+  color: rgba(203, 213, 225, 0.82);
   font-size: 14px;
 }
 
