@@ -112,6 +112,16 @@ function addMissingMatrixSourceIds(missing: string[], label: string, sourceConte
   }
 }
 
+function addMissingMatrixLocalIds(missing: string[], label: string, outputContent: string, localPattern: RegExp, matrixHeading: RegExp): void {
+  const localIds = extractIds(outputContent, localPattern);
+  if (!localIds.length) return;
+  const matrix = findSection(outputContent, matrixHeading);
+  const missed = localIds.filter((id) => !matrix.includes(id));
+  if (missed.length) {
+    missing.push(`${label}未进入追踪矩阵：${missed.slice(0, 12).join("、")}${missed.length > 12 ? "…" : ""}`);
+  }
+}
+
 function hasAny(content: string, patterns: Array<string | RegExp>): boolean {
   return patterns.some((pattern) => typeof pattern === "string" ? content.includes(pattern) : pattern.test(content));
 }
@@ -180,6 +190,9 @@ export function validateRequirementsFormat(content: string, sourceContent?: stri
   if (!hasAny(content, ["TBD", "待确认"])) missing.push("TBD/待确认事项");
   addMissingSourceIds(missing, "PRD 编号", sourceContent, content, /\bPRD-F-\d{3,}\b/g);
   addMissingMatrixSourceIds(missing, "PRD 编号", sourceContent, content, /\bPRD-F-\d{3,}\b/g, /需求追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "REQ 编号", content, /\bREQ-\d{3,}\b/g, /需求追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "用户故事编号", content, /\bUS-\d{3,}\b/g, /需求追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "验收条件编号", content, /\bAC-\d{3,}\b/g, /需求追踪矩阵|追踪矩阵/);
 
   return { valid: missing.length === 0, missing };
 }
@@ -201,6 +214,10 @@ export function validateUiDesignFormat(content: string, sourceContent?: string):
   if (!hasAny(content, ["交互说明"])) missing.push("交互说明");
   addMissingSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g);
   addMissingMatrixSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g, /UI 需求追踪矩阵|需求追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "页面编号", content, /\bUI-P\d{2,}\b/g, /UI 需求追踪矩阵|需求追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "状态编号", content, /\bUI-S\d{2,}\b/g, /UI 需求追踪矩阵|需求追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "组件编号", content, /\bUI-C\d{2,}\b/g, /UI 需求追踪矩阵|需求追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "交互编号", content, /\bUI-I\d{2,}\b/g, /UI 需求追踪矩阵|需求追踪矩阵/);
 
   return { valid: missing.length === 0, missing };
 }
@@ -225,6 +242,10 @@ export function validateDesignFormat(content: string, sourceContent?: string): D
   addMissingSourceIds(missing, "UI 编号", sourceContent, content, /\bUI-P\d{2,}\b/g);
   addMissingMatrixSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g, /设计追踪矩阵|追踪矩阵/);
   addMissingMatrixSourceIds(missing, "UI 编号", sourceContent, content, /\bUI-P\d{2,}\b/g, /设计追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "API 编号", content, /\bAPI-\d{3,}\b/g, /设计追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "数据库编号", content, /\bDB-\d{3,}\b/g, /设计追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "测试编号", content, /\bTEST-\d{3,}\b/g, /设计追踪矩阵|追踪矩阵/);
+  addMissingMatrixLocalIds(missing, "开发任务编号", content, /\bTASK-\d{3,}\b/g, /设计追踪矩阵|追踪矩阵/);
 
   return { valid: missing.length === 0, missing };
 }

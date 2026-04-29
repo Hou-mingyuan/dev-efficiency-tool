@@ -192,6 +192,8 @@ TBD/待确认事项：审批规则待确认。
 | REQ 编号 | 页面编号 | 状态编号 | 组件编号 | 交互编号 | 验收关注点 |
 |---|---|---|---|---|---|
 | REQ-001 | UI-P01 | UI-S01 | UI-C01 | UI-I01 | 空态、加载态、错误态可见 |
+| REQ-001 | UI-P01 | UI-S02 | UI-C01 | UI-I01 | 加载态可见 |
+| REQ-001 | UI-P01 | UI-S03 | UI-C01 | UI-I01 | 错误态可见 |
 
 ## 页面清单
 UI-P01 订单列表页。
@@ -347,6 +349,77 @@ TASK-001 实现接口。
     expect(design.missing.join("、")).toContain("UI 编号未进入追踪矩阵");
     expect(design.missing.join("、")).toContain("REQ-002");
     expect(design.missing.join("、")).toContain("UI-P02");
+  });
+
+  it("requires local generated ids to appear in trace matrices", () => {
+    const requirements = validateGeneratedDocumentFormat("requirements", `
+## 需求追踪矩阵
+| PRD 编号/来源 | REQ 编号 | 用户故事编号 | 验收条件编号 | 状态 |
+|---|---|---|---|---|
+| PRD-F-001 | REQ-001 | US-001 | AC-001 | 已覆盖 |
+
+## REQ-002 漏入矩阵的需求
+US-002 用户故事和 AC-002 验收条件没有进入矩阵。
+In Scope：本期支持创建订单。
+Out of Scope：暂不支持批量导入。
+TBD/待确认事项：审批规则待确认。
+正常流程：用户提交订单。
+异常流程：库存不足时提示失败。
+边界行为：重复提交时保持幂等。
+`);
+
+    expect(requirements.valid).toBe(false);
+    expect(requirements.missing.join("、")).toContain("REQ 编号未进入追踪矩阵");
+    expect(requirements.missing.join("、")).toContain("用户故事编号未进入追踪矩阵");
+    expect(requirements.missing.join("、")).toContain("验收条件编号未进入追踪矩阵");
+
+    const ui = validateGeneratedDocumentFormat("ui", `
+## UI 需求追踪矩阵
+| REQ 编号 | 页面编号 | 状态编号 | 组件编号 | 交互编号 | 验收关注点 |
+|---|---|---|---|---|---|
+| REQ-001 | UI-P01 | UI-S01 | UI-C01 | UI-I01 | 空态、加载态、错误态可见 |
+
+## 页面清单
+UI-P02 详情页没有进入矩阵。
+UI-S02 加载态；UI-C02 保存按钮；UI-I02 点击保存。
+组件列表：UI-C01 筛选表单。
+交互说明：UI-I01 点击查询。
+空态、加载态、错误态都需覆盖。
+`);
+
+    expect(ui.valid).toBe(false);
+    expect(ui.missing.join("、")).toContain("页面编号未进入追踪矩阵");
+    expect(ui.missing.join("、")).toContain("状态编号未进入追踪矩阵");
+    expect(ui.missing.join("、")).toContain("组件编号未进入追踪矩阵");
+    expect(ui.missing.join("、")).toContain("交互编号未进入追踪矩阵");
+
+    const design = validateGeneratedDocumentFormat("design", `
+## 设计追踪矩阵
+| REQ 编号 | UI 编号 | API 编号 | DB 编号 | TEST 编号 | 开发任务编号 |
+|---|---|---|---|---|---|
+| REQ-001 | UI-P01 | API-001 | DB-001 | TEST-001 | TASK-001 |
+
+## API 接口设计
+API-002 更新订单没有进入矩阵。
+## 数据库设计
+DB-002 order_log 表结构没有进入矩阵。
+## 业务逻辑
+覆盖正常与异常分支。
+## 异常处理
+参数错误返回错误码。
+## 权限设计
+需要订单创建权限。
+## 测试方案
+TEST-002 覆盖更新订单但没有进入矩阵。
+## 开发任务拆分
+TASK-002 实现更新接口但没有进入矩阵。
+`);
+
+    expect(design.valid).toBe(false);
+    expect(design.missing.join("、")).toContain("API 编号未进入追踪矩阵");
+    expect(design.missing.join("、")).toContain("数据库编号未进入追踪矩阵");
+    expect(design.missing.join("、")).toContain("测试编号未进入追踪矩阵");
+    expect(design.missing.join("、")).toContain("开发任务编号未进入追踪矩阵");
   });
 
   it("builds generic document repair prompts", () => {
