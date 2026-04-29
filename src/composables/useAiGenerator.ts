@@ -199,6 +199,7 @@ export function useAiGenerator(docType: DocType) {
   let cleanupDone: (() => void) | null = null;
   let cleanupValidation: (() => void) | null = null;
   let activeRequestId: string | null = null;
+  let activePreviewSessionId: string | null = null;
   let renderRafId: number | null = null;
   let pendingRender = false;
 
@@ -229,6 +230,7 @@ export function useAiGenerator(docType: DocType) {
     cleanupChunk = api.ai.onChunk((event: AiChunkEvent) => {
       const requestId = typeof event === "string" ? undefined : event.requestId;
       if (!activeRequestId || requestId !== activeRequestId) return;
+      if (activePreviewSessionId !== activeRequestId) return;
       const chunk = typeof event === "string" ? event : event.chunk;
       result.value += chunk;
       throttledRender();
@@ -236,6 +238,7 @@ export function useAiGenerator(docType: DocType) {
     cleanupDone = api.ai.onDone((event: AiDoneEvent, legacyRecordId?: string) => {
       const requestId = typeof event === "string" ? undefined : event.requestId;
       if (!activeRequestId || requestId !== activeRequestId) return;
+      if (activePreviewSessionId !== activeRequestId) return;
       const fullContent = typeof event === "string" ? event : event.content;
       const recordId = typeof event === "string" ? String(legacyRecordId || "") : event.recordId;
       result.value = fullContent;
@@ -247,10 +250,12 @@ export function useAiGenerator(docType: DocType) {
       lastRecordId.value = recordId;
       generating.value = false;
       activeRequestId = null;
+      activePreviewSessionId = null;
       clearDraft();
     });
     cleanupValidation = api.ai.onValidation((event: AiValidationEvent) => {
       if (!activeRequestId || event.requestId !== activeRequestId) return;
+      if (activePreviewSessionId !== activeRequestId) return;
       validationLogs.value = [
         ...validationLogs.value,
         {
@@ -270,6 +275,19 @@ export function useAiGenerator(docType: DocType) {
     cleanupChunk = null;
     cleanupDone = null;
     cleanupValidation = null;
+  }
+
+  function resetPreviewForNewRequest(requestId: string): void {
+    activePreviewSessionId = requestId;
+    result.value = "";
+    renderedHtml.value = "";
+    lastRecordId.value = "";
+    validationLogs.value = [];
+    if (renderRafId !== null) {
+      cancelAnimationFrame(renderRafId);
+      renderRafId = null;
+    }
+    pendingRender = false;
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -362,7 +380,7 @@ export function useAiGenerator(docType: DocType) {
   });
   onDeactivated(() => {
     window.removeEventListener("keydown", onKeydown);
-    teardownListeners();
+    if (!generating.value) teardownListeners();
     saveDraft();
   });
   onUnmounted(() => {
@@ -439,6 +457,7 @@ export function useAiGenerator(docType: DocType) {
     }
     generating.value = false;
     activeRequestId = null;
+    activePreviewSessionId = null;
   }
 
   async function generate() {
@@ -458,9 +477,7 @@ export function useAiGenerator(docType: DocType) {
     }
     generating.value = true;
     activeRequestId = createGenerationRequestId(docType);
-    result.value = "";
-    renderedHtml.value = "";
-    validationLogs.value = [];
+    resetPreviewForNewRequest(activeRequestId);
     teardownListeners();
     setupListeners();
     try {
@@ -488,11 +505,13 @@ export function useAiGenerator(docType: DocType) {
       if (isIpcError(res)) {
         generating.value = false;
         activeRequestId = null;
+        activePreviewSessionId = null;
         message.error((res as IpcErrorResult).message);
       }
     } catch (err: unknown) {
       generating.value = false;
       activeRequestId = null;
+      activePreviewSessionId = null;
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: string }).message)

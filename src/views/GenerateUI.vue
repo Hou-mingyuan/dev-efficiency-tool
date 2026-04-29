@@ -457,6 +457,7 @@ const imgDragOver = ref(false);
 const generatedImagePaths = ref<string[]>([]);
 const generatedPages = ref<GeneratedUIPage[]>([]);
 const activeImageRequestId = ref<string | null>(null);
+const activeUiAuxRequestId = ref<string | null>(null);
 const REF_IMAGE_MAX_EDGE = 1600;
 const REF_IMAGE_COMPRESS_MIN_BYTES = 900 * 1024;
 const REF_IMAGE_JPEG_QUALITY = 0.82;
@@ -595,6 +596,7 @@ async function stopImageGenerate() {
   imageGenerating.value = false;
   figmaGenerating.value = false;
   activeImageRequestId.value = null;
+  activeUiAuxRequestId.value = null;
 }
 
 async function analyzeUIPrompt() {
@@ -608,6 +610,8 @@ async function analyzeUIPrompt() {
   }
 
   teardownListeners();
+  const analyzeRequestId = createUIRequestId("ui-analyze");
+  activeUiAuxRequestId.value = analyzeRequestId;
   uiPromptAnalyzing.value = true;
   uiAnalyzeStatus.value = t("gen.ui.analyzingPrompt");
   uiAnalyzedPrompt.value = "";
@@ -633,6 +637,7 @@ async function analyzeUIPrompt() {
       isModuleScope: scopeLevel.value === "module",
     });
 
+    if (activeUiAuxRequestId.value !== analyzeRequestId) return;
     if (isIpcErr(res)) {
       message.error(res.message);
       return;
@@ -646,10 +651,13 @@ async function analyzeUIPrompt() {
   } catch (err: unknown) {
     const msg = err && typeof err === "object" && "message" in err
       ? String((err as { message: string }).message) : String(err);
-    message.error(msg);
+    if (activeUiAuxRequestId.value === analyzeRequestId) message.error(msg);
   } finally {
-    uiPromptAnalyzing.value = false;
-    uiAnalyzeStatus.value = "";
+    if (activeUiAuxRequestId.value === analyzeRequestId) {
+      activeUiAuxRequestId.value = null;
+      uiPromptAnalyzing.value = false;
+      uiAnalyzeStatus.value = "";
+    }
     setupListeners();
   }
 }
@@ -725,6 +733,7 @@ async function generateUIImage() {
       isModuleScope: scopeLevel.value === "module",
     });
 
+    if (activeImageRequestId.value !== requestId) return;
     if (isIpcErr(res)) {
       handleOutputPathError(res.message);
       message.error((res as IpcErrorResult).message);
@@ -741,13 +750,15 @@ async function generateUIImage() {
   } catch (err: unknown) {
     const msg = err && typeof err === "object" && "message" in err
       ? String((err as { message: string }).message) : String(err);
-    message.error(msg);
+    if (activeImageRequestId.value === requestId) message.error(msg);
   } finally {
     cleanupProgress();
     cleanupPageReady();
-    imageGenerating.value = false;
-    if (activeImageRequestId.value === requestId) activeImageRequestId.value = null;
-    imageProgress.value = null;
+    if (activeImageRequestId.value === requestId) {
+      imageGenerating.value = false;
+      activeImageRequestId.value = null;
+      imageProgress.value = null;
+    }
     setupListeners();
   }
 }
@@ -771,6 +782,8 @@ async function generateFigmaFile() {
   }
 
   teardownListeners();
+  const figmaRequestId = createUIRequestId("ui-figma");
+  activeUiAuxRequestId.value = figmaRequestId;
   figmaGenerating.value = true;
   imageProgress.value = { stage: "figma", current: 0, total: 0, message: t("gen.ui.generateFigmaFromPrompt") };
   result.value = "";
@@ -798,6 +811,7 @@ async function generateFigmaFile() {
       referenceContent: refContent || undefined,
       projectPath: referenceProjectPath.value || appStore.config.projectPath || undefined,
     });
+    if (activeUiAuxRequestId.value !== figmaRequestId) return;
     if (isIpcErr(res)) {
       handleOutputPathError(res.message);
       message.error(res.message);
@@ -819,10 +833,13 @@ async function generateFigmaFile() {
   } catch (err: unknown) {
     const msg = err && typeof err === "object" && "message" in err
       ? String((err as { message: string }).message) : String(err);
-    message.error(msg);
+    if (activeUiAuxRequestId.value === figmaRequestId) message.error(msg);
   } finally {
-    figmaGenerating.value = false;
-    imageProgress.value = null;
+    if (activeUiAuxRequestId.value === figmaRequestId) {
+      activeUiAuxRequestId.value = null;
+      figmaGenerating.value = false;
+      imageProgress.value = null;
+    }
     setupListeners();
   }
 }
