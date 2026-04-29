@@ -20,7 +20,7 @@ import {
 import { theme } from "ant-design-vue";
 import enUS from "ant-design-vue/es/locale/en_US";
 import zhCN from "ant-design-vue/es/locale/zh_CN";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import NotificationCenter from "@/components/NotificationCenter.vue";
@@ -57,13 +57,120 @@ const codeWallSeeds = [
   "J5J4SPD{Q/P,M&>[#4*&NO{2JM82I$Y=*YHGT-UN(J><GJ35S)6F+AQQEI4M3",
   "5FZAP8&5VHI3?M@&I4M3SFZAP8&5VHI3?M@&I4M3SFZAP8&5VHI3?M@&I4M3",
 ];
-const codeWallRows = Array.from({ length: 44 }, (_, index) => {
-  const left = codeWallSeeds[index % codeWallSeeds.length];
-  const right = codeWallSeeds[(index * 7 + 3) % codeWallSeeds.length];
-  const third = codeWallSeeds[(index * 11 + 5) % codeWallSeeds.length];
-  const fourth = codeWallSeeds[(index * 13 + 9) % codeWallSeeds.length];
-  return `${left} ${right} ${third} ${fourth} ${left}`;
+const codeMatrixChars = codeWallSeeds.join("");
+const codeMatrixCanvas = ref<HTMLCanvasElement | null>(null);
+
+type MatrixCell = {
+  char: string;
+  alpha: number;
+  targetAlpha: number;
+  nextAt: number;
+  tint: number;
+};
+
+let codeMatrixFrame = 0;
+let codeMatrixLastFrame = 0;
+let codeMatrixCells: MatrixCell[] = [];
+let codeMatrixCols = 0;
+let codeMatrixRows = 0;
+let codeMatrixDpr = 1;
+const codeMatrixCellWidth = 10;
+const codeMatrixCellHeight = 16;
+
+const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatrixChars.length)] ?? "0";
+
+const createMatrixCell = (now: number): MatrixCell => ({
+  char: randomCodeChar(),
+  alpha: 0.03 + Math.random() * 0.08,
+  targetAlpha: 0.04 + Math.random() * 0.12,
+  nextAt: now + Math.random() * 900,
+  tint: Math.random(),
 });
+
+const resizeCodeMatrix = () => {
+  const canvas = codeMatrixCanvas.value;
+  if (!canvas) return;
+
+  const width = Math.max(window.innerWidth, 1);
+  const height = Math.max(window.innerHeight, 1);
+  codeMatrixDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  canvas.width = Math.floor(width * codeMatrixDpr);
+  canvas.height = Math.floor(height * codeMatrixDpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  codeMatrixCols = Math.ceil(width / codeMatrixCellWidth) + 12;
+  codeMatrixRows = Math.ceil(height / codeMatrixCellHeight) + 6;
+  const now = performance.now();
+  codeMatrixCells = Array.from({ length: codeMatrixCols * codeMatrixRows }, () => createMatrixCell(now));
+};
+
+const drawCodeMatrix = (now: number) => {
+  const canvas = codeMatrixCanvas.value;
+  const ctx = canvas?.getContext("2d");
+  if (!canvas || !ctx) return;
+
+  codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
+  if (now - codeMatrixLastFrame < 45) return;
+  codeMatrixLastFrame = now;
+
+  const width = canvas.width / codeMatrixDpr;
+  const height = canvas.height / codeMatrixDpr;
+  ctx.setTransform(codeMatrixDpr, 0, 0, codeMatrixDpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  ctx.font = "700 13px Consolas, 'SFMono-Regular', 'Courier New', monospace";
+  ctx.textBaseline = "top";
+
+  for (let row = 0; row < codeMatrixRows; row += 1) {
+    const rowOffset = row * codeMatrixCols;
+    const y = row * codeMatrixCellHeight - 18;
+    const staggerX = row % 2 === 0 ? -18 : -6;
+
+    for (let col = 0; col < codeMatrixCols; col += 1) {
+      const cell = codeMatrixCells[rowOffset + col];
+      if (!cell) continue;
+
+      if (now >= cell.nextAt) {
+        cell.char = randomCodeChar();
+        cell.targetAlpha = 0.035 + Math.random() * (Math.random() > 0.86 ? 0.2 : 0.1);
+        cell.nextAt = now + 70 + Math.random() * 720;
+        cell.tint = Math.random();
+      }
+
+      cell.alpha += (cell.targetAlpha - cell.alpha) * 0.18;
+      cell.targetAlpha *= 0.986;
+
+      const x = col * codeMatrixCellWidth + staggerX;
+      const alpha = Math.min(cell.alpha, 0.24);
+      if (alpha < 0.012) continue;
+
+      if (cell.tint > 0.88) {
+        ctx.fillStyle = `rgba(216, 255, 122, ${alpha})`;
+      } else if (cell.tint > 0.72) {
+        ctx.fillStyle = `rgba(96, 165, 250, ${alpha * 0.9})`;
+      } else if (cell.tint > 0.58) {
+        ctx.fillStyle = `rgba(103, 232, 249, ${alpha * 0.78})`;
+      } else {
+        ctx.fillStyle = `rgba(226, 232, 240, ${alpha * 0.72})`;
+      }
+      ctx.fillText(cell.char, x, y);
+    }
+  }
+};
+
+const startCodeMatrix = async () => {
+  await nextTick();
+  if (!isShellRoute.value || !codeMatrixCanvas.value || codeMatrixFrame) return;
+  resizeCodeMatrix();
+  codeMatrixLastFrame = 0;
+  codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
+};
+
+const stopCodeMatrix = () => {
+  if (codeMatrixFrame) {
+    cancelAnimationFrame(codeMatrixFrame);
+    codeMatrixFrame = 0;
+  }
+};
 
 const collapsed = ref(false);
 
@@ -287,6 +394,14 @@ watch(
   { immediate: true },
 );
 
+watch(isShellRoute, (active) => {
+  if (active) {
+    void startCodeMatrix();
+  } else {
+    stopCodeMatrix();
+  }
+});
+
 const onMenuSelect = (info: { key: string | number }) => {
   const key = String(info.key);
   if (key === "ai-workshop") {
@@ -356,7 +471,9 @@ onMounted(() => {
   }
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
+  window.addEventListener("resize", resizeCodeMatrix);
   window.addEventListener("keydown", onKeydown);
+  void startCodeMatrix();
   removeUpdateListener = window.electronAPI?.app.onUpdateAvailable((info) => {
     const version = extractVersion(info);
     notificationStore.addNotification({
@@ -368,6 +485,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  stopCodeMatrix();
+  window.removeEventListener("resize", resizeCodeMatrix);
   window.removeEventListener("resize", checkScreenSize);
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener("online", handleOnline);
@@ -394,14 +513,7 @@ onBeforeUnmount(() => {
         class="app-layout"
         has-sider
       >
-        <div class="app-code-wall" aria-hidden="true">
-          <span
-            v-for="(line, index) in codeWallRows"
-            :key="`${index}-${line}`"
-          >
-            {{ line }}
-          </span>
-        </div>
+        <canvas ref="codeMatrixCanvas" class="app-code-matrix" aria-hidden="true" />
         <a-layout-sider
           v-model:collapsed="collapsed"
           :theme="isDark ? 'dark' : 'light'"
@@ -672,67 +784,17 @@ onBeforeUnmount(() => {
   }
 }
 
-.app-code-wall {
+.app-code-matrix {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 0;
   pointer-events: none;
-  overflow: hidden;
-  contain: layout paint style;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 0;
+  contain: strict;
   mix-blend-mode: screen;
-  opacity: 0.86;
+  opacity: 0.9;
   transform: translateZ(0);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
-}
-
-.app-code-wall span {
-  display: block;
-  flex: 0 0 auto;
-  min-width: 360vw;
-  color: rgba(226, 232, 240, 0.038);
-  font-family: var(--app-font-mono);
-  font-size: clamp(10px, 0.74vw, 14px);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  white-space: nowrap;
-  text-transform: uppercase;
-  text-shadow: 0 0 14px rgba(96, 165, 250, 0.07);
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
-  filter: blur(0.08px);
-  animation: codeWallDrift 118s linear infinite;
-}
-
-.app-code-wall span:nth-child(2n) {
-  color: rgba(147, 197, 253, 0.034);
-  animation-name: codeWallDriftReverse;
-  animation-duration: 134s;
-}
-
-.app-code-wall span:nth-child(3n) {
-  color: rgba(216, 255, 122, 0.032);
-  animation-duration: 126s;
-}
-
-.app-code-wall span:nth-child(4n) {
-  color: rgba(103, 232, 249, 0.03);
-  animation-duration: 146s;
-}
-
-.app-code-wall span:nth-child(5n) {
-  color: rgba(148, 163, 184, 0.04);
-  opacity: 0.86;
-}
-
-.app-code-wall span:nth-child(6n) {
-  animation-name: codeWallDriftReverse;
-  animation-duration: 152s;
 }
 
 .app-layout,
@@ -1179,16 +1241,6 @@ onBeforeUnmount(() => {
   33% { transform: translate(30px, -20px) scale(1.05); }
   66% { transform: translate(-20px, 30px) scale(0.95); }
   100% { transform: translate(10px, -10px) scale(1.02); }
-}
-
-@keyframes codeWallDrift {
-  0% { transform: translate3d(-8vw, 0, 0); }
-  100% { transform: translate3d(-96vw, 0, 0); }
-}
-
-@keyframes codeWallDriftReverse {
-  0% { transform: translate3d(-92vw, 0, 0); }
-  100% { transform: translate3d(-4vw, 0, 0); }
 }
 
 @keyframes shellScan {
