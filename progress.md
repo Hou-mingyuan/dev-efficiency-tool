@@ -71,3 +71,7 @@
 - 继续推进追踪矩阵行级覆盖校验：新增追踪矩阵片段提取，要求继承的 `PRD-F-xxx`、`REQ-xxx`、`UI-Pxx` 不只是出现在正文里，还必须进入对应的需求/UI/设计追踪矩阵。
 - 已提交并推送追踪矩阵行级覆盖校验：提交 `1df54b4 Enforce-trace-matrix-row-coverage` 已推送到 `origin/master`。
 - 继续增强追踪矩阵校验：新增本级编号覆盖检查，要求需求文档自身的 `REQ/US/AC`、UI 文档自身的 `UI-P/UI-S/UI-C/UI-I`、详细设计自身的 `API/DB/TEST/TASK` 都必须进入对应追踪矩阵，避免正文生成了编号但矩阵漏项。
+- 已提交并推送本级编号追踪矩阵覆盖校验：提交 `45e7c44 Enforce-local-trace-matrix-coverage` 已推送到 `origin/master`。
+- 继续优化维护性：新增 `electron/document-traceability.ts`，将 PRD/需求/UI/详设的追踪规则、格式校验器和修正提示词从 `electron/ai-service.ts` 抽离；`ai-service.ts` 保留 re-export，现有测试和调用保持不变。
+- 新增 `electron/__tests__/document-traceability.spec.ts`，给追踪校验独立模块补充单元测试，覆盖 PRD 图文校验、上游编号/矩阵覆盖和携带上游来源内容的修正 prompt。
+- 验证：`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vitest run electron/__tests__/document-traceability.spec.ts electron/__tests__/ai-service.spec.ts`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。
