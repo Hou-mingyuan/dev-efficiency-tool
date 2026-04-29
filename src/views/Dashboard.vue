@@ -504,7 +504,7 @@ onMounted(() => {
 
 <style lang="less" scoped>
 .page-dashboard {
-  max-width: 1240px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 4px 28px;
   position: relative;
@@ -519,13 +519,13 @@ onMounted(() => {
   overflow: hidden;
   min-height: 260px;
   padding: clamp(24px, 4vw, 42px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 0;
   background:
-    radial-gradient(circle at 78% 12%, rgba(216, 255, 122, 0.18), transparent 18%),
-    radial-gradient(circle at 16% 8%, rgba(59, 130, 246, 0.22), transparent 30%),
-    linear-gradient(135deg, #05070b 0%, #080d14 48%, #020304 100%);
+    radial-gradient(circle at 78% 12%, rgba(216, 255, 122, 0.14), transparent 18%),
+    radial-gradient(circle at 16% 8%, rgba(59, 130, 246, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(5, 7, 11, 0.34), rgba(8, 13, 20, 0.2) 48%, rgba(2, 3, 4, 0.28));
   color: #f8fafc;
-  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 
   &::before,
   &::after {
@@ -573,7 +573,7 @@ onMounted(() => {
   right: -8%;
   top: 18px;
   color: rgba(255, 255, 255, 0.09);
-  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--app-font-mono);
   font-size: clamp(14px, 1.6vw, 22px);
   letter-spacing: 0.14em;
   white-space: nowrap;
@@ -608,16 +608,20 @@ onMounted(() => {
   h1 {
     margin: 0 0 14px;
     color: #fff;
-    font-family: "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+    font-family: var(--app-font-display);
     font-size: clamp(38px, 5.8vw, 78px);
+    font-weight: 950;
     line-height: 0.98;
-    letter-spacing: -0.055em;
+    letter-spacing: -0.07em;
+    text-shadow: 0 0 34px rgba(96, 165, 250, 0.16);
   }
 
   p {
     max-width: 560px;
     margin: 0;
-    color: rgba(226, 232, 240, 0.66);
+    color: rgba(203, 213, 225, 0.76);
+    font-weight: 600;
+    letter-spacing: 0.015em;
     line-height: 1.7;
   }
 }
@@ -628,7 +632,7 @@ onMounted(() => {
   gap: 10px;
   margin-bottom: 18px;
   color: rgba(216, 255, 122, 0.9);
-  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--app-font-mono);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -663,8 +667,8 @@ onMounted(() => {
   overflow: hidden;
   min-height: 112px;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  background: rgba(255, 255, 255, 0.045);
+  border: 0;
+  background: rgba(255, 255, 255, 0.018);
   transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
 
   &::before {
@@ -678,8 +682,7 @@ onMounted(() => {
 
   &:hover {
     transform: translateY(-4px);
-    border-color: rgba(216, 255, 122, 0.48);
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(216, 255, 122, 0.035);
   }
 
   &:hover::before {
@@ -691,6 +694,9 @@ onMounted(() => {
     display: block;
     color: rgba(226, 232, 240, 0.58);
     font-size: 12px;
+    font-family: var(--app-font-mono);
+    font-weight: 700;
+    letter-spacing: 0.04em;
     position: relative;
     z-index: 1;
   }
@@ -699,7 +705,8 @@ onMounted(() => {
     display: block;
     margin: 10px 0 8px;
     color: #fff;
-    font-family: "DIN Alternate", "Bahnschrift", sans-serif;
+    font-family: var(--app-font-display);
+    font-weight: 950;
     font-size: clamp(24px, 3vw, 42px);
     line-height: 1.05;
     overflow: hidden;
@@ -717,9 +724,9 @@ onMounted(() => {
   gap: 16px;
   padding: 16px 20px;
   border-radius: 0;
-  background: rgba(7, 10, 14, 0.82);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  backdrop-filter: none;
+  border: 0;
   flex-wrap: wrap;
 
   &__left {
@@ -733,6 +740,7 @@ onMounted(() => {
   }
   &__label {
     font-weight: 500;
+    letter-spacing: 0.02em;
     color: var(--app-text-secondary);
     white-space: nowrap;
   }
@@ -758,15 +766,14 @@ onMounted(() => {
   gap: 14px;
   padding: 20px;
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(9, 13, 20, 0.92), rgba(5, 7, 10, 0.88));
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(4, 8, 14, 0.2);
+  backdrop-filter: none;
+  border: 0;
   cursor: pointer;
   transition: all var(--app-transition);
 
   &:hover {
-    border-color: color-mix(in srgb, var(--app-primary) 40%, transparent);
-    box-shadow: var(--app-shadow-md), 0 0 20px color-mix(in srgb, var(--app-primary) 10%, transparent);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--app-primary) 10%, transparent);
     transform: translateY(-2px);
   }
 
@@ -789,8 +796,9 @@ onMounted(() => {
     min-width: 0;
   }
   &__count {
+    font-family: var(--app-font-display);
     font-size: 28px;
-    font-weight: 800;
+    font-weight: 950;
     line-height: 1.1;
     background: var(--app-primary-gradient);
     -webkit-background-clip: text;
@@ -800,7 +808,8 @@ onMounted(() => {
   &__label {
     font-size: 12px;
     color: var(--app-text-tertiary);
-    font-weight: 500;
+    font-weight: 700;
+    letter-spacing: 0.02em;
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
@@ -825,9 +834,9 @@ onMounted(() => {
   padding: 24px 28px;
   border-radius: 0;
   background:
-    linear-gradient(135deg, rgba(216, 255, 122, 0.22), rgba(59, 130, 246, 0.22)),
-    #05070b;
-  border: 1px solid rgba(216, 255, 122, 0.24);
+    linear-gradient(135deg, rgba(216, 255, 122, 0.14), rgba(59, 130, 246, 0.12)),
+    rgba(5, 7, 11, 0.16);
+  border: 0;
   position: relative;
   overflow: hidden;
 
@@ -860,8 +869,9 @@ onMounted(() => {
     z-index: 1;
   }
   &__number {
+    font-family: var(--app-font-display);
     font-size: 48px;
-    font-weight: 900;
+    font-weight: 950;
     color: #fff;
     line-height: 1;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -871,7 +881,8 @@ onMounted(() => {
   }
   &__title {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 850;
+    letter-spacing: 0.01em;
   }
   &__desc {
     font-size: 13px;
@@ -906,9 +917,9 @@ onMounted(() => {
 
 .dash-recent {
   border-radius: 0;
-  background: rgba(7, 10, 14, 0.86);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  backdrop-filter: none;
+  border: 0;
   overflow: hidden;
 
   &__header {
@@ -917,9 +928,11 @@ onMounted(() => {
     justify-content: space-between;
     padding: 12px 20px;
     font-size: 15px;
-    font-weight: 600;
+    font-family: var(--app-font-display);
+    font-weight: 900;
+    letter-spacing: -0.02em;
     color: var(--app-text);
-    border-bottom: 1px solid var(--app-border-secondary);
+    border-bottom: 0;
   }
   &__header-left {
     display: flex;
@@ -945,7 +958,7 @@ onMounted(() => {
     transition: background var(--app-transition);
 
     &:hover {
-      background: var(--app-bg-hover);
+      background: rgba(148, 163, 184, 0.07);
     }
   }
   &__item-left {
@@ -1003,16 +1016,15 @@ onMounted(() => {
   gap: 10px;
   padding: 28px 16px;
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(9, 13, 20, 0.9), rgba(5, 7, 10, 0.86));
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(4, 8, 14, 0.2);
+  backdrop-filter: none;
+  border: 0;
   cursor: pointer;
   transition: all var(--app-transition);
   text-align: center;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--app-primary) 40%, transparent);
-    box-shadow: var(--app-shadow-md), 0 0 24px color-mix(in srgb, var(--app-primary) 12%, transparent);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--app-primary) 10%, transparent);
     transform: translateY(-3px);
   }
 
@@ -1026,7 +1038,8 @@ onMounted(() => {
   }
   &__label {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 850;
+    letter-spacing: 0.01em;
     color: var(--app-text);
   }
   &__desc {

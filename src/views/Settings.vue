@@ -361,7 +361,7 @@ onUnmounted(() => {
 
 <style lang="less" scoped>
 .page-settings {
-  max-width: 900px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 0 4px 24px;
   position: relative;
@@ -369,42 +369,44 @@ onUnmounted(() => {
 }
 
 .settings-header {
-  padding: 4px 0 16px;
+  padding: 4px 0 22px;
   &__title {
     margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    background: var(--app-primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--app-font-display);
+    font-size: clamp(34px, 4vw, 52px);
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -0.065em;
+    color: rgba(248, 250, 252, 0.94);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--app-primary) 16%, transparent);
   }
 }
 
 .settings-body {
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
-  padding: 20px 24px;
+  border-radius: 0;
+  background: rgba(4, 8, 14, 0.16);
+  backdrop-filter: none;
+  border: 0;
+  padding: 6px 0 0;
 }
 
 .settings-tabs {
   :deep(.ant-tabs-nav) {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 
     &::before {
       border: none !important;
     }
   }
   :deep(.ant-tabs-nav-list) {
-    background: var(--app-fill);
-    border-radius: var(--app-radius-lg);
-    padding: 3px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    gap: 8px;
   }
   :deep(.ant-tabs-tab) {
-    border-radius: var(--app-radius-md) !important;
-    padding: 6px 18px !important;
+    border-radius: 0 !important;
+    padding: 8px 4px !important;
     margin: 0 !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: none !important;
@@ -415,25 +417,50 @@ onUnmounted(() => {
     }
   }
   :deep(.ant-tabs-tab-active) {
-    background: var(--app-bg-container) !important;
-    box-shadow: var(--app-shadow);
+    background: transparent !important;
+    box-shadow: none;
+  }
+  :deep(.ant-tabs-tab-btn) {
+    font-family: var(--app-font-mono);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--app-text-tertiary);
+  }
+  :deep(.ant-tabs-tab-active .ant-tabs-tab-btn) {
+    color: var(--app-primary) !important;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--app-primary) 26%, transparent);
   }
   :deep(.ant-tabs-ink-bar) {
-    display: none !important;
+    display: block !important;
+    height: 1px !important;
+    background: var(--app-primary-gradient) !important;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--app-primary) 36%, transparent);
+  }
+  :deep(.ant-card),
+  :deep(.ant-collapse),
+  :deep(.ant-list),
+  :deep(.ant-descriptions-view) {
+    background: rgba(4, 8, 14, 0.18) !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
 }
 
 .settings-backup-hint {
   margin: 0 0 12px;
-  color: var(--app-text, rgba(15, 23, 42, 0.88));
+  color: rgba(203, 213, 225, 0.78);
   max-width: 52em;
   line-height: 1.7;
+  font-weight: 600;
 }
 
 .settings-backup-title {
   margin: 0;
   font-size: 12px;
   color: var(--app-text-tertiary, rgba(100, 116, 139, 0.65));
-  font-weight: 500;
+  font-family: var(--app-font-mono);
+  font-weight: 800;
+  letter-spacing: 0.06em;
 }
 </style>

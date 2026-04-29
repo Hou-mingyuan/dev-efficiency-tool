@@ -155,14 +155,16 @@ function onClearAll() {
   justify-content: space-between;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.06));
+  border-bottom: 0;
   flex-wrap: wrap;
-  background: var(--app-fill-secondary, rgba(0, 0, 0, 0.02));
+  background: rgba(4, 8, 14, 0.22);
 }
 
 .nc-popover__title {
   font-size: 14px;
-  font-weight: 600;
+  font-family: var(--app-font-display);
+  font-weight: 900;
+  letter-spacing: -0.02em;
 }
 
 .nc-popover__empty {
@@ -180,8 +182,8 @@ function onClearAll() {
   padding: 12px 14px;
   cursor: pointer;
   transition: background var(--app-transition, 0.2s ease), transform 0.15s ease;
-  border-bottom: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.04));
-  border-radius: var(--app-radius-sm, 8px);
+  border-bottom: 0;
+  border-radius: 0;
   margin: 2px 4px;
   &:active {
     transform: scale(0.98);
@@ -193,11 +195,11 @@ function onClearAll() {
 }
 
 .nc-item:hover {
-  background: var(--app-bg-hover, rgba(59, 130, 246, 0.06));
+  background: rgba(96, 165, 250, 0.07);
 }
 
 .nc-item--unread {
-  background: color-mix(in srgb, var(--app-primary) 6%, transparent);
+  background: color-mix(in srgb, var(--app-primary) 8%, transparent);
 }
 
 .nc-item__icon {
@@ -232,13 +234,15 @@ function onClearAll() {
 
 .nc-item__title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
   word-break: break-word;
 }
 
 .nc-item__time {
   flex-shrink: 0;
   font-size: 12px;
+  font-family: var(--app-font-mono);
+  font-weight: 700;
   color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 

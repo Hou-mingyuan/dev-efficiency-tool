@@ -578,21 +578,21 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at 14% 0%, rgba(96, 165, 250, 0.18), transparent 32%),
-    radial-gradient(circle at 88% 12%, rgba(132, 204, 22, 0.14), transparent 30%),
-    radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.1), transparent 36%),
-    linear-gradient(135deg, #070c17 0%, #0c1624 42%, #050915 100%) !important;
+    radial-gradient(circle at 12% 10%, rgba(96, 165, 250, 0.2), transparent 28%),
+    radial-gradient(circle at 82% 8%, rgba(216, 255, 122, 0.13), transparent 24%),
+    radial-gradient(circle at 54% 92%, rgba(56, 189, 248, 0.1), transparent 34%),
+    linear-gradient(135deg, #05070b 0%, #09111d 44%, #020407 100%) !important;
 
   &::before {
     content: 'AI_GENERATION_PIPELINE / LOCAL_CONTEXT / REFERENCE_LOCK / REQUEST_PREVIEW_ISOLATION / PACK_READY';
     position: fixed;
-    top: 72px;
-    left: 220px;
+    top: 88px;
+    left: 16px;
     right: 0;
     z-index: 0;
     pointer-events: none;
-    color: rgba(226, 232, 240, 0.045);
-    font-family: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+    color: rgba(226, 232, 240, 0.052);
+    font-family: var(--app-font-mono);
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.28em;
@@ -603,14 +603,14 @@ onBeforeUnmount(() => {
   &::after {
     content: '';
     position: fixed;
-    inset: 48px 0 0 220px;
+    inset: 0;
     z-index: 0;
     pointer-events: none;
     background:
-      linear-gradient(90deg, transparent, rgba(132, 204, 22, 0.09), transparent),
-      linear-gradient(rgba(148, 163, 184, 0.026) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.026) 1px, transparent 1px);
-    background-size: 38% 100%, 36px 36px, 36px 36px;
+      linear-gradient(90deg, transparent, rgba(216, 255, 122, 0.1), transparent),
+      linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+    background-size: 36% 100%, 36px 36px, 36px 36px;
     background-position: -42% 0, 0 0, 0 0;
     mix-blend-mode: screen;
     opacity: 0.62;
@@ -620,17 +620,24 @@ onBeforeUnmount(() => {
   }
 }
 
+.app-layout,
+.app-layout :deep(.ant-layout),
+.app-layout :deep(.ant-layout-sider),
+.app-layout :deep(.ant-layout-header),
+.app-layout :deep(.ant-layout-content) {
+  background: transparent !important;
+}
+
 .app-sider {
   position: sticky !important;
   top: 0;
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: 1px solid rgba(148, 163, 184, 0.12) !important;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(10, 17, 30, 0.9)) !important;
-  backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
-  -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.4);
+  border-right: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -638,11 +645,8 @@ onBeforeUnmount(() => {
   &::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 120px;
-    background: linear-gradient(to top, rgba(96, 165, 250, 0.08), transparent);
+    inset: 0;
+    background: transparent;
     pointer-events: none;
     z-index: 0;
   }
@@ -655,7 +659,7 @@ onBeforeUnmount(() => {
     padding: 0 16px;
     position: relative;
     z-index: 1;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    border-bottom: 0;
     margin-bottom: 8px;
   }
   &__logo {
@@ -705,8 +709,9 @@ onBeforeUnmount(() => {
   &__version {
     font-size: 11px;
     color: var(--app-text-quaternary);
-    font-weight: 500;
-    letter-spacing: 0.03em;
+    font-family: var(--app-font-mono);
+    font-weight: 700;
+    letter-spacing: 0.08em;
   }
 }
 
@@ -718,15 +723,50 @@ onBeforeUnmount(() => {
   z-index: 1;
 }
 
+.app-menu :deep(.ant-menu),
+.app-menu :deep(.ant-menu-sub),
+.app-menu :deep(.ant-menu-item),
+.app-menu :deep(.ant-menu-submenu-title),
+.app-menu :deep(.ant-menu-item-group-title) {
+  background: transparent !important;
+}
+
+.app-menu :deep(.ant-menu-item),
+.app-menu :deep(.ant-menu-submenu-title) {
+  border-radius: 0 !important;
+  margin-inline: 8px !important;
+  width: calc(100% - 16px) !important;
+  transition:
+    color var(--app-transition),
+    border-color var(--app-transition),
+    background var(--app-transition);
+}
+
+.app-menu :deep(.ant-menu-item::after) {
+  display: none !important;
+}
+
+.app-menu :deep(.ant-menu-item-selected) {
+  color: var(--app-primary) !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.app-menu :deep(.ant-menu-item:hover),
+.app-menu :deep(.ant-menu-submenu-title:hover) {
+  background:
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08), transparent 72%) !important;
+}
+
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 0 0 12px;
-  background: rgba(15, 23, 42, 0.78);
-  backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
-  -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.3);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 0;
   height: 48px;
   position: sticky;
   top: 0;
@@ -746,16 +786,20 @@ onBeforeUnmount(() => {
     -webkit-app-region: no-drag;
   }
   &__page-title {
-    font-size: 15px;
-    font-weight: 600;
+    font-family: var(--app-font-display);
+    font-size: 16px;
+    font-weight: 900;
     color: var(--app-text);
     margin-left: 4px;
-    opacity: 0.85;
+    opacity: 0.9;
+    letter-spacing: -0.02em;
     white-space: nowrap;
   }
   &__title {
     font-size: 16px;
-    font-weight: 600;
+    font-family: var(--app-font-display);
+    font-weight: 900;
+    letter-spacing: -0.02em;
     color: var(--app-text);
   }
   &__fold {
@@ -768,7 +812,7 @@ onBeforeUnmount(() => {
     justify-content: center;
     transition: background var(--app-transition);
     &:hover {
-      background: var(--app-bg-hover);
+      background: rgba(148, 163, 184, 0.08);
     }
   }
   &__right .app-header__icon {
@@ -781,7 +825,7 @@ onBeforeUnmount(() => {
     justify-content: center;
     transition: background var(--app-transition);
     &:hover {
-      background: var(--app-bg-hover);
+      background: rgba(148, 163, 184, 0.08);
     }
   }
   &__select {
@@ -807,7 +851,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   &:hover {
-    background: var(--app-bg-hover);
+    background: rgba(148, 163, 184, 0.08);
     color: var(--app-text);
   }
   &--close:hover {
@@ -825,6 +869,17 @@ onBeforeUnmount(() => {
   height: calc(100vh - 48px);
   position: relative;
   z-index: 1;
+}
+
+.app-content :deep(.ant-card) {
+  background: rgba(4, 8, 14, 0.3) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-content :deep(.ant-card-head) {
+  background: transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 .app-content__orbs {

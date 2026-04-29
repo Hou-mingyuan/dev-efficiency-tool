@@ -200,7 +200,7 @@ onMounted(() => {
 
 <style lang="less" scoped>
 .page-health {
-  max-width: 1000px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: 0 4px 24px;
   position: relative;
@@ -219,17 +219,19 @@ onMounted(() => {
   }
   &__title {
     margin: 0 0 4px;
-    font-size: 22px;
-    font-weight: 700;
-    background: var(--app-primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--app-font-display);
+    font-size: clamp(34px, 4vw, 52px);
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -0.065em;
+    color: rgba(248, 250, 252, 0.94);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--app-primary) 16%, transparent);
   }
   &__desc {
     margin: 0;
-    font-size: 13px;
-    color: var(--app-text-tertiary);
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(203, 213, 225, 0.72);
   }
 }
 
@@ -238,10 +240,10 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 20px 24px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid;
+  border-radius: 0;
+  background: rgba(4, 8, 14, 0.18);
+  backdrop-filter: none;
+  border: 0 !important;
   margin-bottom: 20px;
   transition: all var(--app-transition);
 
@@ -249,8 +251,10 @@ onMounted(() => {
     font-size: 36px;
   }
   &__status {
+    font-family: var(--app-font-display);
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 950;
+    letter-spacing: -0.02em;
   }
   &__hint {
     font-size: 12px;
@@ -261,17 +265,19 @@ onMounted(() => {
 
 .health-memory-bar {
   padding: 16px 24px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: rgba(4, 8, 14, 0.16);
+  backdrop-filter: none;
+  border: 0;
   margin-bottom: 20px;
 
   &__label {
     display: flex;
     justify-content: space-between;
     font-size: 13px;
-    font-weight: 500;
+    font-family: var(--app-font-mono);
+    font-weight: 800;
+    letter-spacing: 0.04em;
     margin-bottom: 8px;
     color: var(--app-text);
   }
@@ -285,15 +291,14 @@ onMounted(() => {
 
 .health-card {
   padding: 20px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: rgba(4, 8, 14, 0.18);
+  backdrop-filter: none;
+  border: 0;
   transition: all var(--app-transition);
 
   &:hover {
-    border-color: color-mix(in srgb, var(--app-primary) 30%, transparent);
-    box-shadow: var(--app-shadow-md);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--app-primary) 10%, transparent);
     transform: translateY(-2px);
   }
 
@@ -340,7 +345,8 @@ onMounted(() => {
   &__label {
     font-size: 12px;
     color: var(--app-text-tertiary);
-    font-weight: 500;
+    font-family: var(--app-font-mono);
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 6px;
@@ -348,7 +354,7 @@ onMounted(() => {
 
   &__value {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 800;
     color: var(--app-text);
     word-break: break-all;
   }

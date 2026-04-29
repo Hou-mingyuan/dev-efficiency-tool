@@ -148,6 +148,7 @@ watch(
   padding: 12px 0;
   font-size: 13px;
   color: var(--app-text-tertiary, rgba(0, 0, 0, 0.45));
+  font-weight: 700;
   text-align: center;
 }
 
@@ -159,14 +160,14 @@ watch(
 
 .global-search__row {
   padding: 10px 14px !important;
-  border-radius: var(--app-radius-sm, 8px);
+  border-radius: 0;
   cursor: pointer;
-  transition: background var(--app-transition, 0.2s ease);
+  transition: background var(--app-transition, 0.2s ease), color var(--app-transition, 0.2s ease);
 }
 
 .global-search__row:hover,
 .global-search__row--active {
-  background: var(--app-bg-hover, rgba(59, 130, 246, 0.06));
+  background: rgba(96, 165, 250, 0.07);
 }
 
 .global-search__shortcut {
@@ -175,10 +176,11 @@ watch(
     display: inline-block;
     padding: 1px 6px;
     font-size: 11px;
-    font-family: inherit;
-    background: var(--app-bg-spotlight, #f8fafc);
-    border: 1px solid var(--app-border-secondary, rgba(0, 0, 0, 0.06));
-    border-radius: 4px;
+    font-family: var(--app-font-mono);
+    font-weight: 800;
+    background: rgba(4, 8, 14, 0.42);
+    border: 0;
+    border-radius: 0;
     color: var(--app-text-tertiary);
     min-width: 20px;
     text-align: center;

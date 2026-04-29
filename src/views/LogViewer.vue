@@ -273,15 +273,19 @@ onUnmounted(() => {
   }
   &__title {
     margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    background: var(--app-primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--app-font-display);
+    font-size: clamp(34px, 4vw, 52px);
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -0.065em;
+    color: rgba(248, 250, 252, 0.94);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--app-primary) 16%, transparent);
   }
   &__hint {
+    font-family: var(--app-font-mono);
     font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     color: var(--app-text-quaternary);
   }
   &__actions {
@@ -296,13 +300,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 14px 20px;
-  border-radius: var(--app-radius-lg);
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
-  border: 1px solid var(--app-glass-border);
+  border-radius: 0;
+  background: rgba(4, 8, 14, 0.16);
+  backdrop-filter: none;
+  border: 0;
 
   &__stats {
     font-size: 12px;
+    font-family: var(--app-font-mono);
+    font-weight: 700;
+    letter-spacing: 0.04em;
     color: var(--app-text-tertiary);
     margin-left: auto;
   }
@@ -314,16 +321,16 @@ onUnmounted(() => {
 }
 
 .log-scroller {
-  border: 1px solid var(--app-glass-border);
-  border-radius: var(--app-radius-lg);
+  border: 0;
+  border-radius: 0;
   max-height: min(65vh, 700px);
   overflow: auto;
   contain: content;
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--app-font-mono);
   font-size: 12px;
   line-height: 1.5;
-  background: var(--app-glass-bg);
-  backdrop-filter: blur(var(--app-glass-blur));
+  background: rgba(4, 8, 14, 0.18);
+  backdrop-filter: none;
 }
 
 .log-header {
@@ -331,17 +338,17 @@ onUnmounted(() => {
   grid-template-columns: 180px 72px minmax(80px, 160px) 1fr;
   gap: 8px;
   padding: 12px 16px;
-  font-weight: 600;
+  font-weight: 800;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--app-text-tertiary);
-  border-bottom: 1px solid var(--app-glass-border);
+  border-bottom: 0;
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--app-bg-spotlight);
-  backdrop-filter: blur(var(--app-glass-blur));
+  background: rgba(4, 8, 14, 0.28);
+  backdrop-filter: none;
 }
 
 .log-line {
@@ -349,19 +356,19 @@ onUnmounted(() => {
   grid-template-columns: 180px 72px minmax(80px, 160px) 1fr;
   gap: 8px;
   padding: 8px 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--app-glass-border) 50%, transparent);
+  border-bottom: 0;
   align-items: start;
   transition: background var(--app-transition);
   content-visibility: auto;
   contain-intrinsic-size: auto 36px;
 
   &:hover {
-    background: var(--app-bg-hover);
+    background: rgba(96, 165, 250, 0.06);
   }
   &:nth-child(odd) {
-    background: color-mix(in srgb, var(--app-bg-spotlight) 50%, transparent);
+    background: rgba(255, 255, 255, 0.018);
     &:hover {
-      background: var(--app-bg-hover);
+      background: rgba(96, 165, 250, 0.06);
     }
   }
 }
@@ -392,12 +399,12 @@ onUnmounted(() => {
   color: var(--app-text);
 
   &--json {
-    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-family: var(--app-font-mono);
     font-size: 11px;
-    background: var(--app-code-bg, #f8fafc);
+    background: rgba(15, 23, 42, 0.5);
     padding: 4px 8px;
-    border-radius: var(--app-radius-xs, 6px);
-    border: 1px solid var(--app-border-secondary);
+    border-radius: 0;
+    border: 0;
   }
 }
 </style>
