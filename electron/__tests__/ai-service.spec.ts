@@ -161,11 +161,13 @@ stateDiagram-v2
   });
 
   it("builds a PRD visual repair prompt with missing items", () => {
-    const prompt = buildPrdVisualRepairPrompt("## 原始 PRD", ["图文对照表"]);
+    const prompt = buildPrdVisualRepairPrompt("## 原始 PRD", ["图文对照表"], "PRD-F-001 上游功能");
 
     expect(prompt.system).toContain("严格的 PRD 图文格式审校器");
     expect(prompt.system).toContain(PRD_VISUAL_OUTPUT_RULE);
     expect(prompt.user).toContain("缺失项：图文对照表");
+    expect(prompt.user).toContain("上游来源内容");
+    expect(prompt.user).toContain("PRD-F-001 上游功能");
     expect(prompt.user).toContain("## 原始 PRD");
   });
 
@@ -280,11 +282,13 @@ TASK-001 实现接口。
   });
 
   it("builds generic document repair prompts", () => {
-    const prompt = buildDocumentRepairPrompt("requirements", "## 原始需求", ["需求追踪矩阵"]);
+    const prompt = buildDocumentRepairPrompt("requirements", "## 原始需求", ["需求追踪矩阵"], "PRD-F-002 审批订单");
 
     expect(prompt.system).toContain("需求文档结构审校器");
     expect(prompt.system).toContain(REQUIREMENTS_TRACEABILITY_RULE);
     expect(prompt.user).toContain("缺失项：需求追踪矩阵");
+    expect(prompt.user).toContain("上游来源内容");
+    expect(prompt.user).toContain("PRD-F-002 审批订单");
     expect(prompt.user).toContain("## 原始需求");
   });
 });

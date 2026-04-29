@@ -263,7 +263,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
             `${docType} 生成结果结构校验未通过，尝试自动修正第 ${attempt} 次: ${validation.missing.join("、")}`,
             "ai-gen",
           );
-          const repairPrompt = buildDocumentRepairPrompt(docType, result, validation.missing);
+          const repairPrompt = buildDocumentRepairPrompt(docType, result, validation.missing, sourceContent);
           result = await aiService.generate(provider, repairPrompt.system, repairPrompt.user, images, abortController.signal, 20000);
         }
 

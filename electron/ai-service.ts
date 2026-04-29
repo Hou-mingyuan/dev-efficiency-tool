@@ -210,7 +210,7 @@ export function validateGeneratedDocumentFormat(docType: DocType, content: strin
   return { valid: true, missing: [] };
 }
 
-export function buildPrdVisualRepairPrompt(content: string, missing: string[]): { system: string; user: string } {
+export function buildPrdVisualRepairPrompt(content: string, missing: string[], sourceContent?: string): { system: string; user: string } {
   return {
     system: [
       "你是严格的 PRD 图文格式审校器。",
@@ -223,6 +223,8 @@ export function buildPrdVisualRepairPrompt(content: string, missing: string[]): 
       "以下 PRD 未通过图文格式校验，请修正为完整合格版本。",
       "",
       `缺失项：${missing.join("、")}`,
+      sourceContent ? "\n上游来源内容（用于继承编号和业务语义，不得忽略）：\n" : "",
+      sourceContent || "",
       "",
       "原始 PRD：",
       content,
@@ -230,8 +232,8 @@ export function buildPrdVisualRepairPrompt(content: string, missing: string[]): 
   };
 }
 
-export function buildDocumentRepairPrompt(docType: DocType, content: string, missing: string[]): { system: string; user: string } {
-  if (docType === "prd") return buildPrdVisualRepairPrompt(content, missing);
+export function buildDocumentRepairPrompt(docType: DocType, content: string, missing: string[], sourceContent?: string): { system: string; user: string } {
+  if (docType === "prd") return buildPrdVisualRepairPrompt(content, missing, sourceContent);
 
   const rule = docType === "requirements"
     ? REQUIREMENTS_TRACEABILITY_RULE
@@ -252,6 +254,8 @@ export function buildDocumentRepairPrompt(docType: DocType, content: string, mis
       `以下${label}未通过结构校验，请修正为完整合格版本。`,
       "",
       `缺失项：${missing.join("、")}`,
+      sourceContent ? "\n上游来源内容（用于继承编号和业务语义，不得忽略）：\n" : "",
+      sourceContent || "",
       "",
       `原始${label}：`,
       content,
