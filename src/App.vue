@@ -81,14 +81,26 @@ const codeMatrixCellWidth = 14;
 const codeMatrixCellHeight = 20;
 const codeMatrixBaseFrameInterval = 150;
 const codeMatrixBusyFrameInterval = 420;
+const codeMatrixEditingFrameInterval = 760;
 const codeMatrixBaseBatchSize = 42;
 const codeMatrixBusyBatchSize = 6;
+const codeMatrixEditingBatchSize = 3;
 
 const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatrixChars.length)] ?? "0";
+
+const isCodeMatrixEditing = () => {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || active === document.body) return false;
+  return active.matches("input, textarea, select, [contenteditable='true'], [role='textbox']")
+    || Boolean(active.closest(".ant-input, .ant-input-affix-wrapper, .ant-input-number, .ant-select, .ant-picker"));
+};
 
 const isCodeMatrixBusy = () => performance.now() < codeMatrixInteractionUntil || route.path.startsWith("/gen/");
 
 const getCodeMatrixFrameDelay = () => {
+  if (isCodeMatrixEditing()) {
+    return codeMatrixEditingFrameInterval + codeMatrixAdaptivePenalty;
+  }
   const busy = isCodeMatrixBusy();
   return busy
     ? codeMatrixBusyFrameInterval + codeMatrixAdaptivePenalty
@@ -196,9 +208,11 @@ const drawCodeMatrix = (now: number) => {
   if (!canvas || !ctx) return;
 
   if (document.hidden || !document.hasFocus()) return;
-  const busy = isCodeMatrixBusy();
-  if (now - codeMatrixLastFrame < getCodeMatrixFrameDelay()) {
-    scheduleCodeMatrixFrame(getCodeMatrixFrameDelay() - (now - codeMatrixLastFrame));
+  const frameDelay = getCodeMatrixFrameDelay();
+  const editing = isCodeMatrixEditing();
+  const busy = editing || isCodeMatrixBusy();
+  if (now - codeMatrixLastFrame < frameDelay) {
+    scheduleCodeMatrixFrame(frameDelay - (now - codeMatrixLastFrame));
     return;
   }
   codeMatrixLastFrame = now;
@@ -208,9 +222,10 @@ const drawCodeMatrix = (now: number) => {
   setCodeMatrixFont(ctx);
 
   const total = codeMatrixCells.length;
-  const baseBatch = busy ? codeMatrixBusyBatchSize : codeMatrixBaseBatchSize;
-  const adaptiveBatch = Math.max(4, Math.floor(baseBatch * (1 - Math.min(codeMatrixAdaptivePenalty, 220) / 320)));
-  const batchSize = Math.min(adaptiveBatch, Math.max(4, Math.floor(total * (busy ? 0.0015 : 0.005))));
+  const baseBatch = editing ? codeMatrixEditingBatchSize : busy ? codeMatrixBusyBatchSize : codeMatrixBaseBatchSize;
+  const minimumBatch = editing ? 2 : 4;
+  const adaptiveBatch = Math.max(minimumBatch, Math.floor(baseBatch * (1 - Math.min(codeMatrixAdaptivePenalty, 220) / 320)));
+  const batchSize = Math.min(adaptiveBatch, Math.max(minimumBatch, Math.floor(total * (busy ? 0.0015 : 0.005))));
   for (let i = 0; i < batchSize; i += 1) {
     const index = Math.floor(Math.random() * total);
     const cell = codeMatrixCells[index];
@@ -218,7 +233,7 @@ const drawCodeMatrix = (now: number) => {
     cell.char = randomCodeChar();
     cell.alpha = 0.02 + Math.random() * (Math.random() > 0.86 ? 0.09 : 0.05);
     cell.tint = Math.random();
-    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, busy ? 0.82 : 1);
+    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, editing ? 0.62 : busy ? 0.82 : 1);
   }
 
   const drawCost = performance.now() - drawStart;
