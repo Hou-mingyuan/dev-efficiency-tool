@@ -597,6 +597,7 @@ async function stopImageGenerate() {
   figmaGenerating.value = false;
   activeImageRequestId.value = null;
   activeUiAuxRequestId.value = null;
+  message.info(t("gen.common.generationStopped"));
 }
 
 async function analyzeUIPrompt() {

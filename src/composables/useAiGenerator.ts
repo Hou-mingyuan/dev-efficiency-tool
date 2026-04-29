@@ -458,6 +458,7 @@ export function useAiGenerator(docType: DocType) {
     generating.value = false;
     activeRequestId = null;
     activePreviewSessionId = null;
+    message.info(t("gen.common.generationStopped"));
   }
 
   async function generate() {

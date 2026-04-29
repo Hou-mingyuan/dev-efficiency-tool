@@ -212,6 +212,7 @@ export default {
       dropHint: "或将文件拖到此处",
       generate: "生成",
       stopGenerate: "停止生成",
+      generationStopped: "已停止生成",
       regenerate: "重新生成",
       regenerateConfirm: "确定丢弃当前结果并重新生成？",
       save: "保存到文件",

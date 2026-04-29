@@ -212,6 +212,7 @@ export default {
       dropHint: "or drop files here",
       generate: "Generate",
       stopGenerate: "Stop",
+      generationStopped: "Generation stopped",
       regenerate: "Regenerate",
       regenerateConfirm: "Discard the current result and regenerate?",
       save: "Save to file",
