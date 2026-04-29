@@ -832,14 +832,24 @@ onBeforeUnmount(() => {
   color: inherit !important;
 }
 
+.app-menu :deep(.ant-menu-item-group-title) {
+  color: rgba(203, 213, 225, 0.58) !important;
+  font-family: var(--app-font-mono);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .app-menu :deep(.ant-menu-item::after) {
   display: none !important;
 }
 
 .app-menu :deep(.ant-menu-item-selected) {
-  color: var(--app-primary) !important;
+  color: rgba(147, 197, 253, 0.98) !important;
   background: transparent !important;
   box-shadow: none;
+  text-shadow: 0 0 18px rgba(96, 165, 250, 0.24);
 }
 
 .app-menu :deep(.ant-menu-item:hover),
@@ -971,6 +981,53 @@ onBeforeUnmount(() => {
 .app-content :deep(.ant-card-head) {
   background: transparent !important;
   border-bottom-color: transparent !important;
+}
+
+.app-content :deep(.ant-card-head-title),
+.app-content :deep(.ant-card-meta-title),
+.app-content :deep(.ant-list-item-meta-title),
+.app-content :deep(.ant-table-cell),
+.app-content :deep(.ant-collapse-header-text) {
+  color: rgba(248, 250, 252, 0.92) !important;
+}
+
+.app-content :deep(.ant-card-meta-description),
+.app-content :deep(.ant-form-item-extra),
+.app-content :deep(.ant-form-item-explain),
+.app-content :deep(.ant-list-item-meta-description),
+.app-content :deep(.ant-upload-hint),
+.app-content :deep(.ant-table-placeholder),
+.app-content :deep(.ant-collapse-content-box) {
+  color: rgba(203, 213, 225, 0.72) !important;
+}
+
+.app-content :deep(.ant-btn[disabled]),
+.app-content :deep(.ant-btn-disabled),
+.app-content :deep(.ant-input[disabled]),
+.app-content :deep(.ant-select-disabled .ant-select-selector) {
+  background: rgba(12, 19, 31, 0.42) !important;
+  border-color: transparent !important;
+  color: rgba(148, 163, 184, 0.58) !important;
+  opacity: 1 !important;
+}
+
+.app-content :deep(.ant-tag) {
+  background: rgba(96, 165, 250, 0.1) !important;
+  border-color: transparent !important;
+  color: rgba(203, 213, 225, 0.88) !important;
+}
+
+.app-content :deep(.ant-upload-wrapper),
+.app-content :deep(.ant-upload),
+.app-content :deep(.ant-upload-drag) {
+  color: rgba(203, 213, 225, 0.78) !important;
+}
+
+.app-content :deep(.ant-upload-list-item),
+.app-content :deep(.ant-upload-list-item-name),
+.app-content :deep(.ant-upload-text-icon),
+.app-content :deep(.ant-upload-list-item-actions .anticon) {
+  color: rgba(226, 232, 240, 0.84) !important;
 }
 
 .app-content__orbs {

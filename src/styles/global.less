@@ -490,14 +490,17 @@ button, a,
   .ant-input-number,
   .ant-input-affix-wrapper,
   .ant-input-number-input,
-  .ant-input-password input {
+  .ant-input-password input,
+  .ant-input-search .ant-input,
+  .ant-picker {
     background: var(--app-bg-elevated) !important;
     border-color: var(--app-border) !important;
     color: var(--app-text) !important;
   }
   .ant-input::placeholder,
-  .ant-input-number-input::placeholder {
-    color: var(--app-text-quaternary) !important;
+  .ant-input-number-input::placeholder,
+  textarea.ant-input::placeholder {
+    color: rgba(148, 163, 184, 0.72) !important;
   }
   .ant-select-selector {
     background: var(--app-bg-elevated) !important;
@@ -530,6 +533,14 @@ button, a,
     border-color: var(--app-primary) !important;
     color: var(--app-primary) !important;
   }
+  .ant-btn[disabled],
+  .ant-btn-disabled {
+    background: rgba(12, 19, 31, 0.42) !important;
+    border-color: transparent !important;
+    color: rgba(148, 163, 184, 0.58) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
 
   /* ---- Tabs ---- */
   .ant-tabs-tab {
@@ -558,6 +569,11 @@ button, a,
   }
   .ant-table-tbody > tr:hover > td {
     background: var(--app-bg-hover) !important;
+  }
+  .ant-table-cell-row-hover,
+  .ant-table-tbody > tr.ant-table-placeholder > td {
+    background: rgba(12, 19, 31, 0.38) !important;
+    color: rgba(203, 213, 225, 0.72) !important;
   }
 
   /* ---- Collapse ---- */
@@ -589,7 +605,9 @@ button, a,
 
   /* ---- Tag ---- */
   .ant-tag {
-    border-color: var(--app-border);
+    background: rgba(96, 165, 250, 0.1);
+    border-color: transparent;
+    color: rgba(203, 213, 225, 0.88);
   }
 
   /* ---- Alert ---- */
@@ -600,6 +618,9 @@ button, a,
   }
   .ant-alert-info .ant-alert-message {
     color: var(--app-text) !important;
+  }
+  .ant-alert-description {
+    color: rgba(203, 213, 225, 0.72) !important;
   }
 
   /* ---- Card dark glow ---- */
@@ -733,7 +754,26 @@ button, a,
 
   /* ---- Empty ---- */
   .ant-empty-description {
-    color: var(--app-text-tertiary);
+    color: rgba(148, 163, 184, 0.72);
+  }
+
+  /* ---- Upload ---- */
+  .ant-upload,
+  .ant-upload-wrapper,
+  .ant-upload-drag {
+    color: rgba(203, 213, 225, 0.78) !important;
+  }
+  .ant-upload-drag {
+    background: rgba(4, 8, 14, 0.28) !important;
+    border-color: transparent !important;
+  }
+  .ant-upload-text,
+  .ant-upload-list-item-name {
+    color: rgba(226, 232, 240, 0.86) !important;
+  }
+  .ant-upload-hint,
+  .ant-upload-list-item-card-actions .anticon {
+    color: rgba(148, 163, 184, 0.76) !important;
   }
 
   /* ---- Popconfirm ---- */
