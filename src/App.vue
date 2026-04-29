@@ -79,12 +79,10 @@ let codeMatrixLastInteractionMark = 0;
 let codeMatrixAdaptivePenalty = 0;
 const codeMatrixCellWidth = 14;
 const codeMatrixCellHeight = 20;
-const codeMatrixBaseFrameInterval = 150;
-const codeMatrixBusyFrameInterval = 420;
-const codeMatrixEditingFrameInterval = 760;
-const codeMatrixBaseBatchSize = 42;
-const codeMatrixBusyBatchSize = 6;
-const codeMatrixEditingBatchSize = 3;
+const codeMatrixFrameInterval = 58;
+const codeMatrixBaseBatchSize = 24;
+const codeMatrixBusyBatchSize = 18;
+const codeMatrixEditingBatchSize = 14;
 
 const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatrixChars.length)] ?? "0";
 
@@ -97,15 +95,7 @@ const isCodeMatrixEditing = () => {
 
 const isCodeMatrixBusy = () => performance.now() < codeMatrixInteractionUntil || route.path.startsWith("/gen/");
 
-const getCodeMatrixFrameDelay = () => {
-  if (isCodeMatrixEditing()) {
-    return codeMatrixEditingFrameInterval + codeMatrixAdaptivePenalty;
-  }
-  const busy = isCodeMatrixBusy();
-  return busy
-    ? codeMatrixBusyFrameInterval + codeMatrixAdaptivePenalty
-    : codeMatrixBaseFrameInterval + codeMatrixAdaptivePenalty;
-};
+const getCodeMatrixFrameDelay = () => codeMatrixFrameInterval;
 
 const scheduleCodeMatrixFrame = (delay = getCodeMatrixFrameDelay()) => {
   if (codeMatrixFrame || codeMatrixTimer || !isShellRoute.value || document.hidden || !document.hasFocus()) return;
@@ -223,9 +213,9 @@ const drawCodeMatrix = (now: number) => {
 
   const total = codeMatrixCells.length;
   const baseBatch = editing ? codeMatrixEditingBatchSize : busy ? codeMatrixBusyBatchSize : codeMatrixBaseBatchSize;
-  const minimumBatch = editing ? 2 : 4;
-  const adaptiveBatch = Math.max(minimumBatch, Math.floor(baseBatch * (1 - Math.min(codeMatrixAdaptivePenalty, 220) / 320)));
-  const batchSize = Math.min(adaptiveBatch, Math.max(minimumBatch, Math.floor(total * (busy ? 0.0015 : 0.005))));
+  const minimumBatch = editing ? 8 : busy ? 10 : 12;
+  const adaptiveBatch = Math.max(minimumBatch, Math.floor(baseBatch * (1 - Math.min(codeMatrixAdaptivePenalty, 180) / 360)));
+  const batchSize = Math.min(adaptiveBatch, Math.max(minimumBatch, Math.floor(total * (busy ? 0.0022 : 0.0042))));
   for (let i = 0; i < batchSize; i += 1) {
     const index = Math.floor(Math.random() * total);
     const cell = codeMatrixCells[index];
@@ -233,12 +223,12 @@ const drawCodeMatrix = (now: number) => {
     cell.char = randomCodeChar();
     cell.alpha = 0.02 + Math.random() * (Math.random() > 0.86 ? 0.09 : 0.05);
     cell.tint = Math.random();
-    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, editing ? 0.62 : busy ? 0.82 : 1);
+    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, editing ? 0.86 : busy ? 0.92 : 1);
   }
 
   const drawCost = performance.now() - drawStart;
   if (drawCost > 3.4) {
-    codeMatrixAdaptivePenalty = Math.min(codeMatrixAdaptivePenalty + 36, 260);
+    codeMatrixAdaptivePenalty = Math.min(codeMatrixAdaptivePenalty + 28, 180);
   } else if (drawCost < 1.2 && codeMatrixAdaptivePenalty > 0) {
     codeMatrixAdaptivePenalty = Math.max(codeMatrixAdaptivePenalty - 12, 0);
   }
@@ -802,11 +792,6 @@ onBeforeUnmount(() => {
           </a-layout-header>
           <div v-if="pageLoading" class="app-loading-bar" />
           <a-layout-content class="app-content">
-            <div class="app-content__orbs" aria-hidden="true">
-              <div class="app-orb app-orb--1" />
-              <div class="app-orb app-orb--2" />
-              <div class="app-orb app-orb--3" />
-            </div>
             <GlobalSearch v-model:visible="searchOpen" />
             <ShortcutsHelp v-model:visible="shortcutsOpen" />
             <ErrorBoundary>
@@ -879,24 +864,6 @@ onBeforeUnmount(() => {
     opacity: 0.78;
   }
 
-  &::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(90deg, transparent, rgba(216, 255, 122, 0.1), transparent),
-      linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
-    background-size: 36% 100%, 36px 36px, 36px 36px;
-    background-position: -42% 0, 0 0, 0 0;
-    mix-blend-mode: screen;
-    opacity: 0.62;
-    animation:
-      shellScan 7.2s ease-in-out infinite,
-      shellGridDrift 22s linear infinite;
-  }
 }
 
 .app-code-matrix {
@@ -1303,79 +1270,6 @@ onBeforeUnmount(() => {
 .app-content :deep(.ant-upload-text-icon),
 .app-content :deep(.ant-upload-list-item-actions .anticon) {
   color: rgba(226, 232, 240, 0.84) !important;
-}
-
-.app-content__orbs {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.app-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.11;
-  will-change: transform;
-  contain: layout style;
-  animation: orbFloat 20s ease-in-out infinite alternate;
-  transform: translateZ(0);
-}
-
-.app-orb--1 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, #60a5fa, transparent 70%);
-  top: -10%;
-  right: -5%;
-  animation-delay: 0s;
-}
-
-.app-orb--2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, #84cc16, transparent 70%);
-  bottom: 10%;
-  left: 5%;
-  animation-delay: -7s;
-}
-
-.app-orb--3 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, #22d3ee, transparent 70%);
-  top: 40%;
-  right: 30%;
-  animation-delay: -14s;
-}
-
-@keyframes orbFloat {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 30px) scale(0.95); }
-  100% { transform: translate(10px, -10px) scale(1.02); }
-}
-
-@keyframes shellScan {
-  0%, 14% {
-    background-position: -45% 0, 0 0, 0 0;
-    opacity: 0.34;
-  }
-  48%, 62% {
-    background-position: 145% 0, 12px 18px, 12px 18px;
-    opacity: 0.68;
-  }
-  100% {
-    background-position: 145% 0, 24px 36px, 24px 36px;
-    opacity: 0.36;
-  }
-}
-
-@keyframes shellGridDrift {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(16deg); }
 }
 
 .app-loading-bar {
