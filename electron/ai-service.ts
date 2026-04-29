@@ -75,6 +75,20 @@ export interface PrdVisualValidationResult {
 
 export type DocumentValidationResult = PrdVisualValidationResult;
 
+function extractIds(content: string, pattern: RegExp): string[] {
+  return Array.from(new Set(Array.from(content.matchAll(pattern), (match) => match[0]))).sort();
+}
+
+function addMissingSourceIds(missing: string[], label: string, sourceContent: string | undefined, outputContent: string, pattern: RegExp): void {
+  if (!sourceContent) return;
+  const sourceIds = extractIds(sourceContent, pattern);
+  if (!sourceIds.length) return;
+  const missed = sourceIds.filter((id) => !outputContent.includes(id));
+  if (missed.length) {
+    missing.push(`${label}未继承：${missed.slice(0, 12).join("、")}${missed.length > 12 ? "…" : ""}`);
+  }
+}
+
 function hasAny(content: string, patterns: Array<string | RegExp>): boolean {
   return patterns.some((pattern) => typeof pattern === "string" ? content.includes(pattern) : pattern.test(content));
 }
@@ -127,7 +141,7 @@ export function validatePrdVisualFormat(content: string): PrdVisualValidationRes
   return { valid: missing.length === 0, missing };
 }
 
-export function validateRequirementsFormat(content: string): DocumentValidationResult {
+export function validateRequirementsFormat(content: string, sourceContent?: string): DocumentValidationResult {
   const missing: string[] = [];
 
   if (!/\bREQ-\d{3,}\b/.test(content)) missing.push("需求编号 REQ-001");
@@ -141,11 +155,12 @@ export function validateRequirementsFormat(content: string): DocumentValidationR
   if (!hasAny(content, ["异常流程", "异常分支", "失败路径"])) missing.push("异常流程");
   if (!hasAny(content, ["边界行为", "边界场景", "边界条件"])) missing.push("边界行为");
   if (!hasAny(content, ["TBD", "待确认"])) missing.push("TBD/待确认事项");
+  addMissingSourceIds(missing, "PRD 编号", sourceContent, content, /\bPRD-F-\d{3,}\b/g);
 
   return { valid: missing.length === 0, missing };
 }
 
-export function validateUiDesignFormat(content: string): DocumentValidationResult {
+export function validateUiDesignFormat(content: string, sourceContent?: string): DocumentValidationResult {
   const missing: string[] = [];
 
   if (!/\bUI-P\d{2,}\b/.test(content)) missing.push("页面编号 UI-P01");
@@ -160,11 +175,12 @@ export function validateUiDesignFormat(content: string): DocumentValidationResul
   if (!hasAny(content, ["错误态", "异常态"])) missing.push("错误态");
   if (!hasAny(content, ["组件列表"])) missing.push("组件列表");
   if (!hasAny(content, ["交互说明"])) missing.push("交互说明");
+  addMissingSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g);
 
   return { valid: missing.length === 0, missing };
 }
 
-export function validateDesignFormat(content: string): DocumentValidationResult {
+export function validateDesignFormat(content: string, sourceContent?: string): DocumentValidationResult {
   const missing: string[] = [];
 
   if (!/\bAPI-\d{3,}\b/.test(content)) missing.push("API 编号 API-001");
@@ -180,15 +196,17 @@ export function validateDesignFormat(content: string): DocumentValidationResult 
   if (!hasAny(content, ["权限设计"])) missing.push("权限设计");
   if (!hasAny(content, ["测试方案"])) missing.push("测试方案");
   if (!hasAny(content, ["开发任务拆分", "任务拆分"])) missing.push("开发任务拆分");
+  addMissingSourceIds(missing, "REQ 编号", sourceContent, content, /\bREQ-\d{3,}\b/g);
+  addMissingSourceIds(missing, "UI 编号", sourceContent, content, /\bUI-P\d{2,}\b/g);
 
   return { valid: missing.length === 0, missing };
 }
 
-export function validateGeneratedDocumentFormat(docType: DocType, content: string): DocumentValidationResult {
+export function validateGeneratedDocumentFormat(docType: DocType, content: string, sourceContent?: string): DocumentValidationResult {
   if (docType === "prd") return validatePrdVisualFormat(content);
-  if (docType === "requirements") return validateRequirementsFormat(content);
-  if (docType === "ui") return validateUiDesignFormat(content);
-  if (docType === "design") return validateDesignFormat(content);
+  if (docType === "requirements") return validateRequirementsFormat(content, sourceContent);
+  if (docType === "ui") return validateUiDesignFormat(content, sourceContent);
+  if (docType === "design") return validateDesignFormat(content, sourceContent);
   return { valid: true, missing: [] };
 }
 

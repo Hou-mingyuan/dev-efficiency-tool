@@ -252,10 +252,11 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
     const docType = req.docType as DocType;
     if (["prd", "requirements", "ui", "design"].includes(docType)) {
+      const sourceContent = [req.userContent, req.referenceContent, projectContext].filter(Boolean).join("\n\n");
       currentAbortController = abortController;
       try {
         for (let attempt = 1; attempt <= 2; attempt++) {
-          const validation = validateGeneratedDocumentFormat(docType, result);
+          const validation = validateGeneratedDocumentFormat(docType, result, sourceContent);
           if (validation.valid) break;
           appManager()?.addLog(
             "warn",
@@ -266,7 +267,7 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
           result = await aiService.generate(provider, repairPrompt.system, repairPrompt.user, images, abortController.signal, 20000);
         }
 
-        const finalValidation = validateGeneratedDocumentFormat(docType, result);
+        const finalValidation = validateGeneratedDocumentFormat(docType, result, sourceContent);
         if (!finalValidation.valid) {
           throw new Error(currentLocale() === "zh"
             ? `${docType} 生成结果结构校验未通过：${finalValidation.missing.join("、")}。请重新生成或补充输入后再试。`
