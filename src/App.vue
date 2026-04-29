@@ -67,6 +67,7 @@ type MatrixCell = {
 };
 
 let codeMatrixFrame = 0;
+let codeMatrixTimer = 0;
 let codeMatrixLastFrame = 0;
 let codeMatrixCells: MatrixCell[] = [];
 let codeMatrixCols = 0;
@@ -74,6 +75,7 @@ let codeMatrixRows = 0;
 let codeMatrixDpr = 1;
 let codeMatrixResizeTimer = 0;
 let codeMatrixInteractionUntil = 0;
+let codeMatrixLastInteractionMark = 0;
 let codeMatrixAdaptivePenalty = 0;
 const codeMatrixCellWidth = 14;
 const codeMatrixCellHeight = 20;
@@ -86,8 +88,28 @@ const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatr
 
 const isCodeMatrixBusy = () => performance.now() < codeMatrixInteractionUntil || route.path.startsWith("/gen/");
 
+const getCodeMatrixFrameDelay = () => {
+  const busy = isCodeMatrixBusy();
+  return busy
+    ? codeMatrixBusyFrameInterval + codeMatrixAdaptivePenalty
+    : codeMatrixBaseFrameInterval + codeMatrixAdaptivePenalty;
+};
+
+const scheduleCodeMatrixFrame = (delay = getCodeMatrixFrameDelay()) => {
+  if (codeMatrixFrame || codeMatrixTimer || !isShellRoute.value || document.hidden || !document.hasFocus()) return;
+  codeMatrixTimer = window.setTimeout(() => {
+    codeMatrixTimer = 0;
+    if (!codeMatrixFrame && isShellRoute.value && !document.hidden && document.hasFocus()) {
+      codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
+    }
+  }, Math.max(0, delay));
+};
+
 const markCodeMatrixInteraction = () => {
-  codeMatrixInteractionUntil = performance.now() + 1800;
+  const now = performance.now();
+  if (now - codeMatrixLastInteractionMark < 160) return;
+  codeMatrixLastInteractionMark = now;
+  codeMatrixInteractionUntil = now + 1800;
 };
 
 const createMatrixCell = (): MatrixCell => ({
@@ -168,17 +190,17 @@ const scheduleCodeMatrixResize = () => {
 };
 
 const drawCodeMatrix = (now: number) => {
+  codeMatrixFrame = 0;
   const canvas = codeMatrixCanvas.value;
   const ctx = canvas?.getContext("2d", { alpha: true, desynchronized: true });
   if (!canvas || !ctx) return;
 
-  codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
   if (document.hidden || !document.hasFocus()) return;
   const busy = isCodeMatrixBusy();
-  const frameInterval = busy
-    ? codeMatrixBusyFrameInterval + codeMatrixAdaptivePenalty
-    : codeMatrixBaseFrameInterval + codeMatrixAdaptivePenalty;
-  if (now - codeMatrixLastFrame < frameInterval) return;
+  if (now - codeMatrixLastFrame < getCodeMatrixFrameDelay()) {
+    scheduleCodeMatrixFrame(getCodeMatrixFrameDelay() - (now - codeMatrixLastFrame));
+    return;
+  }
   codeMatrixLastFrame = now;
 
   const drawStart = performance.now();
@@ -205,20 +227,29 @@ const drawCodeMatrix = (now: number) => {
   } else if (drawCost < 1.2 && codeMatrixAdaptivePenalty > 0) {
     codeMatrixAdaptivePenalty = Math.max(codeMatrixAdaptivePenalty - 12, 0);
   }
+  scheduleCodeMatrixFrame();
 };
 
 const startCodeMatrix = async () => {
   await nextTick();
-  if (!isShellRoute.value || !codeMatrixCanvas.value || codeMatrixFrame) return;
-  resizeCodeMatrix();
-  codeMatrixLastFrame = 0;
-  codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
+  if (!isShellRoute.value || !codeMatrixCanvas.value || codeMatrixFrame || codeMatrixTimer) return;
+  if (codeMatrixCells.length === 0) {
+    resizeCodeMatrix();
+  } else {
+    paintCodeMatrix();
+  }
+  codeMatrixLastFrame = performance.now();
+  scheduleCodeMatrixFrame(120);
 };
 
 const stopCodeMatrix = () => {
   if (codeMatrixFrame) {
     cancelAnimationFrame(codeMatrixFrame);
     codeMatrixFrame = 0;
+  }
+  if (codeMatrixTimer) {
+    window.clearTimeout(codeMatrixTimer);
+    codeMatrixTimer = 0;
   }
 };
 
