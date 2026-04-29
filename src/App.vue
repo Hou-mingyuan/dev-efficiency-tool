@@ -72,16 +72,27 @@ let codeMatrixCells: MatrixCell[] = [];
 let codeMatrixCols = 0;
 let codeMatrixRows = 0;
 let codeMatrixDpr = 1;
-const codeMatrixCellWidth = 12;
-const codeMatrixCellHeight = 18;
-const codeMatrixFrameInterval = 96;
-const codeMatrixBatchSize = 84;
+let codeMatrixResizeTimer = 0;
+let codeMatrixInteractionUntil = 0;
+let codeMatrixAdaptivePenalty = 0;
+const codeMatrixCellWidth = 14;
+const codeMatrixCellHeight = 20;
+const codeMatrixBaseFrameInterval = 150;
+const codeMatrixBusyFrameInterval = 420;
+const codeMatrixBaseBatchSize = 42;
+const codeMatrixBusyBatchSize = 6;
 
 const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatrixChars.length)] ?? "0";
 
+const isCodeMatrixBusy = () => performance.now() < codeMatrixInteractionUntil || route.path.startsWith("/gen/");
+
+const markCodeMatrixInteraction = () => {
+  codeMatrixInteractionUntil = performance.now() + 1800;
+};
+
 const createMatrixCell = (): MatrixCell => ({
   char: randomCodeChar(),
-  alpha: 0.025 + Math.random() * 0.055,
+  alpha: 0.02 + Math.random() * 0.045,
   tint: Math.random(),
 });
 
@@ -91,7 +102,7 @@ const setCodeMatrixFont = (ctx: CanvasRenderingContext2D) => {
 };
 
 const getCodeMatrixFill = (cell: MatrixCell, boost = 1) => {
-  const alpha = Math.min(cell.alpha * boost, 0.18);
+  const alpha = Math.min(cell.alpha * boost, 0.14);
   if (cell.tint > 0.9) return `rgba(216, 255, 122, ${alpha})`;
   if (cell.tint > 0.76) return `rgba(96, 165, 250, ${alpha * 0.9})`;
   if (cell.tint > 0.6) return `rgba(103, 232, 249, ${alpha * 0.78})`;
@@ -138,7 +149,7 @@ const resizeCodeMatrix = () => {
 
   const width = Math.max(window.innerWidth, 1);
   const height = Math.max(window.innerHeight, 1);
-  codeMatrixDpr = Math.min(window.devicePixelRatio || 1, 1.25);
+  codeMatrixDpr = 1;
   canvas.width = Math.floor(width * codeMatrixDpr);
   canvas.height = Math.floor(height * codeMatrixDpr);
   canvas.style.width = `${width}px`;
@@ -149,28 +160,50 @@ const resizeCodeMatrix = () => {
   paintCodeMatrix();
 };
 
+const scheduleCodeMatrixResize = () => {
+  window.clearTimeout(codeMatrixResizeTimer);
+  codeMatrixResizeTimer = window.setTimeout(() => {
+    resizeCodeMatrix();
+  }, 180);
+};
+
 const drawCodeMatrix = (now: number) => {
   const canvas = codeMatrixCanvas.value;
   const ctx = canvas?.getContext("2d", { alpha: true, desynchronized: true });
   if (!canvas || !ctx) return;
 
   codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
-  if (document.hidden || now - codeMatrixLastFrame < codeMatrixFrameInterval) return;
+  if (document.hidden || !document.hasFocus()) return;
+  const busy = isCodeMatrixBusy();
+  const frameInterval = busy
+    ? codeMatrixBusyFrameInterval + codeMatrixAdaptivePenalty
+    : codeMatrixBaseFrameInterval + codeMatrixAdaptivePenalty;
+  if (now - codeMatrixLastFrame < frameInterval) return;
   codeMatrixLastFrame = now;
 
+  const drawStart = performance.now();
   ctx.setTransform(codeMatrixDpr, 0, 0, codeMatrixDpr, 0, 0);
   setCodeMatrixFont(ctx);
 
   const total = codeMatrixCells.length;
-  const batchSize = Math.min(codeMatrixBatchSize, Math.max(24, Math.floor(total * 0.008)));
+  const baseBatch = busy ? codeMatrixBusyBatchSize : codeMatrixBaseBatchSize;
+  const adaptiveBatch = Math.max(4, Math.floor(baseBatch * (1 - Math.min(codeMatrixAdaptivePenalty, 220) / 320)));
+  const batchSize = Math.min(adaptiveBatch, Math.max(4, Math.floor(total * (busy ? 0.0015 : 0.005))));
   for (let i = 0; i < batchSize; i += 1) {
     const index = Math.floor(Math.random() * total);
     const cell = codeMatrixCells[index];
     if (!cell) continue;
     cell.char = randomCodeChar();
-    cell.alpha = 0.025 + Math.random() * (Math.random() > 0.82 ? 0.12 : 0.065);
+    cell.alpha = 0.02 + Math.random() * (Math.random() > 0.86 ? 0.09 : 0.05);
     cell.tint = Math.random();
-    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, 1.08);
+    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, busy ? 0.82 : 1);
+  }
+
+  const drawCost = performance.now() - drawStart;
+  if (drawCost > 3.4) {
+    codeMatrixAdaptivePenalty = Math.min(codeMatrixAdaptivePenalty + 36, 260);
+  } else if (drawCost < 1.2 && codeMatrixAdaptivePenalty > 0) {
+    codeMatrixAdaptivePenalty = Math.max(codeMatrixAdaptivePenalty - 12, 0);
   }
 };
 
@@ -190,7 +223,7 @@ const stopCodeMatrix = () => {
 };
 
 const handleCodeMatrixVisibility = () => {
-  if (document.hidden) return;
+  if (document.hidden || !document.hasFocus()) return;
   paintCodeMatrix();
   void startCodeMatrix();
 };
@@ -494,8 +527,13 @@ onMounted(() => {
   }
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
-  window.addEventListener("resize", resizeCodeMatrix);
+  window.addEventListener("resize", scheduleCodeMatrixResize);
   window.addEventListener("keydown", onKeydown);
+  window.addEventListener("keydown", markCodeMatrixInteraction, { passive: true });
+  window.addEventListener("pointermove", markCodeMatrixInteraction, { passive: true });
+  window.addEventListener("wheel", markCodeMatrixInteraction, { passive: true });
+  window.addEventListener("focus", handleCodeMatrixVisibility);
+  window.addEventListener("blur", markCodeMatrixInteraction);
   document.addEventListener("visibilitychange", handleCodeMatrixVisibility);
   void startCodeMatrix();
   removeUpdateListener = window.electronAPI?.app.onUpdateAvailable((info) => {
@@ -510,10 +548,16 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopCodeMatrix();
+  window.clearTimeout(codeMatrixResizeTimer);
   document.removeEventListener("visibilitychange", handleCodeMatrixVisibility);
-  window.removeEventListener("resize", resizeCodeMatrix);
+  window.removeEventListener("resize", scheduleCodeMatrixResize);
   window.removeEventListener("resize", checkScreenSize);
   window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("keydown", markCodeMatrixInteraction);
+  window.removeEventListener("pointermove", markCodeMatrixInteraction);
+  window.removeEventListener("wheel", markCodeMatrixInteraction);
+  window.removeEventListener("focus", handleCodeMatrixVisibility);
+  window.removeEventListener("blur", markCodeMatrixInteraction);
   window.removeEventListener("online", handleOnline);
   window.removeEventListener("offline", handleOffline);
   removeUpdateListener?.();
