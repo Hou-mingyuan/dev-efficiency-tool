@@ -63,8 +63,6 @@ const codeMatrixCanvas = ref<HTMLCanvasElement | null>(null);
 type MatrixCell = {
   char: string;
   alpha: number;
-  targetAlpha: number;
-  nextAt: number;
   tint: number;
 };
 
@@ -74,18 +72,65 @@ let codeMatrixCells: MatrixCell[] = [];
 let codeMatrixCols = 0;
 let codeMatrixRows = 0;
 let codeMatrixDpr = 1;
-const codeMatrixCellWidth = 10;
-const codeMatrixCellHeight = 16;
+const codeMatrixCellWidth = 12;
+const codeMatrixCellHeight = 18;
+const codeMatrixFrameInterval = 96;
+const codeMatrixBatchSize = 84;
 
 const randomCodeChar = () => codeMatrixChars[Math.floor(Math.random() * codeMatrixChars.length)] ?? "0";
 
-const createMatrixCell = (now: number): MatrixCell => ({
+const createMatrixCell = (): MatrixCell => ({
   char: randomCodeChar(),
-  alpha: 0.03 + Math.random() * 0.08,
-  targetAlpha: 0.04 + Math.random() * 0.12,
-  nextAt: now + Math.random() * 900,
+  alpha: 0.025 + Math.random() * 0.055,
   tint: Math.random(),
 });
+
+const setCodeMatrixFont = (ctx: CanvasRenderingContext2D) => {
+  ctx.font = "700 13px Consolas, 'SFMono-Regular', 'Courier New', monospace";
+  ctx.textBaseline = "top";
+};
+
+const getCodeMatrixFill = (cell: MatrixCell, boost = 1) => {
+  const alpha = Math.min(cell.alpha * boost, 0.18);
+  if (cell.tint > 0.9) return `rgba(216, 255, 122, ${alpha})`;
+  if (cell.tint > 0.76) return `rgba(96, 165, 250, ${alpha * 0.9})`;
+  if (cell.tint > 0.6) return `rgba(103, 232, 249, ${alpha * 0.78})`;
+  return `rgba(226, 232, 240, ${alpha * 0.68})`;
+};
+
+const drawCodeMatrixCell = (
+  ctx: CanvasRenderingContext2D,
+  cell: MatrixCell,
+  row: number,
+  col: number,
+  boost = 1,
+) => {
+  const x = col * codeMatrixCellWidth + (row % 2 === 0 ? -14 : -4);
+  const y = row * codeMatrixCellHeight - 16;
+  ctx.clearRect(x - 1, y - 1, codeMatrixCellWidth + 3, codeMatrixCellHeight + 2);
+  ctx.fillStyle = getCodeMatrixFill(cell, boost);
+  ctx.fillText(cell.char, x, y);
+};
+
+const paintCodeMatrix = () => {
+  const canvas = codeMatrixCanvas.value;
+  const ctx = canvas?.getContext("2d", { alpha: true, desynchronized: true });
+  if (!canvas || !ctx) return;
+
+  const width = canvas.width / codeMatrixDpr;
+  const height = canvas.height / codeMatrixDpr;
+  ctx.setTransform(codeMatrixDpr, 0, 0, codeMatrixDpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  setCodeMatrixFont(ctx);
+
+  for (let row = 0; row < codeMatrixRows; row += 1) {
+    const rowOffset = row * codeMatrixCols;
+    for (let col = 0; col < codeMatrixCols; col += 1) {
+      const cell = codeMatrixCells[rowOffset + col];
+      if (cell) drawCodeMatrixCell(ctx, cell, row, col);
+    }
+  }
+};
 
 const resizeCodeMatrix = () => {
   const canvas = codeMatrixCanvas.value;
@@ -93,67 +138,39 @@ const resizeCodeMatrix = () => {
 
   const width = Math.max(window.innerWidth, 1);
   const height = Math.max(window.innerHeight, 1);
-  codeMatrixDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  codeMatrixDpr = Math.min(window.devicePixelRatio || 1, 1.25);
   canvas.width = Math.floor(width * codeMatrixDpr);
   canvas.height = Math.floor(height * codeMatrixDpr);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  codeMatrixCols = Math.ceil(width / codeMatrixCellWidth) + 12;
-  codeMatrixRows = Math.ceil(height / codeMatrixCellHeight) + 6;
-  const now = performance.now();
-  codeMatrixCells = Array.from({ length: codeMatrixCols * codeMatrixRows }, () => createMatrixCell(now));
+  codeMatrixCols = Math.ceil(width / codeMatrixCellWidth) + 8;
+  codeMatrixRows = Math.ceil(height / codeMatrixCellHeight) + 4;
+  codeMatrixCells = Array.from({ length: codeMatrixCols * codeMatrixRows }, () => createMatrixCell());
+  paintCodeMatrix();
 };
 
 const drawCodeMatrix = (now: number) => {
   const canvas = codeMatrixCanvas.value;
-  const ctx = canvas?.getContext("2d");
+  const ctx = canvas?.getContext("2d", { alpha: true, desynchronized: true });
   if (!canvas || !ctx) return;
 
   codeMatrixFrame = requestAnimationFrame(drawCodeMatrix);
-  if (now - codeMatrixLastFrame < 45) return;
+  if (document.hidden || now - codeMatrixLastFrame < codeMatrixFrameInterval) return;
   codeMatrixLastFrame = now;
 
-  const width = canvas.width / codeMatrixDpr;
-  const height = canvas.height / codeMatrixDpr;
   ctx.setTransform(codeMatrixDpr, 0, 0, codeMatrixDpr, 0, 0);
-  ctx.clearRect(0, 0, width, height);
-  ctx.font = "700 13px Consolas, 'SFMono-Regular', 'Courier New', monospace";
-  ctx.textBaseline = "top";
+  setCodeMatrixFont(ctx);
 
-  for (let row = 0; row < codeMatrixRows; row += 1) {
-    const rowOffset = row * codeMatrixCols;
-    const y = row * codeMatrixCellHeight - 18;
-    const staggerX = row % 2 === 0 ? -18 : -6;
-
-    for (let col = 0; col < codeMatrixCols; col += 1) {
-      const cell = codeMatrixCells[rowOffset + col];
-      if (!cell) continue;
-
-      if (now >= cell.nextAt) {
-        cell.char = randomCodeChar();
-        cell.targetAlpha = 0.035 + Math.random() * (Math.random() > 0.86 ? 0.2 : 0.1);
-        cell.nextAt = now + 70 + Math.random() * 720;
-        cell.tint = Math.random();
-      }
-
-      cell.alpha += (cell.targetAlpha - cell.alpha) * 0.18;
-      cell.targetAlpha *= 0.986;
-
-      const x = col * codeMatrixCellWidth + staggerX;
-      const alpha = Math.min(cell.alpha, 0.24);
-      if (alpha < 0.012) continue;
-
-      if (cell.tint > 0.88) {
-        ctx.fillStyle = `rgba(216, 255, 122, ${alpha})`;
-      } else if (cell.tint > 0.72) {
-        ctx.fillStyle = `rgba(96, 165, 250, ${alpha * 0.9})`;
-      } else if (cell.tint > 0.58) {
-        ctx.fillStyle = `rgba(103, 232, 249, ${alpha * 0.78})`;
-      } else {
-        ctx.fillStyle = `rgba(226, 232, 240, ${alpha * 0.72})`;
-      }
-      ctx.fillText(cell.char, x, y);
-    }
+  const total = codeMatrixCells.length;
+  const batchSize = Math.min(codeMatrixBatchSize, Math.max(24, Math.floor(total * 0.008)));
+  for (let i = 0; i < batchSize; i += 1) {
+    const index = Math.floor(Math.random() * total);
+    const cell = codeMatrixCells[index];
+    if (!cell) continue;
+    cell.char = randomCodeChar();
+    cell.alpha = 0.025 + Math.random() * (Math.random() > 0.82 ? 0.12 : 0.065);
+    cell.tint = Math.random();
+    drawCodeMatrixCell(ctx, cell, Math.floor(index / codeMatrixCols), index % codeMatrixCols, 1.08);
   }
 };
 
@@ -170,6 +187,12 @@ const stopCodeMatrix = () => {
     cancelAnimationFrame(codeMatrixFrame);
     codeMatrixFrame = 0;
   }
+};
+
+const handleCodeMatrixVisibility = () => {
+  if (document.hidden) return;
+  paintCodeMatrix();
+  void startCodeMatrix();
 };
 
 const collapsed = ref(false);
@@ -473,6 +496,7 @@ onMounted(() => {
   window.addEventListener("resize", checkScreenSize);
   window.addEventListener("resize", resizeCodeMatrix);
   window.addEventListener("keydown", onKeydown);
+  document.addEventListener("visibilitychange", handleCodeMatrixVisibility);
   void startCodeMatrix();
   removeUpdateListener = window.electronAPI?.app.onUpdateAvailable((info) => {
     const version = extractVersion(info);
@@ -486,6 +510,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopCodeMatrix();
+  document.removeEventListener("visibilitychange", handleCodeMatrixVisibility);
   window.removeEventListener("resize", resizeCodeMatrix);
   window.removeEventListener("resize", checkScreenSize);
   window.removeEventListener("keydown", onKeydown);
