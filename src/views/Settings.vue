@@ -384,13 +384,34 @@ onUnmounted(() => {
 
 .settings-body {
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.16);
+  background:
+    linear-gradient(135deg, rgba(96, 165, 250, 0.055), transparent 38%),
+    linear-gradient(90deg, rgba(216, 255, 122, 0.04), transparent 55%),
+    rgba(4, 8, 14, 0.12);
   backdrop-filter: none;
   border: 0;
-  padding: 6px 0 0;
+  padding: 18px 20px 20px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.028) 1px, transparent 1px);
+    background-size: 38px 38px;
+    opacity: 0.5;
+    mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85), transparent 74%);
+  }
 }
 
 .settings-tabs {
+  position: relative;
+  z-index: 1;
+
   :deep(.ant-tabs-nav) {
     margin-bottom: 24px;
 
@@ -425,7 +446,7 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    color: rgba(148, 163, 184, 0.82);
+    color: rgba(203, 213, 225, 0.78);
   }
   :deep(.ant-tabs-tab-active .ant-tabs-tab-btn) {
     color: var(--app-primary) !important;
@@ -441,9 +462,25 @@ onUnmounted(() => {
   :deep(.ant-collapse),
   :deep(.ant-list),
   :deep(.ant-descriptions-view) {
-    background: rgba(4, 8, 14, 0.18) !important;
+    background:
+      linear-gradient(135deg, rgba(96, 165, 250, 0.04), transparent 42%),
+      rgba(4, 8, 14, 0.2) !important;
     border-color: transparent !important;
     box-shadow: none !important;
+  }
+
+  :deep(.ant-collapse-header),
+  :deep(.ant-card-head-title),
+  :deep(.ant-list-item-meta-title),
+  :deep(.ant-descriptions-item-label) {
+    color: rgba(248, 250, 252, 0.92) !important;
+  }
+
+  :deep(.ant-card-body),
+  :deep(.ant-list-item-meta-description),
+  :deep(.ant-descriptions-item-content),
+  :deep(.ant-collapse-content-box) {
+    color: rgba(203, 213, 225, 0.76) !important;
   }
 }
 

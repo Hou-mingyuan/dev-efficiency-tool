@@ -301,16 +301,31 @@ onUnmounted(() => {
   gap: 10px;
   padding: 14px 20px;
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.16);
+  background:
+    linear-gradient(90deg, rgba(96, 165, 250, 0.065), transparent 62%),
+    rgba(4, 8, 14, 0.14);
   backdrop-filter: none;
   border: 0;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.28), transparent 78%);
+    opacity: 0.8;
+  }
 
   &__stats {
     font-size: 12px;
     font-family: var(--app-font-mono);
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: rgba(148, 163, 184, 0.82);
+    color: rgba(203, 213, 225, 0.76);
     margin-left: auto;
   }
 }
@@ -329,7 +344,11 @@ onUnmounted(() => {
   font-family: var(--app-font-mono);
   font-size: 12px;
   line-height: 1.5;
-  background: rgba(4, 8, 14, 0.18);
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.024) 1px, transparent 1px),
+    rgba(4, 8, 14, 0.16);
+  background-size: 34px 34px, 34px 34px, auto;
   backdrop-filter: none;
 }
 
@@ -342,12 +361,12 @@ onUnmounted(() => {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(148, 163, 184, 0.82);
+  color: rgba(203, 213, 225, 0.78);
   border-bottom: 0;
   position: sticky;
   top: 0;
   z-index: 1;
-  background: rgba(4, 8, 14, 0.28);
+  background: rgba(4, 8, 14, 0.78);
   backdrop-filter: none;
 }
 
@@ -363,18 +382,18 @@ onUnmounted(() => {
   contain-intrinsic-size: auto 36px;
 
   &:hover {
-    background: rgba(96, 165, 250, 0.06);
+    background: rgba(96, 165, 250, 0.08);
   }
   &:nth-child(odd) {
-    background: rgba(255, 255, 255, 0.018);
+    background: rgba(96, 165, 250, 0.025);
     &:hover {
-      background: rgba(96, 165, 250, 0.06);
+      background: rgba(96, 165, 250, 0.08);
     }
   }
 }
 
 .log-time {
-  color: rgba(148, 163, 184, 0.82);
+  color: rgba(203, 213, 225, 0.72);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -386,7 +405,7 @@ onUnmounted(() => {
 }
 
 .log-source {
-  color: var(--app-text-secondary);
+  color: rgba(147, 197, 253, 0.78);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -401,7 +420,7 @@ onUnmounted(() => {
   &--json {
     font-family: var(--app-font-mono);
     font-size: 11px;
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(12, 19, 31, 0.68);
     padding: 4px 8px;
     border-radius: 0;
     border: 0;

@@ -241,7 +241,10 @@ onMounted(() => {
   gap: 16px;
   padding: 20px 24px;
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.18);
+  background:
+    radial-gradient(circle at 10% 20%, rgba(96, 165, 250, 0.12), transparent 32%),
+    linear-gradient(90deg, rgba(216, 255, 122, 0.035), transparent 58%),
+    rgba(4, 8, 14, 0.16);
   backdrop-filter: none;
   border: 0 !important;
   margin-bottom: 20px;
@@ -258,7 +261,7 @@ onMounted(() => {
   }
   &__hint {
     font-size: 12px;
-    color: rgba(148, 163, 184, 0.78);
+    color: rgba(203, 213, 225, 0.74);
     margin-top: 2px;
   }
 }
@@ -266,7 +269,9 @@ onMounted(() => {
 .health-memory-bar {
   padding: 16px 24px;
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.16);
+  background:
+    linear-gradient(90deg, rgba(96, 165, 250, 0.06), transparent 70%),
+    rgba(4, 8, 14, 0.14);
   backdrop-filter: none;
   border: 0;
   margin-bottom: 20px;
@@ -292,14 +297,33 @@ onMounted(() => {
 .health-card {
   padding: 20px;
   border-radius: 0;
-  background: rgba(4, 8, 14, 0.18);
+  background:
+    linear-gradient(135deg, rgba(96, 165, 250, 0.05), transparent 42%),
+    rgba(4, 8, 14, 0.18);
   backdrop-filter: none;
   border: 0;
   transition: all var(--app-transition);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.18), transparent 56%);
+    height: 1px;
+    opacity: 0;
+    transition: opacity var(--app-transition);
+  }
 
   &:hover {
     box-shadow: 0 0 28px color-mix(in srgb, var(--app-primary) 10%, transparent);
     transform: translateY(-2px);
+
+    &::before {
+      opacity: 1;
+    }
   }
 
   &__top {
@@ -344,7 +368,7 @@ onMounted(() => {
 
   &__label {
     font-size: 12px;
-    color: rgba(148, 163, 184, 0.82);
+    color: rgba(203, 213, 225, 0.74);
     font-family: var(--app-font-mono);
     font-weight: 800;
     text-transform: uppercase;
@@ -355,7 +379,7 @@ onMounted(() => {
   &__value {
     font-size: 14px;
     font-weight: 800;
-    color: var(--app-text);
+    color: rgba(248, 250, 252, 0.92);
     word-break: break-all;
   }
 }
