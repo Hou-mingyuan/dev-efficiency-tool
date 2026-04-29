@@ -77,6 +77,7 @@ let codeMatrixResizeTimer = 0;
 let codeMatrixInteractionUntil = 0;
 let codeMatrixLastInteractionMark = 0;
 let codeMatrixAdaptivePenalty = 0;
+let shellInteractionTimer = 0;
 const codeMatrixCellWidth = 14;
 const codeMatrixCellHeight = 20;
 const codeMatrixBaseFrameInterval = 150;
@@ -117,11 +118,24 @@ const scheduleCodeMatrixFrame = (delay = getCodeMatrixFrameDelay()) => {
   }, Math.max(0, delay));
 };
 
+const setShellInteractionMode = () => {
+  const root = document.documentElement;
+  if (!root.classList.contains("app-is-interacting")) {
+    root.classList.add("app-is-interacting");
+  }
+  window.clearTimeout(shellInteractionTimer);
+  shellInteractionTimer = window.setTimeout(() => {
+    root.classList.remove("app-is-interacting");
+    shellInteractionTimer = 0;
+  }, 1400);
+};
+
 const markCodeMatrixInteraction = () => {
   const now = performance.now();
   if (now - codeMatrixLastInteractionMark < 160) return;
   codeMatrixLastInteractionMark = now;
   codeMatrixInteractionUntil = now + 1800;
+  setShellInteractionMode();
 };
 
 const createMatrixCell = (): MatrixCell => ({
@@ -594,6 +608,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopCodeMatrix();
+  window.clearTimeout(shellInteractionTimer);
+  document.documentElement.classList.remove("app-is-interacting");
   window.clearTimeout(codeMatrixResizeTimer);
   document.removeEventListener("visibilitychange", handleCodeMatrixVisibility);
   window.removeEventListener("resize", scheduleCodeMatrixResize);
@@ -1349,6 +1365,16 @@ onBeforeUnmount(() => {
   top: 40%;
   right: 30%;
   animation-delay: -14s;
+}
+
+:global(html.app-is-interacting) .app-layout::after,
+:global(html.app-is-interacting) .app-orb {
+  animation-play-state: paused;
+}
+
+:global(html.app-is-interacting) .app-orb {
+  opacity: 0.06;
+  transition: opacity 0.18s ease;
 }
 
 @keyframes orbFloat {
