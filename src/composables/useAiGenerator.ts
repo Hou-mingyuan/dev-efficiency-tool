@@ -52,6 +52,7 @@ export type DocType = "prd" | "requirements" | "ui" | "design";
 
 type AiChunkEvent = { requestId?: string; chunk: string } | string;
 type AiDoneEvent = { requestId?: string; content: string; recordId: string } | string;
+type AiValidationEvent = { requestId?: string; stage: string; message: string; missing?: string[]; attempt?: number };
 
 function isIpcError(value: unknown): value is IpcErrorResult {
   return (
@@ -85,6 +86,7 @@ export function useAiGenerator(docType: DocType) {
   const renderedHtml = ref("");
   const generating = ref(false);
   const lastRecordId = ref("");
+  const validationLogs = ref<Array<{ stage: string; message: string; missing: string[]; attempt?: number }>>([]);
 
   const customProviderId = ref("");
   const customOutputPath = ref("");
@@ -195,6 +197,7 @@ export function useAiGenerator(docType: DocType) {
 
   let cleanupChunk: (() => void) | null = null;
   let cleanupDone: (() => void) | null = null;
+  let cleanupValidation: (() => void) | null = null;
   let activeRequestId: string | null = null;
   let renderRafId: number | null = null;
   let pendingRender = false;
@@ -222,7 +225,7 @@ export function useAiGenerator(docType: DocType) {
   function setupListeners() {
     const api = window.electronAPI;
     if (!api) return;
-    if (cleanupChunk || cleanupDone) return;
+    if (cleanupChunk || cleanupDone || cleanupValidation) return;
     cleanupChunk = api.ai.onChunk((event: AiChunkEvent) => {
       const requestId = typeof event === "string" ? undefined : event.requestId;
       if (!activeRequestId || requestId !== activeRequestId) return;
@@ -246,13 +249,27 @@ export function useAiGenerator(docType: DocType) {
       activeRequestId = null;
       clearDraft();
     });
+    cleanupValidation = api.ai.onValidation((event: AiValidationEvent) => {
+      if (!activeRequestId || event.requestId !== activeRequestId) return;
+      validationLogs.value = [
+        ...validationLogs.value,
+        {
+          stage: event.stage,
+          message: event.message,
+          missing: Array.isArray(event.missing) ? event.missing : [],
+          attempt: event.attempt,
+        },
+      ];
+    });
   }
 
   function teardownListeners() {
     if (cleanupChunk) window.electronAPI?.ai.offChunk(cleanupChunk);
     if (cleanupDone) window.electronAPI?.ai.offDone(cleanupDone);
+    if (cleanupValidation) window.electronAPI?.ai.offValidation(cleanupValidation);
     cleanupChunk = null;
     cleanupDone = null;
+    cleanupValidation = null;
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -443,6 +460,7 @@ export function useAiGenerator(docType: DocType) {
     activeRequestId = createGenerationRequestId(docType);
     result.value = "";
     renderedHtml.value = "";
+    validationLogs.value = [];
     teardownListeners();
     setupListeners();
     try {
@@ -572,6 +590,7 @@ export function useAiGenerator(docType: DocType) {
     renderedHtml,
     generating,
     lastRecordId,
+    validationLogs,
     customProviderId,
     customOutputPath,
     outputFormat,

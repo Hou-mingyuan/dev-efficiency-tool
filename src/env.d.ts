@@ -130,6 +130,8 @@ declare global {
       offChunk: (cleanup?: IpcCleanup) => void;
       onDone: (callback: (event: { requestId?: string; content: string; recordId: string } | string, recordId?: string) => void) => IpcCleanup;
       offDone: (cleanup?: IpcCleanup) => void;
+      onValidation: (callback: (event: { requestId?: string; stage: string; message: string; missing?: string[]; attempt?: number }) => void) => IpcCleanup;
+      offValidation: (cleanup?: IpcCleanup) => void;
       testConnection: (provider: AiProvider) => Promise<unknown>;
       listModels: (provider: AiProvider) => Promise<string[] | IpcErrorResult>;
       analyzeUIPrompt: (req: {

@@ -75,3 +75,6 @@
 - 继续优化维护性：新增 `electron/document-traceability.ts`，将 PRD/需求/UI/详设的追踪规则、格式校验器和修正提示词从 `electron/ai-service.ts` 抽离；`ai-service.ts` 保留 re-export，现有测试和调用保持不变。
 - 新增 `electron/__tests__/document-traceability.spec.ts`，给追踪校验独立模块补充单元测试，覆盖 PRD 图文校验、上游编号/矩阵覆盖和携带上游来源内容的修正 prompt。
 - 验证：`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vitest run electron/__tests__/document-traceability.spec.ts electron/__tests__/ai-service.spec.ts`、`npx vue-tsc --noEmit --skipLibCheck` 均已通过。
+- 继续补齐剩余优化点：主进程新增 `ai:validation` 事件，四个生成页现在会展示结构校验、自动修正、语义审校过程日志；PRD 图片模型配图不再固定追加到末尾，会优先插入业务流程/页面结构相关章节，无法匹配时才进入“PRD 附加图”；结构校验通过后会基于上游输入和参考文档追加“自动一致性审校报告”，用于提示语义遗漏、编号断链和边界/异常缺口。
+- 验证：`npx tsc --noEmit --skipLibCheck -p tsconfig.node.json`、`npx vue-tsc --noEmit --skipLibCheck`、`npx vitest run electron/__tests__/document-traceability.spec.ts electron/__tests__/ai-service.spec.ts` 均已通过。
+- 发布验证：`npm run pack` 已通过，安装包 `release\开发效率提升工具 Setup 0.1.0.exe` 和便携版 `release\开发效率提升工具-0.1.0-portable.exe` 已重新生成。

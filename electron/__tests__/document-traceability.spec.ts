@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDocumentRepairPrompt,
+  buildDocumentSemanticAuditPrompt,
   buildPrdVisualRepairPrompt,
   REQUIREMENTS_TRACEABILITY_RULE,
   validateGeneratedDocumentFormat,
@@ -49,5 +50,18 @@ TBD/待确认事项：审批规则待确认。
     expect(reqPrompt.system).toContain("需求文档结构审校器");
     expect(reqPrompt.system).toContain(REQUIREMENTS_TRACEABILITY_RULE);
     expect(reqPrompt.user).toContain("PRD-F-002 审批订单");
+  });
+
+  it("builds semantic audit prompts for cross-document consistency", () => {
+    const prompt = buildDocumentSemanticAuditPrompt(
+      "design",
+      "## 设计追踪矩阵\nREQ-001 API-001",
+      "上游需求：REQ-001 创建订单",
+    );
+
+    expect(prompt.system).toContain("详细设计文档跨文档一致性审校器");
+    expect(prompt.user).toContain("自动一致性审校报告");
+    expect(prompt.user).toContain("上游需求：REQ-001 创建订单");
+    expect(prompt.user).toContain("## 设计追踪矩阵");
   });
 });

@@ -35,6 +35,7 @@ export const STRICT_REFERENCE_ADHERENCE_RULE = [
 
 export {
   buildDocumentRepairPrompt,
+  buildDocumentSemanticAuditPrompt,
   buildPrdVisualRepairPrompt,
   DESIGN_TRACEABILITY_RULE,
   PRD_VISUAL_OUTPUT_RULE,

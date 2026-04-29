@@ -98,6 +98,8 @@ export interface ElectronAPI {
     offChunk: (cleanup?: IpcCleanup) => void;
     onDone: (callback: (payload: unknown) => void) => IpcCleanup;
     offDone: (cleanup?: IpcCleanup) => void;
+    onValidation: (callback: (payload: unknown) => void) => IpcCleanup;
+    offValidation: (cleanup?: IpcCleanup) => void;
     testConnection: (provider: unknown) => Promise<unknown>;
     listModels: (provider: unknown) => Promise<unknown>;
     analyzeUIPrompt: (req: unknown) => Promise<unknown>;
@@ -178,6 +180,10 @@ const electronAPI: ElectronAPI = {
     },
     onDone: (callback) => listenPayload("ai:done", callback),
     offDone: (cleanup?: IpcCleanup) => {
+      if (cleanup) cleanup();
+    },
+    onValidation: (callback) => listenPayload("ai:validation", callback),
+    offValidation: (cleanup?: IpcCleanup) => {
       if (cleanup) cleanup();
     },
     testConnection: (provider) => invoke("ai:testConnection", provider),

@@ -160,6 +160,16 @@
             {{ t("gen.common.openInWindow") }}
           </a-button>
         </a-space>
+        <div v-if="validationLogs.length" class="validation-log">
+          <div
+            v-for="(log, idx) in validationLogs"
+            :key="idx"
+            class="validation-log__item"
+            :class="`validation-log__item--${log.stage}`"
+          >
+            {{ log.message }}
+          </div>
+        </div>
       </a-card>
 
       <a-card
@@ -264,6 +274,7 @@ const {
   renderedHtml,
   generating,
   lastRecordId,
+  validationLogs,
   customProviderId,
   customOutputPath,
   outputFormat,

@@ -202,6 +202,16 @@
             {{ t("gen.common.openInWindow") }}
           </a-button>
         </a-space>
+        <div v-if="validationLogs.length" class="validation-log">
+          <div
+            v-for="(log, idx) in validationLogs"
+            :key="idx"
+            class="validation-log__item"
+            :class="`validation-log__item--${log.stage}`"
+          >
+            {{ log.message }}
+          </div>
+        </div>
       </a-card>
 
       <a-card
@@ -308,6 +318,7 @@ const {
   renderedHtml,
   generating,
   lastRecordId,
+  validationLogs,
   customProviderId,
   customOutputPath,
   outputFormat,
@@ -535,20 +546,7 @@ async function generatePrdImages() {
       recordId: string;
     };
     prdImageOutputPaths.value = data.savedFiles;
-    const imageMarkdown = [
-      "",
-      "## PRD 附加图",
-      "",
-      ...data.images.flatMap((img) => [
-        `### ${img.name}`,
-        "",
-        `![${img.name}](${img.dataUrl})`,
-        "",
-        `> 已保存到：${img.imagePath}`,
-        "",
-      ]),
-    ].join("\n");
-    result.value = `${result.value.trim()}\n\n${imageMarkdown}`;
+    result.value = insertPrdGeneratedImages(result.value, data.images);
     const raw = marked.parse(result.value) as string;
     renderedHtml.value = DOMPurify.sanitize(raw);
     lastRecordId.value = data.recordId;
@@ -556,6 +554,55 @@ async function generatePrdImages() {
   } finally {
     prdImageGenerating.value = false;
   }
+}
+
+function buildPrdImageMarkdown(img: { name: string; imagePath: string; dataUrl: string }) {
+  return [
+    "",
+    `### ${img.name}`,
+    "",
+    `![${img.name}](${img.dataUrl})`,
+    "",
+    `> 已保存到：${img.imagePath}`,
+    "",
+  ].join("\n");
+}
+
+function insertAfterHeading(content: string, headingPattern: RegExp, markdown: string): { content: string; inserted: boolean } {
+  const lines = content.trim().split(/\r?\n/);
+  const start = lines.findIndex((line) => headingPattern.test(line));
+  if (start < 0) return { content, inserted: false };
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+  const nextLines = [...lines.slice(0, end), markdown.trim(), ...lines.slice(end)];
+  return { content: nextLines.join("\n"), inserted: true };
+}
+
+function insertPrdGeneratedImages(content: string, images: Array<{ name: string; imagePath: string; dataUrl: string }>) {
+  let next = content.trim();
+  const appendix: string[] = [];
+  for (const img of images) {
+    const markdown = buildPrdImageMarkdown(img);
+    const name = img.name.toLowerCase();
+    const target = name.includes("业务") || name.includes("business")
+      ? /^(##+)\s+.*(业务流程|流程|图文对照).*$/i
+      : /^(##+)\s+.*(页面结构|页面|界面|用户交互|交互).*$/i;
+    const inserted = insertAfterHeading(next, target, markdown);
+    if (inserted.inserted) {
+      next = inserted.content;
+    } else {
+      appendix.push(markdown);
+    }
+  }
+  if (appendix.length) {
+    next = `${next}\n\n## PRD 附加图\n${appendix.join("\n")}`;
+  }
+  return next;
 }
 
 const historyOpen = ref(false);

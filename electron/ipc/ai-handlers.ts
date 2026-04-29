@@ -5,6 +5,7 @@ import type { AppManager, AiProvider } from "../app-manager";
 import {
   AiService,
   buildDocumentRepairPrompt,
+  buildDocumentSemanticAuditPrompt,
   buildDirectUIImagePrompt,
   buildPrompt,
   buildUIAnalyzePrompt,
@@ -232,6 +233,9 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
     const requestId = typeof req.requestId === "string" && req.requestId.trim()
       ? req.requestId.trim()
       : randomUUID();
+    const sendValidation = (payload: Record<string, unknown>) => {
+      if (win && !win.isDestroyed()) win.webContents.send("ai:validation", { requestId, ...payload });
+    };
 
     const images = req.images as ImageInput;
 
@@ -258,6 +262,14 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
         for (let attempt = 1; attempt <= 2; attempt++) {
           const validation = validateGeneratedDocumentFormat(docType, result, sourceContent);
           if (validation.valid) break;
+          sendValidation({
+            stage: "repairing",
+            attempt,
+            missing: validation.missing,
+            message: currentLocale() === "zh"
+              ? `结构校验未通过，正在自动修正第 ${attempt} 次：${validation.missing.join("、")}`
+              : `Structure validation failed. Auto-repair attempt ${attempt}: ${validation.missing.join(", ")}`,
+          });
           appManager()?.addLog(
             "warn",
             `${docType} 生成结果结构校验未通过，尝试自动修正第 ${attempt} 次: ${validation.missing.join("、")}`,
@@ -269,9 +281,36 @@ export function registerAiHandlers(options: RegisterAiHandlersOptions): void {
 
         const finalValidation = validateGeneratedDocumentFormat(docType, result, sourceContent);
         if (!finalValidation.valid) {
+          sendValidation({
+            stage: "failed",
+            missing: finalValidation.missing,
+            message: currentLocale() === "zh"
+              ? `结构校验仍未通过：${finalValidation.missing.join("、")}`
+              : `Structure validation still failed: ${finalValidation.missing.join(", ")}`,
+          });
           throw new Error(currentLocale() === "zh"
             ? `${docType} 生成结果结构校验未通过：${finalValidation.missing.join("、")}。请重新生成或补充输入后再试。`
             : `${docType} output structure validation failed: ${finalValidation.missing.join(", ")}. Please regenerate or refine the input.`);
+        }
+        sendValidation({
+          stage: "passed",
+          missing: [],
+          message: currentLocale() === "zh" ? "结构校验已通过" : "Structure validation passed",
+        });
+        if (sourceContent.trim()) {
+          sendValidation({
+            stage: "auditing",
+            missing: [],
+            message: currentLocale() === "zh" ? "正在进行跨文档语义一致性审校" : "Running semantic consistency audit",
+          });
+          const auditPrompt = buildDocumentSemanticAuditPrompt(docType, result, sourceContent);
+          const audit = await aiService.generate(provider, auditPrompt.system, auditPrompt.user, images, abortController.signal, 4096);
+          result = `${result.trim()}\n\n---\n\n${audit.trim()}`;
+          sendValidation({
+            stage: "audited",
+            missing: [],
+            message: currentLocale() === "zh" ? "跨文档语义一致性审校已完成" : "Semantic consistency audit completed",
+          });
         }
       } catch (err: unknown) {
         if (abortController.signal.aborted) throw new Error(currentLocale() === "zh" ? "已停止生成" : "Generation stopped");

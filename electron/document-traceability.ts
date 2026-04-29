@@ -255,3 +255,38 @@ export function buildDocumentRepairPrompt(docType: TraceableDocType, content: st
     ].join("\n"),
   };
 }
+
+export function buildDocumentSemanticAuditPrompt(docType: TraceableDocType, content: string, sourceContent: string): { system: string; user: string } {
+  const label = docType === "prd"
+    ? "PRD"
+    : docType === "requirements"
+      ? "需求文档"
+      : docType === "ui"
+        ? "UI 设计文档"
+        : "详细设计文档";
+
+  return {
+    system: [
+      `你是严格的${label}跨文档一致性审校器。`,
+      "你的任务是对比上游来源内容和生成结果，找出语义遗漏、编号断链、范围偏差、异常/边界遗漏。",
+      "只输出 Markdown 审校报告，不要改写原文，不要输出无关解释。",
+      "如果没有发现问题，也必须输出“未发现明显遗漏”。",
+    ].join("\n"),
+    user: [
+      "请审校以下生成结果是否完整承接上游来源内容。",
+      "",
+      "审校输出结构：",
+      "## 自动一致性审校报告",
+      "- 编号继承：列出断链或未承接编号；没有则写“未发现明显遗漏”。",
+      "- 业务语义：列出上游有但下游缺失或表达偏差的内容；没有则写“未发现明显遗漏”。",
+      "- 边界/异常：列出缺失的异常、边界、权限、失败场景；没有则写“未发现明显遗漏”。",
+      "- 建议补充：给出可以直接追加到文档的简短建议；没有则写“无”。",
+      "",
+      "上游来源内容：",
+      sourceContent.slice(0, 20000),
+      "",
+      "生成结果：",
+      content.slice(0, 30000),
+    ].join("\n"),
+  };
+}
